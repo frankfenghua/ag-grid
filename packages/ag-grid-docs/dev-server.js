@@ -14,9 +14,10 @@ const generateExamples = require('./example-generator');
 const lnk = require('lnk').sync;
 const mkdirp = require('mkdir-p').sync;
 
-const EXPRESS_PORT = 8080;
-const PHP_PORT = 8888;
-const HOST = '127.0.0.1';
+const EXPRESS_PORT = 7080;
+const PHP_PORT = 7888;
+// const HOST = '127.0.0.1';
+const HOST = 'localhost';
 const WINDOWS = /^win/.test(os.platform());
 
 const rewrite = require('express-urlrewrite');
@@ -29,7 +30,7 @@ function addWebpackMiddleware(app, configPath, prefix) {
 
     webpackConfig.plugins.push(new realWebpack.DefinePlugin({HMR: useHmr}));
 
-    // remove the HMR plugins - very "hardcoded" approach. 
+    // remove the HMR plugins - very "hardcoded" approach.
     if (!useHmr) {
         webpackConfig.plugins.splice(0, 2);
     }
@@ -52,7 +53,8 @@ function addWebpackMiddleware(app, configPath, prefix) {
 }
 
 function launchPhpCP(app) {
-    const php = cp.spawn('php', ['-S', `${HOST}:${PHP_PORT}`, '-t', 'src'], {
+    let phppath = 'c:/apps/php-7.3.1-nts-Win32-VC15-x64/php';
+    const php = cp.spawn(phppath, ['-S', `${HOST}:${PHP_PORT}`, '-t', 'src'], {
         stdio: ['ignore', 'ignore', 'ignore'],
         env: {AG_DEV: 'true'}
     });
@@ -67,7 +69,8 @@ function launchPhpCP(app) {
         })
     );
 
-    process.on('exit', () => {
+    process.on('exit', (err) => {
+        console.error(err);
         php.kill();
     });
 }
@@ -188,8 +191,8 @@ module.exports = () => {
     addWebpackMiddleware(app, 'react', '/dev/ag-grid-react');
 
     // angular & vue are separate processes
-    serveAndWatchAngular(app);
-    serveAndWatchVue(app);
+    // serveAndWatchAngular(app);
+    // serveAndWatchVue(app);
 
     // regenerate examples
     watchAndGenerateExamples();
