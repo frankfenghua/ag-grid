@@ -81,9 +81,9 @@ CustomHeader.prototype.destroy = function () {
     if (this.onMenuClickListener) {
         this.eMenuButton.removeEventListener('click', this.onMenuClickListener)
     }
-    this.eSortDownButton.removeEventListener('click', this.onSortRequestedListener);
-    this.eSortUpButton.removeEventListener('click', this.onSortRequestedListener);
-    this.eSortRemoveButton.removeEventListener('click', this.onSortRequestedListener);
+    this.eSortDownButton.removeEventListener('click', this.onSortAscRequestedListener);
+    this.eSortUpButton.removeEventListener('click', this.onSortDescRequestedListener);
+    this.eSortRemoveButton.removeEventListener('click', this.onRemoveSortListener);
     this.agParams.column.removeEventListener('sortChanged', this.onSortChangedListener);
 };
 
