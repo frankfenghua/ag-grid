@@ -15,9 +15,10 @@ const buildPackagedExamples = require('./packaged-example-builder');
 const lnk = require('lnk').sync;
 const mkdirp = require('mkdir-p').sync;
 
-const EXPRESS_PORT = 8080;
-const PHP_PORT = 8888;
-const HOST = '127.0.0.1';
+const EXPRESS_PORT = 7081;
+const PHP_PORT = 17889;
+// const HOST = '127.0.0.1';
+const HOST = 'localhost';
 const WINDOWS = /^win/.test(os.platform());
 
 const rewrite = require('express-urlrewrite');
@@ -30,7 +31,7 @@ function addWebpackMiddleware(app, configPath, prefix) {
 
     webpackConfig.plugins.push(new realWebpack.DefinePlugin({HMR: useHmr}));
 
-    // remove the HMR plugins - very "hardcoded" approach. 
+    // remove the HMR plugins - very "hardcoded" approach.
     if (!useHmr) {
         webpackConfig.plugins.splice(0, 2);
     }
@@ -68,7 +69,8 @@ function launchPhpCP(app) {
         })
     );
 
-    process.on('exit', () => {
+    process.on('exit', (err) => {
+        console.error(err);
         php.kill();
     });
 }
@@ -189,13 +191,8 @@ module.exports = () => {
     addWebpackMiddleware(app, 'react', '/dev/ag-grid-react');
 
     // angular & vue are separate processes
-    serveAndWatchAngular(app);
-    serveAndWatchVue(app);
-
-    // build "packaged" landing page examples (for performance reasons)
-    // these aren't watched and regenerated like the other examples
-    // commented out by default - add if you want to test as part of the dev build (or run separately - see at the end of the file)
-    // buildPackagedExamples(() => console.log("Packaged Examples Built")); // scope - for eg best-react-data-grid
+    // serveAndWatchAngular(app);
+    // serveAndWatchVue(app);
 
     // regenerate examples
     watchAndGenerateExamples();
@@ -224,11 +221,11 @@ const genExamples = (exampleDir) => {
 const [cmd, script, execFunc, exampleDir, watch] = process.argv;
 if (process.argv.length >= 3) {
     if (execFunc === 'generate-examples') {
-        if (exampleDir && watch) {
-            const examplePath = path.resolve('./src/', exampleDir);
-            chokidar.watch(`${examplePath}/**/*`, {ignored: ['**/_gen/**/*']}).on('change', genExamples(exampleDir));
-        } else {
-            console.log('regenerating examples...');
+    if (exampleDir && watch) {
+        const examplePath = path.resolve('./src/', exampleDir);
+        chokidar.watch(`${examplePath}/**/*`, {ignored: ['**/_gen/**/*']}).on('change', genExamples(exampleDir));
+    } else {
+        console.log('regenerating examples...');
             generateExamples(() => console.log('generation done.'), exampleDir, true);
         }
     } else if(execFunc === 'prebuild-examples') {
