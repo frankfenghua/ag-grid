@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -27,22 +27,22 @@ var main_1 = require("ag-grid-community/main");
 var PivotModePanel = /** @class */ (function (_super) {
     __extends(PivotModePanel, _super);
     function PivotModePanel() {
-        return _super.call(this) || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     PivotModePanel.prototype.createTemplate = function () {
-        var localeTextFunc = this.gridOptionsWrapper.getLocaleTextFunc();
-        return "<div class=\"ag-pivot-mode-panel\">\n                <ag-checkbox class=\"ag-pivot-mode-select\" label=\"" + localeTextFunc('pivotMode', 'Pivot Mode') + "\"></ag-checkbox>\n            </div>";
+        return "<div class=\"ag-pivot-mode-panel\">\n                <ag-checkbox ref=\"cbPivotMode\" class=\"ag-pivot-mode-select\"></ag-checkbox>\n            </div>";
     };
     PivotModePanel.prototype.init = function () {
         this.setTemplate(this.createTemplate());
-        this.instantiate(this.context);
-        this.cbPivotMode.setSelected(this.columnController.isPivotMode());
+        this.cbPivotMode.setValue(this.columnController.isPivotMode());
+        var localeTextFunc = this.gridOptionsWrapper.getLocaleTextFunc();
+        this.cbPivotMode.setLabel(localeTextFunc('pivotMode', 'Pivot Mode'));
         this.addDestroyableEventListener(this.cbPivotMode, main_1.AgCheckbox.EVENT_CHANGED, this.onBtPivotMode.bind(this));
         this.addDestroyableEventListener(this.eventService, main_1.Events.EVENT_COLUMN_EVERYTHING_CHANGED, this.onPivotModeChanged.bind(this));
         this.addDestroyableEventListener(this.eventService, main_1.Events.EVENT_COLUMN_PIVOT_MODE_CHANGED, this.onPivotModeChanged.bind(this));
     };
     PivotModePanel.prototype.onBtPivotMode = function () {
-        var newValue = this.cbPivotMode.isSelected();
+        var newValue = this.cbPivotMode.getValue();
         if (newValue !== this.columnController.isPivotMode()) {
             this.columnController.setPivotMode(newValue, "toolPanelUi");
             var api = this.gridOptionsWrapper.getApi();
@@ -53,7 +53,7 @@ var PivotModePanel = /** @class */ (function (_super) {
     };
     PivotModePanel.prototype.onPivotModeChanged = function () {
         var pivotModeActive = this.columnController.isPivotMode();
-        this.cbPivotMode.setSelected(pivotModeActive);
+        this.cbPivotMode.setValue(pivotModeActive);
     };
     __decorate([
         main_1.Autowired('columnController'),
@@ -64,15 +64,11 @@ var PivotModePanel = /** @class */ (function (_super) {
         __metadata("design:type", main_1.EventService)
     ], PivotModePanel.prototype, "eventService", void 0);
     __decorate([
-        main_1.Autowired('context'),
-        __metadata("design:type", main_1.Context)
-    ], PivotModePanel.prototype, "context", void 0);
-    __decorate([
         main_1.Autowired('gridOptionsWrapper'),
         __metadata("design:type", main_1.GridOptionsWrapper)
     ], PivotModePanel.prototype, "gridOptionsWrapper", void 0);
     __decorate([
-        main_1.QuerySelector('.ag-pivot-mode-select'),
+        main_1.RefSelector('cbPivotMode'),
         __metadata("design:type", main_1.AgCheckbox)
     ], PivotModePanel.prototype, "cbPivotMode", void 0);
     __decorate([

@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { ColumnGroup } from "../entities/columnGroup";
@@ -187,8 +187,8 @@ export declare class ColumnController {
     private createStateItemFromColumn;
     getColumnState(): ColumnState[];
     private orderColumnStateList;
-    resetColumnState(source?: ColumnEventType): void;
-    setColumnState(columnState: ColumnState[], source?: ColumnEventType): boolean;
+    resetColumnState(suppressEverythingEvent?: boolean, source?: ColumnEventType): void;
+    setColumnState(columnStates: ColumnState[], suppressEverythingEvent?: boolean, source?: ColumnEventType): boolean;
     private raiseColumnEvents;
     private raiseColumnPinnedEvent;
     private raiseColumnVisibleEvent;
@@ -199,7 +199,7 @@ export declare class ColumnController {
     private syncColumnWithStateItem;
     getGridColumns(keys: (string | Column)[]): Column[];
     private getColumns;
-    getColumnWithValidation(key: string | Column): Column | null;
+    getColumnWithValidation(key: string | Column | undefined): Column | null;
     getPrimaryColumn(key: string | Column): Column | null;
     getGridColumn(key: string | Column): Column | null;
     private getColumn;
@@ -259,6 +259,7 @@ export declare class ColumnController {
     private updateOpenClosedVisibilityInColumnGroups;
     getGroupAutoColumns(): Column[] | null;
     private createGroupAutoColumnsIfNeeded;
+    private autoColsEqual;
     private getWidthOfColsInList;
     getGridBalancedTree(): OriginalColumnGroupChild[];
 }

@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -41,7 +41,7 @@ var ValueService = /** @class */ (function () {
             this.init();
         }
         if (!rowNode) {
-            return undefined;
+            return;
         }
         // pull these out to make code below easier to read
         var colDef = column.getColDef();
@@ -53,7 +53,7 @@ var ValueService = /** @class */ (function () {
         var groupDataExists = rowNode.groupData && rowNode.groupData[colId] !== undefined;
         var aggDataExists = !ignoreAggData && rowNode.aggData && rowNode.aggData[colId] !== undefined;
         if (forFilter && colDef.filterValueGetter) {
-            result = this.executeValueGetter(colDef.filterValueGetter, data, column, rowNode);
+            result = this.executeFilterValueGetter(colDef.filterValueGetter, data, column, rowNode);
         }
         else if (this.gridOptionsWrapper.isTreeData() && aggDataExists) {
             result = rowNode.aggData[colId];
@@ -76,9 +76,6 @@ var ValueService = /** @class */ (function () {
         else if (field && data) {
             result = utils_1._.getValueUsingField(data, field, column.isFieldContainsDots());
         }
-        else {
-            result = undefined;
-        }
         // the result could be an expression itself, if we are allowing cell values to be expressions
         if (this.cellExpressions && (typeof result === 'string') && result.indexOf('=') === 0) {
             var cellValueGetter = result.substring(1);
@@ -86,7 +83,7 @@ var ValueService = /** @class */ (function () {
         }
         return result;
     };
-    ValueService.prototype.setValue = function (rowNode, colKey, newValue) {
+    ValueService.prototype.setValue = function (rowNode, colKey, newValue, suppressCellValueChangedEvent) {
         var column = this.columnController.getPrimaryColumn(colKey);
         if (!rowNode || !column) {
             return;
@@ -148,6 +145,9 @@ var ValueService = /** @class */ (function () {
             // to make callback async, do in a timeout
             setTimeout(function () { return onCellValueChanged(params); }, 0);
         }
+        if (suppressCellValueChangedEvent) {
+            return;
+        }
         var event = {
             type: events_1.Events.EVENT_CELL_VALUE_CHANGED,
             event: null,
@@ -191,7 +191,20 @@ var ValueService = /** @class */ (function () {
         }
         return !valuesAreSame;
     };
-    ValueService.prototype.executeValueGetter = function (filterValueGetter, data, column, rowNode) {
+    ValueService.prototype.executeFilterValueGetter = function (valueGetter, data, column, rowNode) {
+        var params = {
+            data: data,
+            node: rowNode,
+            column: column,
+            colDef: column.getColDef(),
+            api: this.gridOptionsWrapper.getApi(),
+            columnApi: this.gridOptionsWrapper.getColumnApi(),
+            context: this.gridOptionsWrapper.getContext(),
+            getValue: this.getValueCallback.bind(this, rowNode)
+        };
+        return this.expressionService.evaluate(valueGetter, params);
+    };
+    ValueService.prototype.executeValueGetter = function (valueGetter, data, column, rowNode) {
         var colId = column.getId();
         // if inside the same turn, just return back the value we got last time
         var valueFromCache = this.valueCache.getValue(rowNode, colId);
@@ -208,7 +221,7 @@ var ValueService = /** @class */ (function () {
             context: this.gridOptionsWrapper.getContext(),
             getValue: this.getValueCallback.bind(this, rowNode)
         };
-        var result = this.expressionService.evaluate(filterValueGetter, params);
+        var result = this.expressionService.evaluate(valueGetter, params);
         // if a turn is active, store the value in case the grid asks for it again
         this.valueCache.setValue(rowNode, colId, result);
         return result;
@@ -218,23 +231,15 @@ var ValueService = /** @class */ (function () {
         if (otherColumn) {
             return this.getValue(otherColumn, node);
         }
-        else {
-            return null;
-        }
+        return null;
     };
     // used by row grouping and pivot, to get key for a row. col can be a pivot col or a row grouping col
     ValueService.prototype.getKeyForNode = function (col, rowNode) {
         var value = this.getValue(col, rowNode);
-        var result;
         var keyCreator = col.getColDef().keyCreator;
-        if (keyCreator) {
-            result = keyCreator({ value: value });
-        }
-        else {
-            result = value;
-        }
+        var result = keyCreator ? keyCreator({ value: value }) : value;
         // if already a string, or missing, just return it
-        if (typeof result === 'string' || result === null || result === undefined) {
+        if (typeof result === 'string' || result == null) {
             return result;
         }
         result = String(result);

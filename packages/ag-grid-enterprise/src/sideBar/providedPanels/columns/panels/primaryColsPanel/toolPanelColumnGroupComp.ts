@@ -4,7 +4,6 @@ import {
     Column,
     ColumnController,
     Component,
-    Context,
     CssClassApplier,
     DragAndDropService,
     DragSource,
@@ -24,30 +23,30 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
 
     private static TEMPLATE =
         `<div class="ag-column-tool-panel-column-group">
-            <span id="eColumnGroupIcons" class="ag-column-group-icons">
-                <span id="eGroupOpenedIcon" class="ag-column-group-closed-icon"></span>
-                <span id="eGroupClosedIcon" class="ag-column-group-opened-icon"></span>
+            <span class="ag-column-group-icons" ref="eColumnGroupIcons" >
+                <span class="ag-column-group-closed-icon" ref="eGroupOpenedIcon"></span>
+                <span class="ag-column-group-opened-icon" ref="eGroupClosedIcon"></span>
             </span>
-            <ag-checkbox ref="cbSelect" (change)="onCheckboxChanged" class="ag-column-select-checkbox"></ag-checkbox>
-            <span class="ag-column-drag" ref="eDragHandle"></span>
-            <span id="eText" class="ag-column-tool-panel-column-group" (click)="onLabelClicked"></span>
+            <ag-checkbox ref="cbSelect" class="ag-column-select-checkbox"></ag-checkbox>
+            <span class="ag-column-tool-panel-column-label" ref="eLabel"></span>
         </div>`;
 
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('columnController') private columnController: ColumnController;
-    @Autowired('context') private context: Context;
     @Autowired('dragAndDropService') private dragAndDropService: DragAndDropService;
     @Autowired('eventService') private eventService: EventService;
 
     @RefSelector('cbSelect') private cbSelect: AgCheckbox;
-    @RefSelector('eDragHandle') private eDragHandle: HTMLElement;
-
+    @RefSelector('eLabel') private eLabel: HTMLElement;
+    
+    @RefSelector('eGroupOpenedIcon') private eGroupOpenedIcon: HTMLElement;
+    @RefSelector('eGroupClosedIcon') private eGroupClosedIcon: HTMLElement;
+    @RefSelector('eColumnGroupIcons') private eColumnGroupIcons: HTMLElement;
+    
+    private eDragHandle: HTMLElement;
     private columnGroup: OriginalColumnGroup;
     private expanded: boolean;
     private columnDept: number;
-
-    private eGroupClosedIcon: HTMLElement;
-    private eGroupOpenedIcon: HTMLElement;
 
     private expandedCallback: () => void;
 
@@ -71,9 +70,9 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
     public init(): void {
         this.setTemplate(ToolPanelColumnGroupComp.TEMPLATE);
 
-        this.instantiate(this.context);
-
-        const eText = this.queryForHtmlElement('#eText');
+        this.eDragHandle = _.createIconNoSpan('columnDrag', this.gridOptionsWrapper);
+        _.addCssClass(this.eDragHandle, 'ag-column-drag');
+        this.cbSelect.getGui().insertAdjacentElement('afterend', this.eDragHandle);
 
         // this.displayName = this.columnGroup.getColGroupDef() ? this.columnGroup.getColGroupDef().headerName : null;
         this.displayName = this.columnController.getDisplayNameForOriginalColumnGroup(null, this.columnGroup, 'toolPanel');
@@ -82,12 +81,15 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
             this.displayName = '>>';
         }
 
-        eText.innerHTML = this.displayName ? this.displayName : '';
+        this.eLabel.innerHTML = this.displayName ? this.displayName : '';
         this.setupExpandContract();
 
         this.addCssClass('ag-toolpanel-indent-' + this.columnDept);
 
         this.addDestroyableEventListener(this.eventService, Events.EVENT_COLUMN_PIVOT_MODE_CHANGED, this.onColumnStateChanged.bind(this));
+
+        this.addDestroyableEventListener(this.eLabel, 'click', this.onLabelClicked.bind(this));
+        this.addDestroyableEventListener(this.cbSelect, AgCheckbox.EVENT_CHANGED, this.onCheckboxChanged.bind(this));
 
         this.setOpenClosedIcons();
 
@@ -111,7 +113,7 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
     private setupDragging(): void {
 
         if (!this.allowDragging) {
-            _.setVisible(this.eDragHandle, false);
+            _.setDisplayed(this.eDragHandle, false);
             return;
         }
 
@@ -138,23 +140,19 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
     }
 
     private setupExpandContract(): void {
-        this.eGroupClosedIcon = this.queryForHtmlElement('#eGroupClosedIcon');
-        this.eGroupOpenedIcon = this.queryForHtmlElement('#eGroupOpenedIcon');
-
         this.eGroupClosedIcon.appendChild(_.createIcon('columnSelectClosed', this.gridOptionsWrapper, null));
         this.eGroupOpenedIcon.appendChild(_.createIcon('columnSelectOpen', this.gridOptionsWrapper, null));
 
         this.addDestroyableEventListener(this.eGroupClosedIcon, 'click', this.onExpandOrContractClicked.bind(this));
         this.addDestroyableEventListener(this.eGroupOpenedIcon, 'click', this.onExpandOrContractClicked.bind(this));
 
-        const eColumnGroupIcons = this.queryForHtmlElement('#eColumnGroupIcons');
-        const touchListener = new TouchListener(eColumnGroupIcons, true);
+        const touchListener = new TouchListener(this.eColumnGroupIcons, true);
         this.addDestroyableEventListener(touchListener, TouchListener.EVENT_TAP, this.onExpandOrContractClicked.bind(this));
         this.addDestroyFunc(touchListener.destroy.bind(touchListener));
     }
 
     private onLabelClicked(): void {
-        const nextState = !this.cbSelect.isSelected();
+        const nextState = !this.cbSelect.getValue();
         this.onChangeCommon(nextState);
     }
 
@@ -176,7 +174,8 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
                 this.actionUnCheckedReduce(childColumns);
             }
         } else {
-            const allowedColumns = childColumns.filter(c => !c.isLockVisible());
+            const isAllowedColumn = (c: Column) => !c.getColDef().lockVisible && !c.getColDef().suppressToolPanel;
+            const allowedColumns = childColumns.filter(isAllowedColumn);
             this.columnController.setColumnsVisible(allowedColumns, nextState, "toolPanelUi");
         }
 
@@ -252,7 +251,7 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
         const selectedValue = this.workOutSelectedValue();
         const readOnlyValue = this.workOutReadOnlyValue();
         this.processingColumnStateChange = true;
-        this.cbSelect.setSelected(selectedValue);
+        this.cbSelect.setValue(selectedValue);
         if (this.selectionCallback) {
             this.selectionCallback(this.isSelected());
         }
@@ -271,7 +270,7 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
                     colsThatCanAction++;
                 }
             } else {
-                if (!col.isLockVisible()) {
+                if (!col.getColDef().lockVisible) {
                     colsThatCanAction++;
                 }
             }
@@ -280,36 +279,44 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
         return colsThatCanAction === 0;
     }
 
-    private workOutSelectedValue(): boolean {
+    private workOutSelectedValue(): boolean | undefined {
         const pivotMode = this.columnController.isPivotMode();
+        const leafColumns = this.columnGroup.getLeafColumns();
+        const len = leafColumns.length;
+        const count = { visible: 0, hidden: 0 };
+        const ignoredChildCount = { visible: 0, hidden: 0 };
+        
+        for (let i = 0; i < len; i++) {
+            const column = leafColumns[i];
 
-        let visibleChildCount = 0;
-        let hiddenChildCount = 0;
+            // ignore lock visible columns and columns set to 'suppressToolPanel'
+            const ignore = column.getColDef().lockVisible || column.getColDef().suppressToolPanel;
+            const type = this.isColumnVisible(column, pivotMode) ? 'visible' : 'hidden';
 
-        this.columnGroup.getLeafColumns().forEach((column: Column) => {
+            count[type]++;
 
-            // ignore lock visible columns
-            if (column.isLockVisible()) {
-                return;
-            }
+            if (!ignore) { continue; }
 
-            if (this.isColumnVisible(column, pivotMode)) {
-                visibleChildCount++;
-            } else {
-                hiddenChildCount++;
-            }
-        });
+            ignoredChildCount[type]++;
+        }
 
-        let selectedValue: boolean;
-        if (visibleChildCount > 0 && hiddenChildCount > 0) {
-            selectedValue = false;
-        } else if (visibleChildCount > 0) {
+        // if all columns are ignored we use the regular count, if not
+        // we only consider the columns that were not ignored
+        if (ignoredChildCount.visible + ignoredChildCount.hidden !== len) {
+            count.visible -= ignoredChildCount.visible;
+            count.hidden -= ignoredChildCount.hidden;
+        }
+
+        let selectedValue: boolean | null;
+        if (count.visible > 0 && count.hidden > 0) {
+            selectedValue = null;
+        } else if (count.visible > 0) {
             selectedValue = true;
         } else {
             selectedValue = false;
         }
 
-        return selectedValue;
+        return selectedValue == null ? undefined : selectedValue;
     }
 
     private isColumnVisible(column: Column, pivotMode: boolean): boolean {
@@ -331,8 +338,8 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
 
     private setOpenClosedIcons(): void {
         const folderOpen = this.expanded;
-        _.setVisible(this.eGroupClosedIcon, !folderOpen);
-        _.setVisible(this.eGroupOpenedIcon, folderOpen);
+        _.setDisplayed(this.eGroupClosedIcon, !folderOpen);
+        _.setDisplayed(this.eGroupOpenedIcon, folderOpen);
     }
 
     public isExpanded(): boolean {
@@ -345,8 +352,8 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
 
     public onSelectAllChanged(value: boolean): void {
         if (
-            (value && !this.cbSelect.isSelected()) ||
-            (!value && this.cbSelect.isSelected())
+            (value && !this.cbSelect.getValue()) ||
+            (!value && this.cbSelect.getValue())
         ) {
             if (!this.cbSelect.isReadOnly()) {
                 this.cbSelect.toggle();
@@ -355,7 +362,7 @@ export class ToolPanelColumnGroupComp extends Component implements BaseColumnIte
     }
 
     public isSelected(): boolean {
-        return this.cbSelect.isSelected();
+        return this.cbSelect.getValue();
     }
 
     public isSelectable(): boolean {

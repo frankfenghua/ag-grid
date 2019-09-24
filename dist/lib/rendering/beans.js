@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -27,20 +27,22 @@ var valueService_1 = require("../valueService/valueService");
 var eventService_1 = require("../eventService");
 var columnAnimationService_1 = require("./columnAnimationService");
 var focusedCellController_1 = require("../focusedCellController");
-var cellEditorFactory_1 = require("./cellEditorFactory");
 var cellRendererFactory_1 = require("./cellRendererFactory");
 var popupService_1 = require("../widgets/popupService");
-var cellRendererService_1 = require("./cellRendererService");
 var valueFormatterService_1 = require("./valueFormatterService");
 var stylingService_1 = require("../styling/stylingService");
 var columnHoverService_1 = require("./columnHoverService");
 var paginationProxy_1 = require("../rowModels/paginationProxy");
 var animationFrameService_1 = require("../misc/animationFrameService");
-var componentResolver_1 = require("../components/framework/componentResolver");
+var userComponentFactory_1 = require("../components/framework/userComponentFactory");
 var dragAndDropService_1 = require("../dragAndDrop/dragAndDropService");
 var sortController_1 = require("../sortController");
 var filterManager_1 = require("../filter/filterManager");
-var heightScaler_1 = require("./heightScaler");
+var maxDivHeightScaler_1 = require("./maxDivHeightScaler");
+var tooltipManager_1 = require("../widgets/tooltipManager");
+var detailRowCompCache_1 = require("./detailRowCompCache");
+var cellPosition_1 = require("../entities/cellPosition");
+var rowPosition_1 = require("../entities/rowPosition");
 /** Using the IoC has a slight performance consideration, which is no problem most of the
  * time, unless we are trashing objects - which is the case when scrolling and rowComp
  * and cellComp. So for performance reasons, RowComp and CellComp do not get autowired
@@ -120,10 +122,6 @@ var Beans = /** @class */ (function () {
         __metadata("design:type", Object)
     ], Beans.prototype, "contextMenuFactory", void 0);
     __decorate([
-        context_1.Autowired('cellEditorFactory'),
-        __metadata("design:type", cellEditorFactory_1.CellEditorFactory)
-    ], Beans.prototype, "cellEditorFactory", void 0);
-    __decorate([
         context_1.Autowired('cellRendererFactory'),
         __metadata("design:type", cellRendererFactory_1.CellRendererFactory)
     ], Beans.prototype, "cellRendererFactory", void 0);
@@ -131,10 +129,6 @@ var Beans = /** @class */ (function () {
         context_1.Autowired('popupService'),
         __metadata("design:type", popupService_1.PopupService)
     ], Beans.prototype, "popupService", void 0);
-    __decorate([
-        context_1.Autowired('cellRendererService'),
-        __metadata("design:type", cellRendererService_1.CellRendererService)
-    ], Beans.prototype, "cellRendererService", void 0);
     __decorate([
         context_1.Autowired('valueFormatterService'),
         __metadata("design:type", valueFormatterService_1.ValueFormatterService)
@@ -152,9 +146,9 @@ var Beans = /** @class */ (function () {
         __metadata("design:type", Boolean)
     ], Beans.prototype, "enterprise", void 0);
     __decorate([
-        context_1.Autowired('componentResolver'),
-        __metadata("design:type", componentResolver_1.ComponentResolver)
-    ], Beans.prototype, "componentResolver", void 0);
+        context_1.Autowired('userComponentFactory'),
+        __metadata("design:type", userComponentFactory_1.UserComponentFactory)
+    ], Beans.prototype, "userComponentFactory", void 0);
     __decorate([
         context_1.Autowired('animationFrameService'),
         __metadata("design:type", animationFrameService_1.AnimationFrameService)
@@ -172,9 +166,29 @@ var Beans = /** @class */ (function () {
         __metadata("design:type", filterManager_1.FilterManager)
     ], Beans.prototype, "filterManager", void 0);
     __decorate([
-        context_1.Autowired('heightScaler'),
-        __metadata("design:type", heightScaler_1.HeightScaler)
-    ], Beans.prototype, "heightScaler", void 0);
+        context_1.Autowired('maxDivHeightScaler'),
+        __metadata("design:type", maxDivHeightScaler_1.MaxDivHeightScaler)
+    ], Beans.prototype, "maxDivHeightScaler", void 0);
+    __decorate([
+        context_1.Autowired('tooltipManager'),
+        __metadata("design:type", tooltipManager_1.TooltipManager)
+    ], Beans.prototype, "tooltipManager", void 0);
+    __decorate([
+        context_1.Autowired('frameworkOverrides'),
+        __metadata("design:type", Object)
+    ], Beans.prototype, "frameworkOverrides", void 0);
+    __decorate([
+        context_1.Autowired('detailRowCompCache'),
+        __metadata("design:type", detailRowCompCache_1.DetailRowCompCache)
+    ], Beans.prototype, "detailRowCompCache", void 0);
+    __decorate([
+        context_1.Autowired('cellPositionUtils'),
+        __metadata("design:type", cellPosition_1.CellPositionUtils)
+    ], Beans.prototype, "cellPositionUtils", void 0);
+    __decorate([
+        context_1.Autowired('rowPositionUtils'),
+        __metadata("design:type", rowPosition_1.RowPositionUtils)
+    ], Beans.prototype, "rowPositionUtils", void 0);
     __decorate([
         context_1.PostConstruct,
         __metadata("design:type", Function),

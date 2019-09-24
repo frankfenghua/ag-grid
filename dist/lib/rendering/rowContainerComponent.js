@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -60,7 +60,6 @@ var RowContainerComponent = /** @class */ (function () {
         this.eContainer.style.height = height + "px";
         if (this.eWrapper) {
             this.eWrapper.style.height = height + "px";
-            this.eWrapper.style.minHeight = '100%';
         }
     };
     RowContainerComponent.prototype.flushRowTemplates = function () {
@@ -113,7 +112,7 @@ var RowContainerComponent = /** @class */ (function () {
         if (this.visible !== visible) {
             this.visible = visible;
             this.lastMadeVisibleTime = new Date().getTime();
-            utils_1._.setVisible(eGui, visible);
+            utils_1._.setDisplayed(eGui, visible);
             // if we are showing the viewport, then the scroll is always zero,
             // so we need to align with the other sections (ie if this is full
             // width container, and first time showing a full width row, we need to

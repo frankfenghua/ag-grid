@@ -9,7 +9,6 @@ import {
     GridOptionsWrapper,
     OriginalColumnGroup,
     OriginalColumnGroupChild,
-    PostConstruct,
     _
 } from "ag-grid-community/main";
 import { ToolPanelColumnGroupComp } from "./toolPanelColumnGroupComp";
@@ -17,6 +16,7 @@ import { ToolPanelColumnComp } from "./toolPanelColumnComp";
 import { BaseColumnItem } from "./primaryColsPanel";
 import { SELECTED_STATE } from "./primaryColsHeaderPanel";
 import { ToolPanelColumnCompParams } from "../../columnToolPanel";
+import {ColumnApi} from "ag-grid-community";
 
 export type ColumnItem = BaseColumnItem & Component;
 
@@ -25,12 +25,10 @@ export class PrimaryColsListPanel extends Component {
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('eventService') private globalEventService: EventService;
-    @Autowired('context') private context: Context;
+    @Autowired('columnApi') private columnApi: ColumnApi;
 
-    private props: {
-        allowDragging: boolean;
-        params: ToolPanelColumnCompParams;
-    };
+    private allowDragging: boolean;
+    private params: ToolPanelColumnCompParams;
 
     private columnTree: OriginalColumnGroupChild[];
     private columnComps: { [key: string]: ColumnItem };
@@ -45,10 +43,12 @@ export class PrimaryColsListPanel extends Component {
         super(PrimaryColsListPanel.TEMPLATE);
     }
 
-    @PostConstruct
-    public init(): void {
+    public init(params: ToolPanelColumnCompParams, allowDragging: boolean): void {
+        this.params = params;
+        this.allowDragging = allowDragging;
+
         this.addDestroyableEventListener(this.globalEventService, Events.EVENT_COLUMN_EVERYTHING_CHANGED, this.onColumnsChanged.bind(this));
-        this.expandGroupsByDefault = !this.props.params.contractColumnSelection;
+        this.expandGroupsByDefault = !this.params.contractColumnSelection;
         if (this.columnController.isReady()) {
             this.onColumnsChanged();
         }
@@ -63,7 +63,7 @@ export class PrimaryColsListPanel extends Component {
     }
 
     private destroyColumnComps(): void {
-        _.removeAllChildren(this.getGui());
+        _.clearElement(this.getGui());
         if (this.columnComps) {
             _.iterateObject(this.columnComps, (key: string, renderedItem: Component) => renderedItem.destroy());
         }
@@ -80,8 +80,8 @@ export class PrimaryColsListPanel extends Component {
 
         if (!columnGroup.isPadding()) {
             const renderedGroup = new ToolPanelColumnGroupComp(columnGroup, dept, this.onGroupExpanded.bind(this),
-                this.props.allowDragging, this.expandGroupsByDefault);
-            this.context.wireBean(renderedGroup);
+                this.allowDragging, this.expandGroupsByDefault);
+            this.getContext().wireBean(renderedGroup);
             this.getGui().appendChild(renderedGroup.getGui());
             // we want to indent on the gui for the children
             newDept = dept + 1;
@@ -93,7 +93,6 @@ export class PrimaryColsListPanel extends Component {
         }
 
         this.recursivelyAddComps(columnGroup.getChildren(), newDept, groupsExist);
-
     }
 
     public onGroupExpanded(): void {
@@ -132,7 +131,7 @@ export class PrimaryColsListPanel extends Component {
 
         let state: SELECTED_STATE;
         if (expandedCount > 0 && notExpandedCount > 0) {
-            state = SELECTED_STATE.INDETERMINIATE;
+            state = SELECTED_STATE.INDETERMINATE;
         } else if (notExpandedCount > 0) {
             state = SELECTED_STATE.UNCHECKED;
         } else {
@@ -147,11 +146,11 @@ export class PrimaryColsListPanel extends Component {
             return;
         }
 
-        const renderedColumn = new ToolPanelColumnComp(column, dept, this.props.allowDragging, groupsExist);
-        this.context.wireBean(renderedColumn);
-        this.getGui().appendChild(renderedColumn.getGui());
+        const columnComp = new ToolPanelColumnComp(column, dept, this.allowDragging, groupsExist);
+        this.getContext().wireBean(columnComp);
+        this.getGui().appendChild(columnComp.getGui());
 
-        this.columnComps[column.getId()] = renderedColumn;
+        this.columnComps[column.getId()] = columnComp;
     }
 
     private recursivelyAddComps(tree: OriginalColumnGroupChild[], dept: number, groupsExist: boolean): void {
@@ -218,7 +217,8 @@ export class PrimaryColsListPanel extends Component {
                         const displayName = comp.getDisplayName();
                         filterPasses = displayName !== null ? displayName.toLowerCase().indexOf(this.filterText) >= 0 : true;
                     } else {
-                        filterPasses = true;
+                        // if this is a dummy column group, we should return false here
+                        filterPasses = item instanceof OriginalColumnGroup && item.getOriginalParent() ? true : false;
                     }
                 }
 
@@ -243,7 +243,7 @@ export class PrimaryColsListPanel extends Component {
             const comp: ColumnItem = this.columnComps[child.getId()];
             if (comp) {
                 const passesFilter = filterResults ? filterResults[child.getId()] : true;
-                comp.setVisible(parentGroupsOpen && passesFilter);
+                comp.setDisplayed(parentGroupsOpen && passesFilter);
             }
 
             if (child instanceof OriginalColumnGroup) {
@@ -264,8 +264,20 @@ export class PrimaryColsListPanel extends Component {
     }
 
     public doSetSelectedAll(checked: boolean): void {
-        _.iterateObject(this.columnComps, (key, column) => {
-            column.onSelectAllChanged(checked);
-        });
+
+        if (this.columnApi.isPivotMode()) {
+            // if pivot mode is on, then selecting columns has special meaning (eg group, aggregate, pivot etc),
+            // so there is no bulk operation we can do.
+            _.iterateObject(this.columnComps, (key, column) => {
+                column.onSelectAllChanged(checked);
+            });
+        } else {
+            // however if pivot mode is off, then it's all about column visibility so we can do a bulk
+            // operation directly with the column controller. we could column.onSelectAllChanged(checked)
+            // as above, however this would work on each column independently and take longer.
+            const primaryCols = this.columnApi.getPrimaryColumns();
+            this.columnApi.setColumnsVisible(primaryCols, checked);
+        }
+
     }
 }

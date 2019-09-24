@@ -1,17 +1,29 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Maps a discrete domain to a continuous numeric range.
+ * See https://github.com/d3/d3-scale#band-scales for more info.
  */
 var BandScale = /** @class */ (function () {
     function BandScale() {
+        /**
+         * Maps datum to its index in the {@link domain} array.
+         * Used to check for duplicate datums (not allowed).
+         */
+        this.index = new Map();
+        /**
+         * The output range values for datum at each index.
+         */
+        this.ordinalRange = [];
+        /**
+         * Contains unique datums only. Since `{}` is used in place of `Map`
+         * for IE11 compatibility, the datums are converted `toString` before
+         * the uniqueness check.
+         */
         this._domain = [];
         this._range = [0, 1];
-        this.ordinalRange = [];
-        this.index = {}; // new Map<D, number>();
         this._bandwidth = 1;
-        this._padding = 0;
         /**
          * The ratio of the range that is reserved for space between bands.
          */
@@ -36,13 +48,18 @@ var BandScale = /** @class */ (function () {
         set: function (values) {
             var domain = this._domain;
             domain.length = 0;
-            this.index = {};
+            this.index = new Map();
             var index = this.index;
+            // In case one wants to have duplicate domain values, for example, two 'Italy' categories,
+            // one should use objects rather than strings for domain values like so:
+            // { toString: () => 'Italy' }
+            // { toString: () => 'Italy' }
             values.forEach(function (value) {
-                if (index[value] === undefined) {
-                    index[value] = domain.push(value) - 1;
+                if (index.get(value) === undefined) {
+                    index.set(value, domain.push(value) - 1);
                 }
             });
+            this.rescale();
         },
         enumerable: true,
         configurable: true
@@ -63,7 +80,7 @@ var BandScale = /** @class */ (function () {
         return this._domain;
     };
     BandScale.prototype.convert = function (d) {
-        var i = this.index[d];
+        var i = this.index.get(d);
         if (i === undefined) {
             return NaN;
         }
@@ -144,8 +161,8 @@ var BandScale = /** @class */ (function () {
             return;
         }
         var _b = this._range, a = _b[0], b = _b[1];
-        var isReverse = b < a;
-        if (isReverse) {
+        var reversed = b < a;
+        if (reversed) {
             _a = [b, a], a = _a[0], b = _a[1];
         }
         var step = (b - a) / Math.max(1, n - this._paddingInner + this._paddingOuter * 2);
@@ -162,7 +179,7 @@ var BandScale = /** @class */ (function () {
         for (var i = 0; i < n; i++) {
             values.push(a + step * i);
         }
-        this.ordinalRange = isReverse ? values.reverse() : values;
+        this.ordinalRange = reversed ? values.reverse() : values;
     };
     return BandScale;
 }());

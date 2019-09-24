@@ -1,29 +1,27 @@
-// ag-grid-enterprise v20.0.0
-import { Component, IStatusPanelComp } from 'ag-grid-community';
+// ag-grid-enterprise v21.2.1
+import { Component, IStatusPanelComp, CellPositionUtils, RowPositionUtils } from 'ag-grid-community';
 export declare class AggregationComp extends Component implements IStatusPanelComp {
     private static TEMPLATE;
     private eventService;
     private rangeController;
     private valueService;
     private cellNavigationService;
-    private pinnedRowModel;
-    private rowModel;
-    private context;
+    private rowRenderer;
     private gridOptionsWrapper;
     private gridOptions;
     private gridApi;
+    cellPositionUtils: CellPositionUtils;
+    rowPositionUtils: RowPositionUtils;
     private sumAggregationComp;
     private countAggregationComp;
     private minAggregationComp;
     private maxAggregationComp;
     private avgAggregationComp;
     constructor();
-    private preConstruct;
     private postConstruct;
     private isValidRowModel;
     init(): void;
     private setAggregationComponentValue;
     private getAggregationValueComponent;
     private onRangeSelectionChanged;
-    private getRowNode;
 }

@@ -80,9 +80,10 @@ export class PinnedRowModel {
                 const rowNode = new RowNode();
                 this.context.wireBean(rowNode);
                 rowNode.data = dataItem;
+                rowNode.id = `${isTop ? 't' : 'b'}-${index}`;
                 rowNode.rowPinned = isTop ? Constants.PINNED_TOP : Constants.PINNED_BOTTOM;
                 rowNode.setRowTop(nextRowTop);
-                rowNode.setRowHeight(this.gridOptionsWrapper.getRowHeightForNode(rowNode));
+                rowNode.setRowHeight(this.gridOptionsWrapper.getRowHeightForNode(rowNode).height);
                 rowNode.setRowIndex(index);
                 nextRowTop += rowNode.rowHeight;
                 rowNodes.push(rowNode);
@@ -141,7 +142,7 @@ export class PinnedRowModel {
         if (!rowNodes || rowNodes.length === 0) {
             return 0;
         } else {
-            const lastNode = rowNodes[rowNodes.length - 1];
+            const lastNode = _.last(rowNodes);
             return lastNode.rowTop + lastNode.rowHeight;
         }
     }

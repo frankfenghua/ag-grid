@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -28,18 +28,18 @@ var nameValueComp_1 = require("./nameValueComp");
 var TotalRowsComp = /** @class */ (function (_super) {
     __extends(TotalRowsComp, _super);
     function TotalRowsComp() {
-        return _super.call(this, 'rowCount', 'Total Rows') || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     TotalRowsComp.prototype.postConstruct = function () {
-        _super.prototype.postConstruct.call(this);
-        // this component is only really useful with client side rowmodel
+        this.setLabel('totalRows', 'Total Rows');
+        // this component is only really useful with client side row model
         if (this.gridApi.getModel().getType() !== 'clientSide') {
             console.warn("ag-Grid: agTotalRowCountComponent should only be used with the client side row model.");
             return;
         }
         this.addCssClass('ag-status-panel');
         this.addCssClass('ag-status-panel-total-row-count');
-        this.setVisible(true);
+        this.setDisplayed(true);
         var listener = this.onDataChanged.bind(this);
         this.eventService.addEventListener(ag_grid_community_1.Events.EVENT_MODEL_UPDATED, listener);
     };
@@ -48,7 +48,7 @@ var TotalRowsComp = /** @class */ (function (_super) {
     };
     TotalRowsComp.prototype.getRowCountValue = function () {
         var totalRowCount = 0;
-        this.gridApi.forEachNode(function (node) { return totalRowCount += 1; });
+        this.gridApi.forEachLeafNode(function (node) { return totalRowCount += 1; });
         return "" + totalRowCount;
     };
     TotalRowsComp.prototype.init = function () {

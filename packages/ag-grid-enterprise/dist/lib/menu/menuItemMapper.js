@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -13,7 +13,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var ag_grid_community_1 = require("ag-grid-community");
 var clipboardService_1 = require("../clipboardService");
 var aggFuncService_1 = require("../aggregation/aggFuncService");
-var chartingService_1 = require("../charts/chartingService");
 var MenuItemMapper = /** @class */ (function () {
     function MenuItemMapper() {
     }
@@ -45,80 +44,95 @@ var MenuItemMapper = /** @class */ (function () {
         var _this = this;
         var localeTextFunc = this.gridOptionsWrapper.getLocaleTextFunc();
         switch (key) {
-            case 'pinSubMenu': return {
-                name: localeTextFunc('pinColumn', 'Pin Column'),
-                icon: ag_grid_community_1.Utils.createIconNoSpan('menuPin', this.gridOptionsWrapper, null),
-                subMenu: ['pinLeft', 'pinRight', 'clearPinned']
-            };
-            case 'pinLeft': return {
-                name: localeTextFunc('pinLeft', 'Pin Left'),
-                action: function () { return _this.columnController.setColumnPinned(column, ag_grid_community_1.Column.PINNED_LEFT, "contextMenu"); },
-                checked: column.isPinnedLeft()
-            };
-            case 'pinRight': return {
-                name: localeTextFunc('pinRight', 'Pin Right'),
-                action: function () { return _this.columnController.setColumnPinned(column, ag_grid_community_1.Column.PINNED_RIGHT, "contextMenu"); },
-                checked: column.isPinnedRight()
-            };
-            case 'clearPinned': return {
-                name: localeTextFunc('noPin', 'No Pin'),
-                action: function () { return _this.columnController.setColumnPinned(column, null, "contextMenu"); },
-                checked: !column.isPinned()
-            };
-            case 'valueAggSubMenu': return {
-                name: localeTextFunc('valueAggregation', 'Value Aggregation'),
-                icon: ag_grid_community_1.Utils.createIconNoSpan('menuValue', this.gridOptionsWrapper, null),
-                subMenu: this.createAggregationSubMenu(column)
-            };
-            case 'autoSizeThis': return {
-                name: localeTextFunc('autosizeThiscolumn', 'Autosize This Column'),
-                action: function () { return _this.columnController.autoSizeColumn(column, "contextMenu"); }
-            };
-            case 'autoSizeAll': return {
-                name: localeTextFunc('autosizeAllColumns', 'Autosize All Columns'),
-                action: function () { return _this.columnController.autoSizeAllColumns("contextMenu"); }
-            };
-            case 'rowGroup': return {
-                name: localeTextFunc('groupBy', 'Group by') + ' ' + ag_grid_community_1._.escape(this.columnController.getDisplayNameForColumn(column, 'header')),
-                action: function () { return _this.columnController.addRowGroupColumn(column, "contextMenu"); },
-                icon: ag_grid_community_1.Utils.createIconNoSpan('menuAddRowGroup', this.gridOptionsWrapper, null)
-            };
-            case 'rowUnGroup': return {
-                name: localeTextFunc('ungroupBy', 'Un-Group by') + ' ' + ag_grid_community_1._.escape(this.columnController.getDisplayNameForColumn(column, 'header')),
-                action: function () { return _this.columnController.removeRowGroupColumn(column, "contextMenu"); },
-                icon: ag_grid_community_1.Utils.createIconNoSpan('menuRemoveRowGroup', this.gridOptionsWrapper, null)
-            };
-            case 'resetColumns': return {
-                name: localeTextFunc('resetColumns', 'Reset Columns'),
-                action: function () { return _this.columnController.resetColumnState("contextMenu"); }
-            };
-            case 'expandAll': return {
-                name: localeTextFunc('expandAll', 'Expand All'),
-                action: function () { return _this.gridApi.expandAll(); }
-            };
-            case 'contractAll': return {
-                name: localeTextFunc('collapseAll', 'Collapse All'),
-                action: function () { return _this.gridApi.collapseAll(); }
-            };
-            case 'copy': return {
-                name: localeTextFunc('copy', 'Copy'),
-                shortcut: localeTextFunc('ctrlC', 'Ctrl+C'),
-                icon: ag_grid_community_1.Utils.createIconNoSpan('clipboardCopy', this.gridOptionsWrapper, null),
-                action: function () { return _this.clipboardService.copyToClipboard(false); }
-            };
-            case 'copyWithHeaders': return {
-                name: localeTextFunc('copyWithHeaders', 'Copy with Headers'),
-                // shortcut: localeTextFunc('ctrlC','Ctrl+C'),
-                icon: ag_grid_community_1.Utils.createIconNoSpan('clipboardCopy', this.gridOptionsWrapper, null),
-                action: function () { return _this.clipboardService.copyToClipboard(true); }
-            };
-            case 'paste': return {
-                name: localeTextFunc('paste', 'Paste'),
-                shortcut: localeTextFunc('ctrlV', 'Ctrl+V'),
-                disabled: true,
-                icon: ag_grid_community_1.Utils.createIconNoSpan('clipboardPaste', this.gridOptionsWrapper, null),
-                action: function () { return _this.clipboardService.pasteFromClipboard(); }
-            };
+            case 'pinSubMenu':
+                return {
+                    name: localeTextFunc('pinColumn', 'Pin Column'),
+                    icon: ag_grid_community_1._.createIconNoSpan('menuPin', this.gridOptionsWrapper, null),
+                    subMenu: ['pinLeft', 'pinRight', 'clearPinned']
+                };
+            case 'pinLeft':
+                return {
+                    name: localeTextFunc('pinLeft', 'Pin Left'),
+                    action: function () { return _this.columnController.setColumnPinned(column, ag_grid_community_1.Column.PINNED_LEFT, "contextMenu"); },
+                    checked: column.isPinnedLeft()
+                };
+            case 'pinRight':
+                return {
+                    name: localeTextFunc('pinRight', 'Pin Right'),
+                    action: function () { return _this.columnController.setColumnPinned(column, ag_grid_community_1.Column.PINNED_RIGHT, "contextMenu"); },
+                    checked: column.isPinnedRight()
+                };
+            case 'clearPinned':
+                return {
+                    name: localeTextFunc('noPin', 'No Pin'),
+                    action: function () { return _this.columnController.setColumnPinned(column, null, "contextMenu"); },
+                    checked: !column.isPinned()
+                };
+            case 'valueAggSubMenu':
+                return {
+                    name: localeTextFunc('valueAggregation', 'Value Aggregation'),
+                    icon: ag_grid_community_1._.createIconNoSpan('menuValue', this.gridOptionsWrapper, null),
+                    subMenu: this.createAggregationSubMenu(column)
+                };
+            case 'autoSizeThis':
+                return {
+                    name: localeTextFunc('autosizeThiscolumn', 'Autosize This Column'),
+                    action: function () { return _this.columnController.autoSizeColumn(column, "contextMenu"); }
+                };
+            case 'autoSizeAll':
+                return {
+                    name: localeTextFunc('autosizeAllColumns', 'Autosize All Columns'),
+                    action: function () { return _this.columnController.autoSizeAllColumns("contextMenu"); }
+                };
+            case 'rowGroup':
+                return {
+                    name: localeTextFunc('groupBy', 'Group by') + ' ' + ag_grid_community_1._.escape(this.columnController.getDisplayNameForColumn(column, 'header')),
+                    action: function () { return _this.columnController.addRowGroupColumn(column, "contextMenu"); },
+                    icon: ag_grid_community_1._.createIconNoSpan('menuAddRowGroup', this.gridOptionsWrapper, null)
+                };
+            case 'rowUnGroup':
+                return {
+                    name: localeTextFunc('ungroupBy', 'Un-Group by') + ' ' + ag_grid_community_1._.escape(this.columnController.getDisplayNameForColumn(column, 'header')),
+                    action: function () { return _this.columnController.removeRowGroupColumn(column, "contextMenu"); },
+                    icon: ag_grid_community_1._.createIconNoSpan('menuRemoveRowGroup', this.gridOptionsWrapper, null)
+                };
+            case 'resetColumns':
+                return {
+                    name: localeTextFunc('resetColumns', 'Reset Columns'),
+                    action: function () { return _this.columnController.resetColumnState(false, "contextMenu"); }
+                };
+            case 'expandAll':
+                return {
+                    name: localeTextFunc('expandAll', 'Expand All'),
+                    action: function () { return _this.gridApi.expandAll(); }
+                };
+            case 'contractAll':
+                return {
+                    name: localeTextFunc('collapseAll', 'Collapse All'),
+                    action: function () { return _this.gridApi.collapseAll(); }
+                };
+            case 'copy':
+                return {
+                    name: localeTextFunc('copy', 'Copy'),
+                    shortcut: localeTextFunc('ctrlC', 'Ctrl+C'),
+                    icon: ag_grid_community_1._.createIconNoSpan('clipboardCopy', this.gridOptionsWrapper, null),
+                    action: function () { return _this.clipboardService.copyToClipboard(false); }
+                };
+            case 'copyWithHeaders':
+                return {
+                    name: localeTextFunc('copyWithHeaders', 'Copy with Headers'),
+                    // shortcut: localeTextFunc('ctrlC','Ctrl+C'),
+                    icon: ag_grid_community_1._.createIconNoSpan('clipboardCopy', this.gridOptionsWrapper, null),
+                    action: function () { return _this.clipboardService.copyToClipboard(true); }
+                };
+            case 'paste':
+                return {
+                    name: localeTextFunc('paste', 'Paste'),
+                    shortcut: localeTextFunc('ctrlV', 'Ctrl+V'),
+                    disabled: true,
+                    icon: ag_grid_community_1._.createIconNoSpan('clipboardPaste', this.gridOptionsWrapper, null),
+                    action: function () { return _this.clipboardService.pasteFromClipboard(); }
+                };
             case 'export':
                 var exportSubMenuItems = [];
                 if (!this.gridOptionsWrapper.isSuppressCsvExport()) {
@@ -126,37 +140,200 @@ var MenuItemMapper = /** @class */ (function () {
                 }
                 if (!this.gridOptionsWrapper.isSuppressExcelExport()) {
                     exportSubMenuItems.push('excelExport');
-                    exportSubMenuItems.push('excelXMLExport');
+                    exportSubMenuItems.push('excelXmlExport');
                 }
                 return {
                     name: localeTextFunc('export', 'Export'),
-                    subMenu: exportSubMenuItems
+                    subMenu: exportSubMenuItems,
+                    icon: ag_grid_community_1._.createIconNoSpan('save', this.gridOptionsWrapper, null),
                 };
-            case 'csvExport': return {
-                name: localeTextFunc('csvExport', 'CSV Export'),
-                action: function () { return _this.gridApi.exportDataAsCsv({}); }
-            };
-            case 'excelExport': return {
-                name: localeTextFunc('excelExport', 'Excel Export (.xlsx)'),
-                action: function () { return _this.gridApi.exportDataAsExcel({
-                    exportMode: 'xlsx'
-                }); }
-            };
-            case 'excelXMLExport': return {
-                name: localeTextFunc('excelXMLExport', 'Excel Export (.xml)'),
-                action: function () { return _this.gridApi.exportDataAsExcel({
-                    exportMode: 'xml'
-                }); }
-            };
-            case 'separator': return 'separator';
-            case 'createChart': return {
-                name: 'Create Chart',
-                action: function () {
-                    _this.chartingService.createChart();
-                }
-            };
+            case 'csvExport':
+                return {
+                    name: localeTextFunc('csvExport', 'CSV Export'),
+                    action: function () { return _this.gridApi.exportDataAsCsv({}); }
+                };
+            case 'excelExport':
+                return {
+                    name: localeTextFunc('excelExport', 'Excel Export (.xlsx)&lrm;'),
+                    action: function () { return _this.gridApi.exportDataAsExcel({
+                        exportMode: 'xlsx'
+                    }); }
+                };
+            case 'excelXmlExport':
+                return {
+                    name: localeTextFunc('excelXmlExport', 'Excel Export (.xml)&lrm;'),
+                    action: function () { return _this.gridApi.exportDataAsExcel({
+                        exportMode: 'xml'
+                    }); }
+                };
+            case 'separator':
+                return 'separator';
             default:
-                console.warn("ag-Grid: unknown menu item type " + key);
+                var chartMenuItem = this.getChartItems(key);
+                if (chartMenuItem) {
+                    return chartMenuItem;
+                }
+                else {
+                    console.warn("ag-Grid: unknown menu item type " + key);
+                    return null;
+                }
+        }
+    };
+    MenuItemMapper.prototype.getChartItems = function (key) {
+        var _this = this;
+        var localeTextFunc = this.gridOptionsWrapper.getLocaleTextFunc();
+        var pivotChartMenuItem = function (localeKey, defaultText, chartType) {
+            return {
+                name: localeTextFunc(localeKey, defaultText),
+                action: function () { return _this.chartService.pivotChart(chartType); }
+            };
+        };
+        var rangeChartMenuItem = function (localeKey, defaultText, chartType) {
+            return {
+                name: localeTextFunc(localeKey, defaultText),
+                action: function () { return _this.chartService.chartCurrentRange(chartType); }
+            };
+        };
+        switch (key) {
+            // case 'pivotChartAndPivotMode':
+            //     return {
+            //         name: localeTextFunc('pivotChartAndPivotMode', 'Pivot Chart & Pivot Mode&lrm;'),
+            //         action: () => this.chartService.pivotChart(ChartType.GroupedColumn),
+            //         icon: _.createIconNoSpan('chart', this.gridOptionsWrapper, null)
+            //     };
+            case 'pivotChart':
+                return {
+                    name: localeTextFunc('pivotChart', 'Pivot Chart'),
+                    subMenu: [
+                        'pivotColumnChart',
+                        'pivotBarChart',
+                        'pivotPieChart',
+                        'pivotLineChart',
+                        'pivotXYChart',
+                        'pivotAreaChart'
+                    ],
+                    icon: ag_grid_community_1._.createIconNoSpan('chart', this.gridOptionsWrapper, null),
+                };
+            case 'chartRange':
+                return {
+                    name: localeTextFunc('chartRange', 'Chart Range'),
+                    subMenu: [
+                        'rangeColumnChart',
+                        'rangeBarChart',
+                        'rangePieChart',
+                        'rangeLineChart',
+                        'rangeXYChart',
+                        'rangeAreaChart'
+                    ],
+                    icon: ag_grid_community_1._.createIconNoSpan('chart', this.gridOptionsWrapper, null),
+                };
+            case 'pivotColumnChart':
+                return {
+                    name: localeTextFunc('columnChart', 'Column'),
+                    subMenu: ['pivotGroupedColumn', 'pivotStackedColumn', 'pivotNormalizedColumn']
+                };
+            case 'pivotGroupedColumn':
+                return pivotChartMenuItem('groupedColumn', 'Grouped&lrm;', ag_grid_community_1.ChartType.GroupedColumn);
+            case 'pivotStackedColumn':
+                return pivotChartMenuItem('stackedColumn', 'Stacked&lrm;', ag_grid_community_1.ChartType.StackedColumn);
+            case 'pivotNormalizedColumn':
+                return pivotChartMenuItem('normalizedColumn', '100% Stacked&lrm;', ag_grid_community_1.ChartType.NormalizedColumn);
+            case 'rangeColumnChart':
+                return {
+                    name: localeTextFunc('columnChart', 'Column'),
+                    subMenu: ['rangeGroupedColumn', 'rangeStackedColumn', 'rangeNormalizedColumn']
+                };
+            case 'rangeGroupedColumn':
+                return rangeChartMenuItem('groupedColumn', 'Grouped&lrm;', ag_grid_community_1.ChartType.GroupedColumn);
+            case 'rangeStackedColumn':
+                return rangeChartMenuItem('stackedColumn', 'Stacked&lrm;', ag_grid_community_1.ChartType.StackedColumn);
+            case 'rangeNormalizedColumn':
+                return rangeChartMenuItem('normalizedColumn', '100% Stacked&lrm;', ag_grid_community_1.ChartType.NormalizedColumn);
+            case 'pivotBarChart':
+                return {
+                    name: localeTextFunc('barChart', 'Bar'),
+                    subMenu: ['pivotGroupedBar', 'pivotStackedBar', 'pivotNormalizedBar']
+                };
+            case 'pivotGroupedBar':
+                return pivotChartMenuItem('groupedBar', 'Grouped&lrm;', ag_grid_community_1.ChartType.GroupedBar);
+            case 'pivotStackedBar':
+                return pivotChartMenuItem('stackedBar', 'Stacked&lrm;', ag_grid_community_1.ChartType.StackedBar);
+            case 'pivotNormalizedBar':
+                return pivotChartMenuItem('normalizedBar', '100% Stacked&lrm;', ag_grid_community_1.ChartType.NormalizedBar);
+            case 'rangeBarChart':
+                return {
+                    name: localeTextFunc('barChart', 'Bar'),
+                    subMenu: ['rangeGroupedBar', 'rangeStackedBar', 'rangeNormalizedBar']
+                };
+            case 'rangeGroupedBar':
+                return rangeChartMenuItem('groupedBar', 'Grouped&lrm;', ag_grid_community_1.ChartType.GroupedBar);
+            case 'rangeStackedBar':
+                return rangeChartMenuItem('stackedBar', 'Stacked&lrm;', ag_grid_community_1.ChartType.StackedBar);
+            case 'rangeNormalizedBar':
+                return rangeChartMenuItem('normalizedBar', '100% Stacked&lrm;', ag_grid_community_1.ChartType.NormalizedBar);
+            case 'pivotPieChart':
+                return {
+                    name: localeTextFunc('pieChart', 'Pie'),
+                    subMenu: ['pivotPie', 'pivotDoughnut']
+                };
+            case 'pivotPie':
+                return pivotChartMenuItem('pie', 'Pie&lrm;', ag_grid_community_1.ChartType.Pie);
+            case 'pivotDoughnut':
+                return pivotChartMenuItem('doughnut', 'Doughnut&lrm;', ag_grid_community_1.ChartType.Doughnut);
+            case 'rangePieChart':
+                return {
+                    name: localeTextFunc('pieChart', 'Pie'),
+                    subMenu: ['rangePie', 'rangeDoughnut']
+                };
+            case 'rangePie':
+                return rangeChartMenuItem('pie', 'Pie&lrm;', ag_grid_community_1.ChartType.Pie);
+            case 'rangeDoughnut':
+                return rangeChartMenuItem('doughnut', 'Doughnut&lrm;', ag_grid_community_1.ChartType.Doughnut);
+            case 'pivotLineChart':
+                return pivotChartMenuItem('line', 'Line&lrm;', ag_grid_community_1.ChartType.Line);
+            case 'rangeLineChart':
+                return rangeChartMenuItem('line', 'Line&lrm;', ag_grid_community_1.ChartType.Line);
+            case 'pivotXYChart':
+                return {
+                    name: localeTextFunc('xyChart', 'X Y (Scatter)'),
+                    subMenu: ['pivotScatter', 'pivotBubble']
+                };
+            case 'pivotScatter':
+                return pivotChartMenuItem('scatter', 'Scatter&lrm;', ag_grid_community_1.ChartType.Scatter);
+            case 'pivotBubble':
+                return pivotChartMenuItem('bubble', 'Bubble&lrm;', ag_grid_community_1.ChartType.Bubble);
+            case 'rangeXYChart':
+                return {
+                    name: localeTextFunc('xyChart', 'X Y (Scatter)'),
+                    subMenu: ['rangeScatter', 'rangeBubble']
+                };
+            case 'rangeScatter':
+                return rangeChartMenuItem('scatter', 'Scatter&lrm;', ag_grid_community_1.ChartType.Scatter);
+            case 'rangeBubble':
+                return rangeChartMenuItem('bubble', 'Bubble&lrm;', ag_grid_community_1.ChartType.Bubble);
+            case 'pivotAreaChart':
+                return {
+                    name: localeTextFunc('areaChart', 'Area'),
+                    subMenu: ['pivotArea', 'pivotStackedArea', 'pivotNormalizedArea']
+                };
+            case 'pivotArea':
+                return pivotChartMenuItem('area', 'Area&lrm;', ag_grid_community_1.ChartType.Area);
+            case 'pivotStackedArea':
+                return pivotChartMenuItem('stackedArea', 'Stacked&lrm;', ag_grid_community_1.ChartType.StackedArea);
+            case 'pivotNormalizedArea':
+                return pivotChartMenuItem('normalizedArea', '100% Stacked&lrm;', ag_grid_community_1.ChartType.NormalizedArea);
+            case 'rangeAreaChart':
+                return {
+                    name: localeTextFunc('areaChart', 'Area'),
+                    subMenu: ['rangeArea', 'rangeStackedArea', 'rangeNormalizedArea']
+                };
+            case 'rangeArea':
+                return rangeChartMenuItem('area', 'Area&lrm;', ag_grid_community_1.ChartType.Area);
+            case 'rangeStackedArea':
+                return rangeChartMenuItem('stackedArea', 'Stacked&lrm;', ag_grid_community_1.ChartType.StackedArea);
+            case 'rangeNormalizedArea':
+                return rangeChartMenuItem('normalizedArea', '100% Stacked&lrm;', ag_grid_community_1.ChartType.NormalizedArea);
+            default:
                 return null;
         }
     };
@@ -207,9 +384,9 @@ var MenuItemMapper = /** @class */ (function () {
         __metadata("design:type", aggFuncService_1.AggFuncService)
     ], MenuItemMapper.prototype, "aggFuncService", void 0);
     __decorate([
-        ag_grid_community_1.Autowired('chartingService'),
-        __metadata("design:type", chartingService_1.ChartingService)
-    ], MenuItemMapper.prototype, "chartingService", void 0);
+        ag_grid_community_1.Optional('chartService'),
+        __metadata("design:type", Object)
+    ], MenuItemMapper.prototype, "chartService", void 0);
     MenuItemMapper = __decorate([
         ag_grid_community_1.Bean('menuItemMapper')
     ], MenuItemMapper);

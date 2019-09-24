@@ -5,15 +5,12 @@ import {
     Autowired,
     ColumnController,
     Events,
-    Context,
     EventService,
     TouchListener,
     DragAndDropService,
-    GridPanel,
     GridOptionsWrapper,
     DropTarget,
     PostConstruct,
-    QuerySelector,
     Column,
     DragSource,
     ColumnAggFuncChangeRequestEvent,
@@ -35,14 +32,13 @@ export class DropZoneColumnComp extends Component {
 
     private static TEMPLATE =
        `<span class="ag-column-drop-cell">
-          <span class="ag-column-drag" ref="eDragHandle"></span>
-          <span class="ag-column-drop-cell-text"></span>
-          <span class="ag-column-drop-cell-button">&#10006;</span>
+          <span ref="eDragHandle" class="ag-column-drag"></span>
+          <span ref="eText" class="ag-column-drop-cell-text"></span>
+          <span ref="btRemove" class="ag-column-drop-cell-button"></span>
         </span>`;
 
     @Autowired('dragAndDropService') dragAndDropService: DragAndDropService;
     @Autowired('columnController') columnController: ColumnController;
-    @Autowired('context') context: Context;
     @Autowired('popupService') popupService: PopupService;
     @Autowired('aggFuncService') aggFuncService: AggFuncService;
     @Autowired('gridOptionsWrapper') gridOptionsWrapper: GridOptionsWrapper;
@@ -50,10 +46,9 @@ export class DropZoneColumnComp extends Component {
     @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('gridApi') private gridApi: GridApi;
 
-    @QuerySelector('.ag-column-drop-cell-text') private eText: HTMLElement;
-    @QuerySelector('.ag-column-drop-cell-button') private btRemove: HTMLElement;
-
+    @RefSelector('eText') private eText: HTMLElement;
     @RefSelector('eDragHandle') private eDragHandle: HTMLElement;
+    @RefSelector('btRemove') private btRemove: HTMLElement;
 
     private column: Column;
     private dragSourceDropTarget: DropTarget;
@@ -74,6 +69,8 @@ export class DropZoneColumnComp extends Component {
     @PostConstruct
     public init(): void {
         this.setTemplate(DropZoneColumnComp.TEMPLATE);
+        this.eDragHandle.appendChild(_.createIconNoSpan('columnDrag', this.gridOptionsWrapper));
+        this.btRemove.appendChild(_.createIconNoSpan('cancel', this.gridOptionsWrapper));
 
         this.displayName = this.columnController.getDisplayNameForColumn(this.column, 'columnDrop');
         this.setupComponents();
@@ -120,7 +117,7 @@ export class DropZoneColumnComp extends Component {
 
     private setupRemove(): void {
 
-        _.setVisible(this.btRemove, !this.gridOptionsWrapper.isFunctionsReadOnly());
+        _.setDisplayed(this.btRemove, !this.gridOptionsWrapper.isFunctionsReadOnly());
 
         this.addDestroyableEventListener(this.btRemove, 'click', (mouseEvent: MouseEvent) => {
             const agEvent: ColumnRemoveEvent = { type: DropZoneColumnComp.EVENT_COLUMN_REMOVE };
@@ -170,7 +167,7 @@ export class DropZoneColumnComp extends Component {
             getRowCount: function() { return rows.length; }
         });
 
-        this.context.wireBean(virtualList);
+        this.getContext().wireBean(virtualList);
 
         const ePopup = _.loadTemplate('<div class="ag-select-agg-func-popup"></div>');
         ePopup.style.top = '0px';

@@ -16,6 +16,7 @@ import {
     GridApi,
     ColumnApi,
     ModelUpdatedEvent,
+    RowRenderer,
     _
 } from "ag-grid-community";
 
@@ -28,6 +29,7 @@ export class ViewportRowModel implements IRowModel {
     @Autowired('context') private context: Context;
     @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('columnApi') private columnApi: ColumnApi;
+    @Autowired('rowRenderer') private rowRenderer: RowRenderer;
 
     // rowRenderer tells us these
     private firstRow = -1;
@@ -42,6 +44,9 @@ export class ViewportRowModel implements IRowModel {
 
     private viewportDatasource: IViewportDatasource;
 
+    // we don't implement as lazy row heights is not supported in this row model
+    public ensureRowHeightsValid(startPixel: number, endPixel: number, startLimitIndex: number, endLimitIndex: number): boolean { return false; }
+
     @PostConstruct
     private init(): void {
         this.rowHeight = this.gridOptionsWrapper.getRowHeightAsNumber();
@@ -52,7 +57,6 @@ export class ViewportRowModel implements IRowModel {
         if (viewportEnabled && this.gridOptionsWrapper.getViewportDatasource()) {
             this.setViewportDatasource(this.gridOptionsWrapper.getViewportDatasource());
         }
-
     }
 
     public isLastRowFound(): boolean {
@@ -61,8 +65,13 @@ export class ViewportRowModel implements IRowModel {
 
     @PreDestroy
     private destroyDatasource(): void {
-        if (this.viewportDatasource && this.viewportDatasource.destroy) {
-            this.viewportDatasource.destroy();
+        if (this.viewportDatasource) {
+            if (this.viewportDatasource.destroy) {
+                this.viewportDatasource.destroy();
+            }
+            this.rowRenderer.datasourceChanged();
+            this.firstRow = -1;
+            this.lastRow = -1;
         }
     }
 
@@ -87,11 +96,8 @@ export class ViewportRowModel implements IRowModel {
         const afterBuffer = lastRenderedRow + bufferSize;
 
         const result = Math.ceil(afterBuffer / pageSize) * pageSize;
-        if (result <= this.rowCount) {
-            return result;
-        } else {
-            return this.rowCount;
-        }
+        const lastRowIndex = this.rowCount - 1;
+        return Math.min(result, lastRowIndex);
     }
 
     private onViewportChanged(event: any): void {
@@ -155,14 +161,6 @@ export class ViewportRowModel implements IRowModel {
         return result;
     }
 
-    public getPageFirstRow(): number {
-        return 0;
-    }
-
-    public getPageLastRow(): number {
-        return this.rowCount - 1;
-    }
-
     public getRowCount(): number {
         return this.rowCount;
     }
@@ -180,6 +178,14 @@ export class ViewportRowModel implements IRowModel {
             rowHeight: this.rowHeight,
             rowTop: this.rowHeight * index
         };
+    }
+
+    public getTopLevelRowCount(): number {
+        return this.getRowCount();
+    }
+
+    public getTopLevelRowDisplayedIndex(topLevelIndex: number): number {
+        return topLevelIndex;
     }
 
     public getCurrentPageHeight(): number {

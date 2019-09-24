@@ -72,7 +72,7 @@ module.exports = {
                         loader: 'postcss-loader',
                         options: {
                             plugins: [autoprefixer({
-                                browsers: ["last 2 version"],
+                                overrideBrowserslist: ["last 2 version"],
                                 flexbox: true
                             })]
                         }
@@ -92,11 +92,7 @@ module.exports = {
             {
                 test: /\.(svg)$/,
                 use: [
-                    {loader: 'url-loader', options: {limit: 20000}},
-                    {
-                        loader: 'svg-colorize-loader',
-                        options: {color1: '#000000'}
-                    }
+                    {loader: 'url-loader', options: {limit: 20000}}
                 ]
             }
         ]

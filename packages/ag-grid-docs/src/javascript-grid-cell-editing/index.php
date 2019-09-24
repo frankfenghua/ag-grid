@@ -1,6 +1,6 @@
 <?php
 $pageTitle = "Cell Editing: A Core Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Cell Editing. Users can update data with Cell Editing. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Core feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Cell Editing. Users can update data with Cell Editing. Version 20 is available for download now, take it for a free two month trial.";
 $pageKeyboards = "ag-Grid Cell Editors";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
@@ -9,14 +9,7 @@ include '../documentation-main/documentation_header.php';
     <h1>Cell Editing</h1>
 
     <p class="lead">
-        Cell Renderer's are for displaying data and Cell Editors are for editing data.
-        If your application is for showing data only, such as a reporting application, then you will not
-        need to use cell editors. If you are editing your data like a spreadsheet, then you will
-        need Cell Editors to do the editing.
-<br><br>
-
-    <p>
-        Remember Cell Editing works with all frameworks eg Angular and React as well as plain JavaScript.
+        This section outlines how to configure cell editors to enable editing in cells.
     </p>
 
     <p>
@@ -106,7 +99,7 @@ include '../documentation-main/documentation_header.php';
         The grid will stop editing when any of the following happen:
     </p>
 
-        <ul class="content">
+    <ul class="content">
         <li><b>Callback stopEditing</b>: The callback <code>stopEditing</code> (from the params above) gets called by the
             editor. This is how your cell editor informs the grid to stop editing.</li>
         <li><b>Other Cell Focus</b>: If focus in the grid goes to another cell, the editing will stop.</li>
@@ -117,8 +110,6 @@ include '../documentation-main/documentation_header.php';
         Escape action will not take the new value, it will discard changes.</li>
         <li><b>Tab Key Down</b>: Editing will stop, accepting changes, and editing will move to the next cell, or
             the previous cell if 'shift' is also pressed.</li>
-        <li><b>Navigation Key Down</b>: Editing will stop, accepting changes, and editing will move to the next cell
-            in the direction of the navigation key.</li>
         <li><b>Popup Editor Closed</b>: If using popup editor, the popup is configured to close if you click
             outside the editor. Closing the popup triggers the grid to stop editing.</li>
         <li><b>gridApi.stopEditing()</b>: If you call <code>stopEditing()</code> on the grid API.</li>
@@ -256,7 +247,7 @@ cellDefs.forEach( function(cellDef) {
     </p>
     <ul class="content">
         <li><code>cellEditingStarted: </code> editing has started on a cell.</li>
-        <li><code>cellEditingStopped: </code> editing has stopped on a row.</li>
+        <li><code>cellEditingStopped: </code> editing has stopped on a cell.</li>
         <li><code>rowEditingStarted: </code> editing has started on a row. Only for full row editing.</li>
         <li><code>rowEditingStopped: </code> editing has stopped on a row. Only for full row editing.</li>
     </ul>
@@ -307,24 +298,18 @@ cellDefs.forEach( function(cellDef) {
 
     <h2>Many Editors One Column</h2>
 
-    <p>It is also possible to use different editors for different rows in the same column.
+    <p>
+        It is also possible to use different editors for different rows in the same column.
         Typically an application might check the rows contents and choose and editor accordingly.
         To configure this set <code>colDef.cellEditorSelector</code>
         to a function that returns the name of the component to be used as an editor
-        and optionally the custom params to be passed into it<p>
+        and optionally the custom params to be passed into it
+    <p>
 
-    <p>The parameters that these functions will receive are:<p>
-    <snippet>
-interface DynamicComponentParams {
-    data: any,
-    node: RowNode,
-    colDef: ColDef,
-    column: Column,
-    rowIndex: number,
-    api: GridApi,
-    columnApi: ColumnApi
-}
-    </snippet>
+    <p>
+        The params that are passed to this function is the same as the params passed to
+        <a href="../javascript-grid-cell-editor/">cell editors.</a>.
+    </p>
 
     <p>The following example illustrates how to use different editors and parameters in the same column. Note that:</p>
 
@@ -359,116 +344,6 @@ cellEditorSelector:function (params){
 
     <?= example('Dynamic Editor Component', 'dynamic-editor-component', 'vanilla', array("enterprise" => 1, "exampleHeight" => 250)) ?>
 
-
-    <h2 id="provided-cell-editors">Provided Cell Editors</h2>
-
-    <p>
-        The grid, out of the box, comes with the following editors:
-    </p>
-
-    <ul class="content">
-        <li><code>agTextCellEditor</code>: Simple text editor that uses standard HTML Input. This is the default.</li>
-        <li><code>agPopupTextCellEditor</code>: Same as 'text' but as popup.</li>
-        <li><code>agLargeTextCellEditor</code>: A text popup that for inputting larger, multi-line text.</li>
-        <li><code>agSelectCellEditor</code>: Simple editor that uses standard HTML Select.</li>
-        <li><code>agPopupSelectCellEditor</code>: Same as 'select' but as popup.</li>
-        <li><code>agRichSelectCellEditor (ag-Grid-Enterprise only)</code>: - A rich select popup that uses row virtualisation
-    </ul>
-
-    <h3><code>agTextCellEditor</code> / <code>agPopupTextCellEditor</code></h3>
-
-    <p>
-        Simple text editors that use the standard HTML 'input' tag. <code>agTextCellEditor</code> is the default
-        used if you do not explicitly set a cell editor.
-    </p>
-    <p>
-        The only parameter for text cell editors is <code>useFormatter</code>. If set to true then the
-        grid will use the provided colDef.cellFormatter if one is provided.
-    </p>
-
-    <h3><code>agLargeTextCellEditor</code></h3>
-
-    <p>
-        Simple editor that uses the standard HTML 'textarea' tag.
-    </p>
-
-    <p>
-        The <code>agLargeTextCellEditor</code> takes the following parameters:
-    <ul>
-        <li>
-            <code>maxLength</code>: Max number of characters to allow. Default is 200.
-        </li>
-        <li>
-            <code>rows</code>: Number of character rows to display. Default is 10.
-        </li>
-        <li>
-            <code>cols</code>: Number of character columns to display. Default is 60.
-        </li>
-    </ul>
-    </p>
-
-    <h3><code>agSelectCellEditor</code> / <code>agPopupSelectCellEditor</code></h3>
-
-    <p>
-        Simple editors that use standard HTML 'select' tag.
-    </p>
-
-    <p>
-        The only parameter for text cell editors is <code>values</code>. Use this to provide a list of
-        values to the cell editor.
-    </p>
-
-    <snippet>
-colDef.cellEditor = 'agSelectCellEditor';
-colDef.cellEditorParams = {
-    values: ['English', 'Spanish', 'French', 'Portuguese', '(other)']
-}
-    </snippet>
-
-    <note>
-        We have found the standard HTML <code>select</code> to behave odd when in the grid. This is because the browser
-        doesn't have a great API for opening and closing the select's popup. We advise you don't use
-        it unless you have to - that is we advise against <code>agSelectCellEditor</code> and <code>agPopupSelectCellEditor</code> as
-        they give poor user experience, especially if using keyboard navigation. If using ag-Grid Enterprise,
-        then you should use the provided <code>agRichSelectCellEditor</code>.
-    </note>
-
-    <h3><code>agRichSelectCellEditor</code></h3>
-
-    <p>
-        Available in ag-Grid Enterprise only. An alternative to using the browsers 'select' tag for drop downs
-        inside the grid.
-    </p>
-
-    <p>
-        The <code>agRichSelectCellEditor</code> has the following benefits of the browsers 'select' tag:
-    <ul>
-        <li>Uses DOM row visualisation so very large lists can be displayed.</li>
-        <li>Integrates with the grid perfectly, no glitches as seen with the standard select.</li>
-        <li>Uses HTML to render the values - you can provide cell renderers to cusomise what each value looks like.</li>
-    </ul>
-    </p>
-
-    <p>
-        The <code>agRichSelectCellEditor</code> takes the following parameters:
-    <ul>
-        <li>
-            <code>values</code>: List of values to be selected from.
-        </li>
-        <li>
-            <code>cellHeight</code>: The row height, in pixels, of each value.
-        </li>
-        <li>
-            <code>formatValue</code>: A callback function that allows you to change the displayed value for simple data.
-        </li>
-        <li>
-            <code>cellRenderer</code>: The cell renderer to use to draw each value. Cell renderers are useful to rendering rich
-            html values, or when processing complex data.
-            See <a href="../javascript-grid-cell-rendering-components/">Cell Rendering Components</a>
-            for creating custom cell renderers.
-        </li>
-    </ul>
-    </p>
 
     <h2 id="dynamic-parameters">Dynamic Parameters</h2>
 
@@ -699,30 +574,5 @@ cellEditorParams: function(params) {
 
     <note>Cell Editing can also be done via Cell Editor Components - please see <a href="../javascript-grid-cell-editor">
             Cell Editor Components</a> for more information.</note>
-
-
-    <h2>Controlling keyboard while editing</h2>
-    <p>
-    While editing, the grid will listen to navigation events coming from the keyboard, this includes navigate to next cell,
-    next row... If you want to avoid this events from being consumed by the grid you can do so by configuring
-    <code>colDef.suppressKeyboardEvent</code>.
-    </p>
-
-
-    <p>
-    The following example shows a simple example where each cell contains a number and the arrows are used to manipulate
-    its value.
-
-    Note how the arrows are used to increase or decrease the value of the cell while editing and they are not used for
-    navigation
-    </p>
-
-    <snippet>
-suppressKeyboardEvent: function(event){
-    if (event.editing) return true;
-}</snippet>
-
-    <?= example('Controlling keyboard while editing', 'controlling-keyboard-while-editing', 'generated', array("processVue" => true)) ?>
-
 
 <?php include '../documentation-main/documentation_footer.php';?>

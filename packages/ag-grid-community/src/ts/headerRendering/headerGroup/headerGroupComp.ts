@@ -29,8 +29,8 @@ export class HeaderGroupComp extends Component implements IHeaderGroupComp {
     @Autowired("columnController") private columnController: ColumnController;
     @Autowired("gridOptionsWrapper") private gridOptionsWrapper: GridOptionsWrapper;
 
-    static TEMPLATE = `<div class="ag-header-group-cell-label" ref="agContainer">` +
-        `<span ref="agLabel" class="ag-header-group-text"></span>` +
+    static TEMPLATE = `<div class="ag-header-group-cell-label" ref="agContainer" role="presentation">` +
+        `<span ref="agLabel" class="ag-header-group-text" role="columnheader"></span>` +
         `<span ref="agOpened" class="ag-header-icon ag-header-expand-icon ag-header-expand-icon-expanded"></span>` +
         `<span ref="agClosed" class="ag-header-icon ag-header-expand-icon ag-header-expand-icon-collapsed"></span>` +
         `</div>`;
@@ -60,6 +60,7 @@ export class HeaderGroupComp extends Component implements IHeaderGroupComp {
             if (_.isStopPropagationForAgGrid(event)) {
                 return;
             }
+
             const newExpandedValue = !this.params.columnGroup.isExpanded();
             this.columnController.setColumnGroupOpened(this.params.columnGroup.getOriginalColumnGroup(), newExpandedValue, "uiColumnExpanded");
         };
@@ -89,7 +90,7 @@ export class HeaderGroupComp extends Component implements IHeaderGroupComp {
     }
 
     private addTouchAndClickListeners(eElement: HTMLElement, action: (event: MouseEvent) => void): void {
-        const touchListener = new TouchListener(this.eCloseIcon);
+        const touchListener = new TouchListener(eElement);
 
         this.addDestroyableEventListener(touchListener, TouchListener.EVENT_TAP, action);
         this.addDestroyFunc(() => touchListener.destroy());
@@ -100,11 +101,11 @@ export class HeaderGroupComp extends Component implements IHeaderGroupComp {
         const columnGroup = this.params.columnGroup;
         if (columnGroup.isExpandable()) {
             const expanded = this.params.columnGroup.isExpanded();
-            _.setVisible(this.eOpenIcon, !expanded);
-            _.setVisible(this.eCloseIcon, expanded);
+            _.setDisplayed(this.eOpenIcon, !expanded);
+            _.setDisplayed(this.eCloseIcon, expanded);
         } else {
-            _.setVisible(this.eOpenIcon, false);
-            _.setVisible(this.eCloseIcon, false);
+            _.setDisplayed(this.eOpenIcon, false);
+            _.setDisplayed(this.eCloseIcon, false);
         }
     }
 
@@ -115,8 +116,8 @@ export class HeaderGroupComp extends Component implements IHeaderGroupComp {
 
     private addGroupExpandIcon() {
         if (!this.params.columnGroup.isExpandable()) {
-            _.setVisible(this.eOpenIcon, false);
-            _.setVisible(this.eCloseIcon, false);
+            _.setDisplayed(this.eOpenIcon, false);
+            _.setDisplayed(this.eCloseIcon, false);
             return;
         }
     }

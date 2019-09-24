@@ -180,6 +180,8 @@ export class ColumnController {
 
     public setColumnDefs(columnDefs: (ColDef | ColGroupDef)[], source: ColumnEventType = "api") {
 
+        const colsPreviouslyExisted = !!this.columnDefs;
+
         this.columnDefs = columnDefs;
 
         // always invalidate cache on changing columns, as the column id's for the new columns
@@ -209,6 +211,10 @@ export class ColumnController {
 
         this.updateDisplayedColumns(source);
         this.checkDisplayedVirtualColumns();
+
+        if (this.gridOptionsWrapper.isDeltaColumnMode() && colsPreviouslyExisted) {
+            this.resetColumnState(true, source);
+        }
 
         const eventEverythingChanged: ColumnEverythingChangedEvent = {
             type: Events.EVENT_COLUMN_EVERYTHING_CHANGED,
@@ -317,6 +323,13 @@ export class ColumnController {
         }
 
         this.pivotMode = pivotMode;
+
+        // we need to update grid columns to cover the scenario where user has groupSuppressAutoColumn=true, as
+        // this means we don't use auto group column UNLESS we are in pivot mode (it's mandatory in pivot mode),
+        // so need to updateGridColumn() to check it autoGroupCol needs to be added / removed
+        this.autoGroupsNeedBuilding = true;
+        this.updateGridColumns();
+
         this.updateDisplayedColumns(source);
         const event: ColumnPivotModeChangedEvent = {
             type: Events.EVENT_COLUMN_PIVOT_MODE_CHANGED,
@@ -363,9 +376,9 @@ export class ColumnController {
 
         if (this.gridOptionsWrapper.isEnableRtl()) {
             lastLeft = this.displayedLeftColumns ? this.displayedLeftColumns[0] : null;
-            firstRight = this.displayedRightColumns ? this.displayedRightColumns[this.displayedRightColumns.length - 1] : null;
+            firstRight = this.displayedRightColumns ? _.last(this.displayedRightColumns) : null;
         } else {
-            lastLeft = this.displayedLeftColumns ? this.displayedLeftColumns[this.displayedLeftColumns.length - 1] : null;
+            lastLeft = this.displayedLeftColumns ? _.last(this.displayedLeftColumns) : null;
             firstRight = this.displayedRightColumns ? this.displayedRightColumns[0] : null;
         }
 
@@ -386,7 +399,7 @@ export class ColumnController {
 
         // keep track of which cols we have resized in here
         const columnsAutosized: Column[] = [];
-        // initialise with anything except 0 so that while loop executs at least once
+        // initialise with anything except 0 so that while loop executes at least once
         let changesThisTimeAround = -1;
 
         while (changesThisTimeAround !== 0) {
@@ -538,7 +551,9 @@ export class ColumnController {
 
             const col = displayedColumns[i];
 
-            const colSpan = col.getColSpan(rowNode);
+            const maxAllowedColSpan = displayedColumns.length - i;
+            const colSpan = Math.min(col.getColSpan(rowNode), maxAllowedColSpan);
+
             const columnsToCheckFilter: Column[] = [col];
             if (colSpan > 1) {
                 const colsToRemove = colSpan - 1;
@@ -1178,7 +1193,7 @@ export class ColumnController {
 
         // go though the cols, see if any non-locked appear before any locked
         proposedColumnOrder.forEach(col => {
-            if (col.isLockPosition()) {
+            if (col.getColDef().lockPosition) {
                 if (foundNonLocked) {
                     rulePassed = false;
                 }
@@ -1193,7 +1208,7 @@ export class ColumnController {
     public doesMovePassMarryChildren(allColumnsCopy: Column[]): boolean {
         let rulePassed = true;
 
-        this.columnUtils.depthFirstOriginalTreeSearch(this.gridBalancedTree, child => {
+        this.columnUtils.depthFirstOriginalTreeSearch(null, this.gridBalancedTree, child => {
             if (!(child instanceof OriginalColumnGroup)) {
                 return;
             }
@@ -1596,14 +1611,18 @@ export class ColumnController {
         });
     }
 
-    public resetColumnState(source: ColumnEventType = "api"): void {
+    public resetColumnState(suppressEverythingEvent = false, source: ColumnEventType = "api"): void {
+        // NOTE = there is one bug here that no customer has noticed - if a column has colDef.lockPosition,
+        // this is ignored  below when ordering the cols. to work, we should always put lockPosition cols first.
+        // As a work around, developers should just put lockPosition columns first in their colDef list.
+
         // we can't use 'allColumns' as the order might of messed up, so get the primary ordered list
         const primaryColumns = this.getColumnsFromTree(this.primaryColumnTree);
         const columnStates: ColumnState[] = [];
 
         // we start at 1000, so if user has mix of rowGroup and group specified, it will work with both.
         // eg IF user has ColA.rowGroupIndex=0, ColB.rowGroupIndex=1, ColC.rowGroup=true,
-        // THEN result will be ColA.rowGroupIndex=0, ColB.rowGroupIndex=1, ColC.rowGroup=-1000
+        // THEN result will be ColA.rowGroupIndex=0, ColB.rowGroupIndex=1, ColC.rowGroup=1000
         let letRowGroupIndex = 1000;
         let letPivotIndex = 1000;
 
@@ -1638,10 +1657,10 @@ export class ColumnController {
             });
         }
 
-        this.setColumnState(columnStates, source);
+        this.setColumnState(columnStates, suppressEverythingEvent, source);
     }
 
-    public setColumnState(columnState: ColumnState[], source: ColumnEventType = "api"): boolean {
+    public setColumnState(columnStates: ColumnState[], suppressEverythingEvent = false, source: ColumnEventType = "api"): boolean {
         if (_.missingOrEmpty(this.primaryColumns)) {
             return false;
         }
@@ -1663,21 +1682,21 @@ export class ColumnController {
         const pivotIndexes: { [key: string]: number } = {};
 
         const autoGroupColumnStates: ColumnState[] = [];
-        if (columnState) {
-            columnState.forEach((stateItem: ColumnState) => {
+        if (columnStates) {
+            columnStates.forEach((state: ColumnState) => {
 
                 // auto group columns are re-created so deferring syncing with ColumnState
-                if (_.exists(this.getAutoColumn(stateItem.colId))) {
-                    autoGroupColumnStates.push(stateItem);
+                if (_.exists(this.getAutoColumn(state.colId))) {
+                    autoGroupColumnStates.push(state);
                     return;
                 }
 
-                const column = this.getPrimaryColumn(stateItem.colId);
+                const column = this.getPrimaryColumn(state.colId);
                 if (!column) {
-                    console.warn('ag-grid: column ' + stateItem.colId + ' not found');
+                    console.warn('ag-grid: column ' + state.colId + ' not found');
                     success = false;
                 } else {
-                    this.syncColumnWithStateItem(column, stateItem, rowGroupIndexes, pivotIndexes, source);
+                    this.syncColumnWithStateItem(column, state, rowGroupIndexes, pivotIndexes, source);
                     _.removeFromArray(columnsWithNoState, column);
                 }
             });
@@ -1698,8 +1717,8 @@ export class ColumnController {
             this.syncColumnWithStateItem(autoCol, stateItem, rowGroupIndexes, pivotIndexes, source);
         });
 
-        if (columnState) {
-            const orderOfColIds = columnState.map(stateItem => stateItem.colId);
+        if (columnStates) {
+            const orderOfColIds = columnStates.map(stateItem => stateItem.colId);
             this.gridColumns.sort((colA: Column, colB: Column) => {
                 const indexA = orderOfColIds.indexOf(colA.getId());
                 const indexB = orderOfColIds.indexOf(colB.getId());
@@ -1707,15 +1726,23 @@ export class ColumnController {
             });
         }
 
+        // this is already done in updateGridColumns, however we changed the order above (to match the order of the state
+        // columns) so we need to do it again. we could of put logic into the order above to take into account fixed
+        // columns, however if we did then we would have logic for updating fixed columns twice. reusing the logic here
+        // is less sexy for the code here, but it keeps consistency.
+        this.putFixedColumnsFirst();
+
         this.updateDisplayedColumns(source);
 
-        const event: ColumnEverythingChangedEvent = {
-            type: Events.EVENT_COLUMN_EVERYTHING_CHANGED,
-            api: this.gridApi,
-            columnApi: this.columnApi,
-            source: source
-        };
-        this.eventService.dispatchEvent(event);
+        if (!suppressEverythingEvent) {
+            const event: ColumnEverythingChangedEvent = {
+                type: Events.EVENT_COLUMN_EVERYTHING_CHANGED,
+                api: this.gridApi,
+                columnApi: this.columnApi,
+                source: source
+            };
+            this.eventService.dispatchEvent(event);
+        }
 
         this.raiseColumnEvents(columnStateBefore, source);
 
@@ -1755,7 +1782,7 @@ export class ColumnController {
                 columnStateBeforeMap[col.colId] = col;
             });
 
-            this.allDisplayedColumns.forEach(column => {
+            this.gridColumns.forEach(column => {
                 const colStateBefore = columnStateBeforeMap[column.getColId()];
                 if (!colStateBefore || changedPredicate(colStateBefore, column)) {
                     changedColumns.push(column);
@@ -1780,7 +1807,8 @@ export class ColumnController {
         this.raiseColumnPinnedEvent(getChangedColumns(pinnedChangePredicate), source);
 
         const visibilityChangePredicate = (cs: ColumnState, c: Column) => cs.hide === c.isVisible();
-        this.raiseColumnVisibleEvent(getChangedColumns(visibilityChangePredicate), source);
+        const cols = getChangedColumns(visibilityChangePredicate);
+        this.raiseColumnVisibleEvent(cols, source);
 
         const resizeChangePredicate = (cs: ColumnState, c: Column) => cs.width !== c.getActualWidth();
         this.raiseColumnResizeEvent(getChangedColumns(resizeChangePredicate), source);
@@ -1952,10 +1980,11 @@ export class ColumnController {
     }
 
     // used by growGroupPanel
-    public getColumnWithValidation(key: string | Column): Column | null {
-        const column = this.getPrimaryColumn(key);
+    public getColumnWithValidation(key: string | Column | undefined): Column | null {
+        if (key == null) { return null; }
+        const column = this.getGridColumn(key);
         if (!column) {
-            console.warn('ag-Grid: could not find column ' + column);
+            console.warn('ag-Grid: could not find column ' + key);
         }
         return column;
     }
@@ -2265,7 +2294,7 @@ export class ColumnController {
     public resetColumnGroupState(source: ColumnEventType = "api"): void {
         const stateItems: { groupId: string, open: boolean | undefined }[] = [];
 
-        this.columnUtils.depthFirstOriginalTreeSearch(this.primaryColumnTree, child => {
+        this.columnUtils.depthFirstOriginalTreeSearch(null, this.primaryColumnTree, child => {
             if (child instanceof OriginalColumnGroup) {
                 const groupState = {
                     groupId: child.getGroupId(),
@@ -2280,7 +2309,7 @@ export class ColumnController {
 
     public getColumnGroupState(): { groupId: string, open: boolean }[] {
         const columnGroupState: { groupId: string, open: boolean }[] = [];
-        this.columnUtils.depthFirstOriginalTreeSearch(this.gridBalancedTree, node => {
+        this.columnUtils.depthFirstOriginalTreeSearch(null, this.gridBalancedTree, node => {
             if (node instanceof OriginalColumnGroup) {
                 const originalColumnGroup = node;
                 columnGroupState.push({
@@ -2316,6 +2345,7 @@ export class ColumnController {
         });
 
         this.updateGroupsAndDisplayedColumns(source);
+        this.setFirstRightAndLastLeftPinned(source);
 
         impactedGroups.forEach(originalColumnGroup => {
             const event: ColumnGroupOpenedEvent = {
@@ -2352,7 +2382,7 @@ export class ColumnController {
 
         // otherwise, search for the column group by id
         let res: OriginalColumnGroup | null = null;
-        this.columnUtils.depthFirstOriginalTreeSearch(this.gridBalancedTree, node => {
+        this.columnUtils.depthFirstOriginalTreeSearch(null, this.gridBalancedTree, node => {
             if (node instanceof OriginalColumnGroup) {
                 const originalColumnGroup = node;
                 if (originalColumnGroup.getId() === key) {
@@ -2427,9 +2457,10 @@ export class ColumnController {
 
         this.calculateColumnsForGroupDisplay();
 
-        // this is also called when a group is opened or closed
+        // also called when group opened/closed
         this.updateGroupsAndDisplayedColumns(source);
 
+        // also called when group opened/closed
         this.setFirstRightAndLastLeftPinned(source);
     }
 
@@ -2555,34 +2586,52 @@ export class ColumnController {
             return;
         }
 
-        // order cols in teh same order as before. we need to make sure that all
+        // order cols in the same order as before. we need to make sure that all
         // cols still exists, so filter out any that no longer exist.
         const oldColsOrdered = this.lastPrimaryOrder.filter(col => this.gridColumns.indexOf(col) >= 0);
-        const newColsOrdered = this.gridColumns.filter(col => this.lastPrimaryOrder.indexOf(col) < 0);
-        this.gridColumns = oldColsOrdered.concat(newColsOrdered);
+        const newColsOrdered = this.gridColumns.filter(col => oldColsOrdered.indexOf(col) < 0);
 
-        // let gridColsBeforeSort = this.gridColumns.slice();
-        //
-        // this.gridColumns.sort( (colA: Column, colB: Column): number => {
-        //     let indexA = this.lastPrimaryOrder.indexOf(colA);
-        //     let indexB = this.lastPrimaryOrder.indexOf(colB);
-        //
-        //     let bothColsExistedBefore = indexA>=0 && indexB>=0;
-        //     let neitherColsExistedBefore = indexA<0 && indexB<0;
-        //
-        //     if (bothColsExistedBefore) {
-        //         return indexA - indexB;
-        //     } else if (neitherColsExistedBefore) {
-        //         // if both cols are new, keep current order
-        //         let currentIndexA = gridColsBeforeSort.indexOf(colA);
-        //         let currentIndexB = gridColsBeforeSort.indexOf(colB);
-        //         return currentIndexA - currentIndexB;
-        //     } else if (indexA>0) {
-        //         return -1;
-        //     } else {
-        //         return 1;
-        //     }
-        // });
+        // add in the new columns, at the end (if no group), or at the end of the group (if a group)
+        const newGridColumns = oldColsOrdered.slice();
+        newColsOrdered.forEach(newCol => {
+
+            let parent = newCol.getOriginalParent();
+
+            // if no parent, means we are not grouping, so just add the column to the end
+            if (!parent) {
+                newGridColumns.push(newCol);
+                return;
+            }
+
+            // find the group the column belongs to. if no siblings at the current level (eg col in group on it's
+            // own) then go up one level and look for siblings there.
+            const siblings: Column[] = [];
+            while (!siblings.length && parent) {
+                const leafCols = parent.getLeafColumns();
+                leafCols.forEach(leafCol => {
+                    const presentInNewGriColumns = newGridColumns.indexOf(leafCol) >= 0;
+                    const noYetInSiblings = siblings.indexOf(leafCol) < 0;
+                    if (presentInNewGriColumns && noYetInSiblings) {
+                        siblings.push(leafCol);
+                    }
+                });
+                parent = parent.getOriginalParent();
+            }
+
+            // if no siblings exist at any level, this means the col is in a group (or parent groups) on it's own
+            if (!siblings.length) {
+                newGridColumns.push(newCol);
+                return;
+            }
+
+            // find index of last column in the group
+            const indexes = siblings.map(col => newGridColumns.indexOf(col));
+            const lastIndex = Math.max(...indexes);
+
+            _.insertIntoArray(newGridColumns, newCol, lastIndex + 1);
+        });
+
+        this.gridColumns = newGridColumns;
     }
 
     public isPrimaryColumnGroupsPresent(): boolean {
@@ -2603,8 +2652,8 @@ export class ColumnController {
     }
 
     private putFixedColumnsFirst(): void {
-        const locked = this.gridColumns.filter(c => c.isLockPosition());
-        const unlocked = this.gridColumns.filter(c => !c.isLockPosition());
+        const locked = this.gridColumns.filter(c => c.getColDef().lockPosition);
+        const unlocked = this.gridColumns.filter(c => !c.getColDef().lockPosition);
         this.gridColumns = locked.concat(unlocked);
     }
 
@@ -2958,17 +3007,45 @@ export class ColumnController {
         }
         this.autoGroupsNeedBuilding = false;
 
-        // see if we need to insert the default grouping column
-        const needAutoColumns = (this.rowGroupColumns.length > 0 || this.usingTreeData)
-            && !this.gridOptionsWrapper.isGroupSuppressAutoColumn()
-            && !this.gridOptionsWrapper.isGroupUseEntireRow()
-            && !this.gridOptionsWrapper.isGroupSuppressRow();
+        const groupFullWidthRow = this.gridOptionsWrapper.isGroupUseEntireRow(this.pivotMode);
+        // we never suppress auto col for pivot mode, as there is no way for user to provide group columns
+        // in pivot mode. pivot mode has auto group column (provide by grid) and value columns (provided by
+        // pivot feature in the grid).
+        const groupSuppressAutoColumn = this.gridOptionsWrapper.isGroupSuppressAutoColumn() && !this.pivotMode;
+        const groupSuppressRow = this.gridOptionsWrapper.isGroupSuppressRow();
+        const groupingActive = this.rowGroupColumns.length > 0 || this.usingTreeData;
+
+        const needAutoColumns = groupingActive && !groupSuppressAutoColumn && !groupFullWidthRow && !groupSuppressRow;
 
         if (needAutoColumns) {
-            this.groupAutoColumns = this.autoGroupColService.createAutoGroupColumns(this.rowGroupColumns);
+            const newAutoGroupCols = this.autoGroupColService.createAutoGroupColumns(this.rowGroupColumns);
+            const autoColsDifferent = !this.autoColsEqual(newAutoGroupCols, this.groupAutoColumns);
+            if (autoColsDifferent) {
+                this.groupAutoColumns = newAutoGroupCols;
+            }
         } else {
             this.groupAutoColumns = null;
         }
+    }
+
+    private autoColsEqual(colsA: Column[], colsB: Column[]): boolean {
+        const bothMissing = !colsA && !colsB;
+        if (bothMissing) { return true; }
+
+        const atLeastOneListMissing = !colsA || !colsB;
+        if (atLeastOneListMissing) { return false; }
+
+        if (colsA.length !== colsB.length) { return false; }
+
+        for (let i = 0; i < colsA.length; i++) {
+            const colA = colsA[i];
+            const colB = colsB[i];
+            if (colA.getColId() !== colB.getColId()) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private getWidthOfColsInList(columnList: Column[]) {

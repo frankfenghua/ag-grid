@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -59,7 +59,7 @@ var SelectAllFeature = /** @class */ (function (_super) {
     };
     SelectAllFeature.prototype.showOrHideSelectAll = function () {
         this.cbSelectAllVisible = this.isCheckboxSelection();
-        this.cbSelectAll.setVisible(this.cbSelectAllVisible);
+        this.cbSelectAll.setDisplayed(this.cbSelectAllVisible);
         if (this.cbSelectAllVisible) {
             // in case user is trying this feature with the wrong model type
             this.checkRightRowModelType();
@@ -104,7 +104,7 @@ var SelectAllFeature = /** @class */ (function (_super) {
         this.processingEventFromCheckbox = true;
         var selectionCount = this.getSelectionCount();
         var allSelected = this.getNextCheckboxState(selectionCount);
-        this.cbSelectAll.setSelected(allSelected);
+        this.cbSelectAll.setValue(allSelected);
         this.processingEventFromCheckbox = false;
     };
     SelectAllFeature.prototype.getSelectionCount = function () {
@@ -150,7 +150,7 @@ var SelectAllFeature = /** @class */ (function (_super) {
         if (!this.cbSelectAllVisible) {
             return;
         }
-        var value = this.cbSelectAll.isSelected();
+        var value = this.cbSelectAll.getValue();
         if (value) {
             this.selectionController.selectAllRowNodes(this.filteredOnly);
         }

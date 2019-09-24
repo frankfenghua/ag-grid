@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -28,18 +28,18 @@ var nameValueComp_1 = require("./nameValueComp");
 var FilteredRowsComp = /** @class */ (function (_super) {
     __extends(FilteredRowsComp, _super);
     function FilteredRowsComp() {
-        return _super.call(this, 'filteredRowCount', 'Filtered') || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     FilteredRowsComp.prototype.postConstruct = function () {
-        _super.prototype.postConstruct.call(this);
-        // this component is only really useful with client side rowmodel
+        this.setLabel('filteredRows', 'Filtered');
+        // this component is only really useful with client side row model
         if (this.gridApi.getModel().getType() !== 'clientSide') {
             console.warn("ag-Grid: agFilteredRowCountComponent should only be used with the client side row model.");
             return;
         }
         this.addCssClass('ag-status-panel');
         this.addCssClass('ag-status-panel-filtered-row-count');
-        this.setVisible(true);
+        this.setDisplayed(true);
         var listener = this.onDataChanged.bind(this);
         this.eventService.addEventListener(ag_grid_community_1.Events.EVENT_MODEL_UPDATED, listener);
     };
@@ -47,7 +47,7 @@ var FilteredRowsComp = /** @class */ (function (_super) {
         var totalRowCountValue = this.getTotalRowCountValue();
         var filteredRowCountValue = this.getFilteredRowCountValue();
         this.setValue(filteredRowCountValue);
-        this.setVisible(totalRowCountValue !== filteredRowCountValue);
+        this.setDisplayed(totalRowCountValue !== filteredRowCountValue);
     };
     FilteredRowsComp.prototype.getTotalRowCountValue = function () {
         var totalRowCount = 0;
@@ -56,7 +56,11 @@ var FilteredRowsComp = /** @class */ (function (_super) {
     };
     FilteredRowsComp.prototype.getFilteredRowCountValue = function () {
         var filteredRowCount = 0;
-        this.gridApi.forEachNodeAfterFilter(function (node) { return filteredRowCount += 1; });
+        this.gridApi.forEachNodeAfterFilter(function (node) {
+            if (!node.group) {
+                filteredRowCount += 1;
+            }
+        });
         return filteredRowCount;
     };
     FilteredRowsComp.prototype.init = function () { };

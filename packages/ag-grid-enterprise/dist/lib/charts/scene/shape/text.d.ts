@@ -1,17 +1,58 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { Shape } from "./shape";
+import { BBox } from "../bbox";
 export declare class Text extends Shape {
-    protected static defaults: {
-        fillStyle: string;
-        strokeStyle: string;
-        lineWidth: number;
+    static className: string;
+    protected static defaultStyles: {
+        fill: string;
+        stroke: undefined;
+        strokeWidth: number;
+        lineDash: undefined;
+        lineDashOffset: number;
+        lineCap: import("./shape").ShapeLineCap;
+        lineJoin: import("./shape").ShapeLineJoin;
         opacity: number;
+        fillShadow: undefined;
+        strokeShadow: undefined;
     } & {
-        fillStyle: string;
-        x: number;
-        y: number;
+        textAlign: CanvasTextAlign;
+        fontStyle: undefined;
+        fontWeight: undefined;
+        fontSize: number;
+        fontFamily: string;
+        textBaseline: CanvasTextBaseline;
     };
-    isPointInPath(ctx: CanvasRenderingContext2D, x: number, y: number): boolean;
-    isPointInStroke(ctx: CanvasRenderingContext2D, x: number, y: number): boolean;
+    private _x;
+    x: number;
+    private _y;
+    y: number;
+    private lineBreakRe;
+    private lines;
+    private splitText;
+    private _text;
+    text: string;
+    private _font?;
+    readonly font: string;
+    private _dirtyFont;
+    dirtyFont: boolean;
+    private _fontStyle;
+    fontStyle: string | undefined;
+    private _fontWeight;
+    fontWeight: string | undefined;
+    private _fontSize;
+    fontSize: number;
+    private _fontFamily;
+    fontFamily: string;
+    private _textAlign;
+    textAlign: CanvasTextAlign;
+    private _textBaseline;
+    textBaseline: CanvasTextBaseline;
+    private _lineHeight;
+    lineHeight: number;
+    getBBox(): BBox | undefined;
+    private getPreciseBBox;
+    private getApproximateBBox;
+    isPointInPath(x: number, y: number): boolean;
+    isPointInStroke(x: number, y: number): boolean;
     render(ctx: CanvasRenderingContext2D): void;
 }

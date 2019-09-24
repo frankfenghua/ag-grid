@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -39,16 +39,10 @@ var ColumnToolPanel = /** @class */ (function (_super) {
     }
     // lazy initialise the panel
     ColumnToolPanel.prototype.setVisible = function (visible) {
-        _super.prototype.setVisible.call(this, visible);
+        _super.prototype.setDisplayed.call(this, visible);
         if (visible && !this.initialised) {
             this.init(this.params);
         }
-        var event = {
-            type: main_1.Events.EVENT_TOOL_PANEL_VISIBLE_CHANGED,
-            api: this.gridOptionsWrapper.getApi(),
-            columnApi: this.gridOptionsWrapper.getColumnApi()
-        };
-        this.eventService.dispatchEvent(event);
     };
     ColumnToolPanel.prototype.init = function (params) {
         var defaultParams = {
@@ -65,7 +59,6 @@ var ColumnToolPanel = /** @class */ (function (_super) {
         };
         main_1._.mergeDeep(defaultParams, params);
         this.params = defaultParams;
-        this.instantiate(this.context);
         if (!this.params.suppressPivotMode) {
             this.addComponent(new pivotModePanel_1.PivotModePanel());
         }
@@ -82,14 +75,14 @@ var ColumnToolPanel = /** @class */ (function (_super) {
         this.initialised = true;
     };
     ColumnToolPanel.prototype.addComponent = function (component) {
-        this.context.wireBean(component);
+        this.getContext().wireBean(component);
         this.getGui().appendChild(component.getGui());
         this.childDestroyFuncs.push(component.destroy.bind(component));
     };
     ColumnToolPanel.prototype.destroyChildren = function () {
         this.childDestroyFuncs.forEach(function (func) { return func(); });
         this.childDestroyFuncs.length = 0;
-        main_1._.removeAllChildren(this.getGui());
+        main_1._.clearElement(this.getGui());
     };
     ColumnToolPanel.prototype.refresh = function () {
         this.destroyChildren();
@@ -100,10 +93,6 @@ var ColumnToolPanel = /** @class */ (function (_super) {
         _super.prototype.destroy.call(this);
     };
     ColumnToolPanel.TEMPLATE = "<div class=\"ag-column-panel\"></div>";
-    __decorate([
-        main_1.Autowired("context"),
-        __metadata("design:type", main_1.Context)
-    ], ColumnToolPanel.prototype, "context", void 0);
     __decorate([
         main_1.Autowired("gridOptionsWrapper"),
         __metadata("design:type", main_1.GridOptionsWrapper)

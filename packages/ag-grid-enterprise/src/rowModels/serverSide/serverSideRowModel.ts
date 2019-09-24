@@ -28,21 +28,23 @@ import {
     RowNode,
     RowNodeBlockLoader,
     RowNodeCache,
-    SortController
+    SortController,
+    RowRenderer
 } from "ag-grid-community";
 import { ServerSideCache, ServerSideCacheParams } from "./serverSideCache";
+import { ServerSideBlock } from "./serverSideBlock";
 
 @Bean('rowModel')
 export class ServerSideRowModel extends BeanStub implements IServerSideRowModel {
 
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('eventService') private eventService: EventService;
-    @Autowired('context') private context: Context;
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('filterManager') private filterManager: FilterManager;
     @Autowired('sortController') private sortController: SortController;
     @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('columnApi') private columnApi: ColumnApi;
+    @Autowired('rowRenderer') private rowRenderer: RowRenderer;
 
     private rootNode: RowNode;
     private datasource: IServerSideDatasource | undefined;
@@ -54,6 +56,9 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
     private logger: Logger;
 
     private rowNodeBlockLoader: RowNodeBlockLoader | undefined;
+
+    // we don't implement as lazy row heights is not supported in this row model
+    public ensureRowHeightsValid(startPixel: number, endPixel: number, startLimitIndex: number, endLimitIndex: number): boolean { return false; }
 
     @PostConstruct
     private postConstruct(): void {
@@ -67,16 +72,14 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
     }
 
     @PreDestroy
-    public destroy(): void {
-        super.destroy();
-    }
-
-    @PreDestroy
     private destroyDatasource(): void {
-        if (this.datasource && this.datasource.destroy) {
-            this.datasource.destroy();
+        if (this.datasource) {
+            if (this.datasource.destroy) {
+                this.datasource.destroy();
+            }
+            this.rowRenderer.datasourceChanged();
+            this.datasource = undefined;
         }
-        this.datasource = undefined;
     }
 
     private setBeans(@Qualifier('loggerFactory') loggerFactory: LoggerFactory) {
@@ -240,8 +243,8 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         }
 
         const shouldAnimate = () => {
-            let rowAnimationEnabled = this.gridOptionsWrapper.isAnimateRows();
-            if (rowNode.master) return rowAnimationEnabled && rowNode.expanded;
+            const rowAnimationEnabled = this.gridOptionsWrapper.isAnimateRows();
+            if (rowNode.master) { return rowAnimationEnabled && rowNode.expanded; }
             return rowAnimationEnabled;
         };
 
@@ -249,8 +252,8 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
 
         const modelUpdatedEvent: ModelUpdatedEvent = {
             type: Events.EVENT_MODEL_UPDATED,
-            api: this.gridOptionsWrapper.getApi(),
-            columnApi: this.gridOptionsWrapper.getColumnApi(),
+            api: this.gridOptionsWrapper.getApi()!,
+            columnApi: this.gridOptionsWrapper.getColumnApi()!,
             newPage: false,
             newData: false,
             animate: shouldAnimate(),
@@ -260,14 +263,12 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         this.eventService.dispatchEvent(modelUpdatedEvent);
     }
 
-
-
     private reset(): void {
 
         this.rootNode = new RowNode();
         this.rootNode.group = true;
         this.rootNode.level = -1;
-        this.context.wireBean(this.rootNode);
+        this.getContext().wireBean(this.rootNode);
 
         if (this.datasource) {
             this.createNewRowNodeBlockLoader();
@@ -305,7 +306,7 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         const maxConcurrentRequests = this.gridOptionsWrapper.getMaxConcurrentDatasourceRequests();
         const blockLoadDebounceMillis = this.gridOptionsWrapper.getBlockLoadDebounceMillis();
         this.rowNodeBlockLoader = new RowNodeBlockLoader(maxConcurrentRequests, blockLoadDebounceMillis);
-        this.context.wireBean(this.rowNodeBlockLoader);
+        this.getContext().wireBean(this.rowNodeBlockLoader);
     }
 
     private destroyRowNodeBlockLoader(): void {
@@ -376,7 +377,7 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         // page size needs to be 1 or greater. having it at 1 would be silly, as you would be hitting the
         // server for one page at a time. so the default if not specified is 100.
         if (!(params.blockSize as number >= 1)) {
-            params.blockSize = 100;
+            params.blockSize = ServerSideBlock.DefaultBlockSize;
         }
         // if user doesn't give initial rows to display, we assume zero
         if (!(params.initialRowCount >= 1)) {
@@ -393,7 +394,7 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
 
     private createNodeCache(rowNode: RowNode): void {
         const cache = new ServerSideCache(this.cacheParams, rowNode);
-        this.context.wireBean(cache);
+        this.getContext().wireBean(cache);
 
         cache.addEventListener(RowNodeCache.EVENT_CACHE_UPDATED, this.onCacheUpdated.bind(this));
 
@@ -444,25 +445,33 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         return null;
     }
 
-    public getPageFirstRow(): number {
-        return 0;
-    }
-
-    public getPageLastRow(): number {
-        let lastRow: number;
-        if (this.cacheExists()) {
-            // NOTE: should not be casting here, the RowModel should use IServerSideRowModel interface?
-            const serverSideCache = this.rootNode.childrenCache as ServerSideCache;
-            lastRow = serverSideCache.getDisplayIndexEnd() - 1;
-        } else {
-            lastRow = 0;
+    public getRowCount(): number {
+        if (!this.cacheExists()) {
+            return 1;
         }
 
-        return lastRow;
+        const serverSideCache = this.rootNode.childrenCache as ServerSideCache;
+        const res = serverSideCache.getDisplayIndexEnd();
+
+        return res;
     }
 
-    public getRowCount(): number {
-        return this.getPageLastRow() + 1;
+    public getTopLevelRowCount(): number {
+        if (!this.cacheExists()) {
+            return 1;
+        }
+
+        const serverSideCache = this.rootNode.childrenCache as ServerSideCache;
+        return serverSideCache.getVirtualRowCount();
+    }
+
+    public getTopLevelRowDisplayedIndex(topLevelIndex: number): number {
+        if (!this.cacheExists()) {
+            return topLevelIndex;
+        }
+
+        const serverSideCache = this.rootNode.childrenCache as ServerSideCache;
+        return serverSideCache.getTopLevelRowDisplayedIndex(topLevelIndex);
     }
 
     public getRowBounds(index: number): RowBounds {
@@ -508,7 +517,7 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
 
     public forEachNode(callback: (rowNode: RowNode, index: number) => void): void {
         if (this.cacheExists()) {
-            this.rootNode.childrenCache!.forEachNodeDeep(callback, new NumberSequence());
+            this.rootNode.childrenCache!.forEachNodeDeep(callback);
         }
     }
 
@@ -526,15 +535,6 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         this.executeOnCache(route, cache => cache.purgeCache());
     }
 
-    public removeFromCache(route: string[], items: any[]): void {
-        this.executeOnCache(route, cache => cache.removeFromCache(items));
-        this.rowNodeBlockLoader!.checkBlockToLoad();
-    }
-
-    public addToCache(route: string[], items: any[], index: number): void {
-        this.executeOnCache(route, cache => cache.addToCache(items, index));
-    }
-
     public getNodesInRangeForSelection(firstInRange: RowNode, lastInRange: RowNode): RowNode[] {
         if (_.exists(firstInRange) && firstInRange.parent !== lastInRange.parent) {
             return [];
@@ -547,6 +547,9 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
         this.forEachNode(rowNode => {
             if (rowNode.id === id) {
                 result = rowNode;
+            }
+            if (rowNode.detailNode && rowNode.detailNode.id === id) {
+                result = rowNode.detailNode;
             }
         });
         return result;
@@ -619,7 +622,7 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
 
             for (let i = 0; i < sortModel.length; ++i) {
                 if (sortModel[i].colId.indexOf(multiColumnPrefix) > -1) {
-                    sortModel[i].colId = sortModel[i].colId.substr(multiColumnPrefix.length)
+                    sortModel[i].colId = sortModel[i].colId.substr(multiColumnPrefix.length);
                 }
             }
         }
@@ -665,7 +668,7 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
             return masterNode.detailNode;
         } else {
             const detailNode = new RowNode();
-            this.context.wireBean(detailNode);
+            this.getContext().wireBean(detailNode);
             detailNode.detail = true;
             detailNode.selectable = false;
 
@@ -677,11 +680,15 @@ export class ServerSideRowModel extends BeanStub implements IServerSideRowModel 
             detailNode.level = masterNode.level + 1;
 
             const defaultDetailRowHeight = 200;
-            const rowHeight = this.gridOptionsWrapper.getRowHeightForNode(detailNode);
+            const rowHeight = this.gridOptionsWrapper.getRowHeightForNode(detailNode).height;
             detailNode.rowHeight = rowHeight ? rowHeight : defaultDetailRowHeight;
 
             masterNode.detailNode = detailNode;
             return detailNode;
         }
+    }
+
+    public isLoading(): boolean {
+        return this.rowNodeBlockLoader ? this.rowNodeBlockLoader.isLoading() : false;
     }
 }

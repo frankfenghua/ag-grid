@@ -66,6 +66,10 @@ include '../documentation-main/documentation_header.php';
             <td>Filter component to use for this column. Set to true to use the default filter.</td>
         </tr>
         <tr>
+            <th>filterParams</th>
+            <td>Custom params to be passed to filter component.</td>
+        </tr>
+        <tr>
             <th>floatingFilterComponent<br/>floatingFilterComponentFramework</th>
             <td>Floating filter component to use for this column.</td>
         </tr>
@@ -77,7 +81,7 @@ include '../documentation-main/documentation_header.php';
             <th>hide</th>
             <td>Set to true for this column to be hidden. Naturally you might think, it would make more sense to call this field
                 'visible' and mark it false to hide, however we want all default values to be false and we want columns to be
-                visible by default. <span style="font-style: italic;">Note</span>: this property is called <code>hideCol</code> when used with Aurelia.</td>
+                visible by default.</td>
         </tr>
         <tr>
             <th>pinned</th>
@@ -139,15 +143,27 @@ include '../documentation-main/documentation_header.php';
         </tr>
         <tr>
             <th>rowDrag</th>
-            <td>Boolean or Function. Set to true (or return true from function) to render a row drag area in the column.</td>
+            <td>Boolean or Function. Set to true (or return true from function) to allow row dragging.</td>
         </tr>
         <tr>
-            <th>cellClass</th>
-            <td>Class to use for the cell. Can be string, array of strings, or function.</td>
+            <th>dndSource</th>
+            <td>Boolean or Function. Set to true (or return true from function) to allow dragging for native drag and drop.</td>
+        </tr>
+        <tr>
+            <th>dndSourceOnRowDrag</th>
+            <td>Function to allow customer drag functionality for native drag and drop.</td>
         </tr>
         <tr>
             <th>cellStyle</th>
-            <td>An object of css values. Or a function returning an object of css values.</td>
+            <td>The style to give a particular cell. See <a href="../javascript-grid-cell-styles/#cell-style">Cell Style</a>.</td>
+        </tr>
+        <tr>
+            <th>cellClass</th>
+            <td>The class to give a particular cell. See <a href="../javascript-grid-cell-styles/#cell-class">Cell Class</a>.</td>
+        </tr>
+        <tr>
+            <th>cellClassRules</th>
+            <td>Rules which can be applied to include certain CSS classes. See <a href="../javascript-grid-cell-styles/#cell-class-rules">Cell Class Rules</a>.</td>
         </tr>
         <tr>
             <th>editable</th>
@@ -163,9 +179,17 @@ include '../documentation-main/documentation_header.php';
             <td>cellRenderer to use for this column.</td>
         </tr>
         <tr>
-            <th>floatingCellRenderer<br/>floatingCellRendererFramework</th>
+            <th>cellRendererParams</th>
+            <td>Params to be passed to cell renderer component.</td>
+        </tr>
+        <tr>
+            <th>pinnedRowCellRenderer<br/>pinnedRowCellRendererFramework</th>
             <td>cellRenderer to use for pinned rows in this column. Floating cells will use floatingCellRenderer if available,
                 if not then cellRenderer.</td>
+        </tr>
+        <tr>
+            <th>pinnedRowCellRendererParams</th>
+            <td>Params to be passed to pinned row cell renderer component.</td>
         </tr>
         <tr>
             <th>cellRendererSelector<br/>cellEditorSelector</th>
@@ -175,12 +199,35 @@ include '../documentation-main/documentation_header.php';
             <th>cellEditor<br/>cellEditorFramework</th>
             <td>cellEditor to use for this column.</td>
         </tr>
+        <tr>
+            <th>cellEditorParams</th>
+            <td>Params to be passed to cell editor component.</td>
+        </tr>
 
-        <?php include '../javascript-grid-value-getters/gettersAndFormattersProperties.php' ?>
-        <?php printPropertiesRows($gettersAndFormattersProperties) ?>
+        <tr>
+            <th>headerComponent<br/>headerComponentFramework</th>
+            <td>Header component to use for this column.</td>
+        </tr>
+        <tr>
+            <th>headerComponentParams</th>
+            <td>Params to be passed to header component.</td>
+        </tr>
 
-        <?php include '../javascript-grid-value-setters/settersAndParsersProperties.php' ?>
-        <?php printPropertiesRows($settersAndParsersProperties) ?>
+
+        <?php include '../javascript-grid-value-getters/valueGetterProperties.php' ?>
+        <?php printPropertiesRows($valueGetterProperties) ?>
+
+        <?php include '../javascript-grid-value-formatters/valueFormatterProperties.php' ?>
+        <?php printPropertiesRows($valueFormatterProperties) ?>
+
+        <tr>
+            <th>valueSetter(params)</th>
+            <td>Function or expression. Sets the value into your data for saving. Return true if the data changed.</td>
+        </tr>
+        <tr>
+            <th>valueParser(params)</th>
+            <td>Function or expression. Parses the value for saving.</td>
+        </tr>
 
         <tr>
             <th>keyCreator(params)</th>
@@ -308,6 +355,10 @@ include '../documentation-main/documentation_header.php';
             <th>singleClickEdit</th>
             <td>Set to true to have cells under this column enter edit mode after single click.</td>
         </tr>
+        <tr>
+            <th>chartDataType</th>
+            <td>Defines the chart data type that should be used for a column: <code>'category' | 'series' | 'excluded' | undefined</code>.</td>
+        </tr>
 
         <tr class="title-row">
             <!-- TITLE ROW -->
@@ -332,8 +383,12 @@ include '../documentation-main/documentation_header.php';
             <td>Set to 'true' if this group should be opened by default.</td>
         </tr>
         <tr>
-            <th>headerGroupTooltip</th>
-            <td>Tooltip for the column group header</td>
+            <th>headerGroupComponent<br/>headerGroupComponentFramework</th>
+            <td>Component to use header group.</td>
+        </tr>
+        <tr>
+            <th>headerGroupComponentParams</th>
+            <td>Params for the header group component.</td>
         </tr>
     </table>
 

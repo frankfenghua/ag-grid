@@ -5,8 +5,10 @@ import { GridApi } from "./gridApi";
 import { ColumnApi } from "./columnController/columnApi";
 import { OriginalColumnGroup } from "./entities/originalColumnGroup";
 import { FilterRequestSource } from "./filter/filterManager";
+import {ChartOptions, ChartType} from "./interfaces/iChartOptions";
+import {IFilterComp} from "./interfaces/iFilter";
 
-export {Events} from './eventKeys';
+export { Events } from './eventKeys';
 
 export interface ModelUpdatedEvent extends AgGridEvent {
     /** If true, the grid will try and animate the rows to the new positions */
@@ -27,11 +29,12 @@ export interface AgEvent {
 }
 
 export interface AgGridEvent extends AgEvent {
-    api: GridApi | null | undefined;
-    columnApi: ColumnApi | null | undefined;
+    api: GridApi;
+    columnApi: ColumnApi;
 }
 
 export interface ToolPanelVisibleChangedEvent extends AgGridEvent {
+    source: string | undefined;
 }
 
 export interface AnimationQueueEmptyEvent extends AgGridEvent {
@@ -72,6 +75,8 @@ export interface FilterChangedEvent extends AgGridEvent {
 }
 
 export interface FilterModifiedEvent extends AgGridEvent {
+    filterInstance: IFilterComp;
+    column: Column;
 }
 
 export interface FilterOpenedEvent extends AgGridEvent {
@@ -159,6 +164,14 @@ export interface RangeSelectionChangedEvent extends AgGridEvent {
     started: boolean;
 }
 
+export interface ChartRangeSelectionChanged extends AgGridEvent {
+}
+
+export interface ChartOptionsChanged extends AgEvent {
+    chartType: ChartType;
+    chartOptions: ChartOptions;
+}
+
 export interface ColumnGroupOpenedEvent extends AgGridEvent {
     columnGroup: OriginalColumnGroup;
 }
@@ -225,7 +238,8 @@ export type ColumnEventType =
     "contextMenu" |
     "columnMenu" |
     "rowModelUpdated" |
-    "api";
+    "api" |
+    "pivotChart";
 
 export interface ColumnEvent extends AgGridEvent {
     column: Column | null;
@@ -303,6 +317,12 @@ export interface CellEvent extends RowEvent {
     column: Column;
     colDef: ColDef;
     value: any;
+}
+
+export interface CellKeyDownEvent extends CellEvent {
+}
+
+export interface CellKeyPressEvent extends CellEvent {
 }
 
 export interface CellClickedEvent extends CellEvent {

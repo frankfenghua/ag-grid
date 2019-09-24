@@ -1,4 +1,5 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
+import { BBox } from "./bbox";
 /**
  * As of Jan 8, 2019, Firefox still doesn't implement
  * `getTransform(): DOMMatrix;`
@@ -8,26 +9,27 @@
  * IE11 and Edge 44 also don't have the support.
  * Thus this class, to keep track of the current transform and
  * combine transformations.
- * Standards: https://html.spec.whatwg.org/dev/canvas.html
- *           https://www.w3.org/TR/geometry-1/
+ * Standards:
+ * https://html.spec.whatwg.org/dev/canvas.html
+ * https://www.w3.org/TR/geometry-1/
  */
 export declare class Matrix {
-    private elements;
+    readonly elements: number[];
     constructor(elements?: number[]);
     setElements(elements: number[]): Matrix;
-    readonly isIdentity: boolean;
-    _a: number;
+    setIdentityElements(): this;
+    readonly identity: boolean;
     a: number;
-    _b: number;
     b: number;
-    _c: number;
     c: number;
-    _d: number;
     d: number;
-    _e: number;
     e: number;
-    _f: number;
     f: number;
+    /**
+     * Performs the AxB matrix multiplication and saves the result
+     * to `C`, if given, or to `A` otherwise.
+     */
+    private AxB;
     /**
      * The `other` matrix gets post-multiplied to the current matrix.
      * Returns the current matrix.
@@ -40,6 +42,23 @@ export declare class Matrix {
      * @param other
      */
     multiply(other: Matrix): Matrix;
+    preMultiplySelf(other: Matrix): Matrix;
+    /**
+     * Returns the inverse of this matrix as a new matrix.
+     */
     inverse(): Matrix;
+    /**
+     * Save the inverse of this matrix to the given matrix.
+     */
+    inverseTo(other: Matrix): Matrix;
     invertSelf(): Matrix;
+    clone(): Matrix;
+    transformPoint(x: number, y: number): {
+        x: number;
+        y: number;
+    };
+    transformBBox(bbox: BBox, radius?: number, target?: BBox): BBox;
+    toContext(ctx: CanvasRenderingContext2D): void;
+    private static matrix;
+    static flyweight(elements?: number[] | Matrix): Matrix;
 }

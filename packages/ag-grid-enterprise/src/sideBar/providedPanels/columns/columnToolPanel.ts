@@ -2,13 +2,11 @@ import {
     Autowired,
     Component,
     Context,
-    Events,
     EventService,
     GridApi,
     GridOptionsWrapper,
     IToolPanelComp,
     IToolPanelParams,
-    ToolPanelVisibleChangedEvent,
     _
 } from "ag-grid-community/main";
 import { PivotModePanel } from "./panels/pivotModePanel";
@@ -33,7 +31,6 @@ export class ColumnToolPanel extends Component implements IToolPanelComp {
 
     private static TEMPLATE = `<div class="ag-column-panel"></div>`;
 
-    @Autowired("context") private context: Context;
     @Autowired("gridOptionsWrapper") private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired("gridApi") private gridApi: GridApi;
     @Autowired("eventService") private eventService: EventService;
@@ -49,17 +46,10 @@ export class ColumnToolPanel extends Component implements IToolPanelComp {
 
     // lazy initialise the panel
     public setVisible(visible: boolean): void {
-        super.setVisible(visible);
+        super.setDisplayed(visible);
         if (visible && !this.initialised) {
             this.init(this.params);
         }
-
-        const event: ToolPanelVisibleChangedEvent = {
-            type: Events.EVENT_TOOL_PANEL_VISIBLE_CHANGED,
-            api: this.gridOptionsWrapper.getApi(),
-            columnApi: this.gridOptionsWrapper.getColumnApi()
-        };
-        this.eventService.dispatchEvent(event);
     }
 
     public init(params: ToolPanelColumnCompParams): void {
@@ -77,7 +67,6 @@ export class ColumnToolPanel extends Component implements IToolPanelComp {
         };
         _.mergeDeep(defaultParams, params);
         this.params = defaultParams;
-        this.instantiate(this.context);
 
         if (!this.params.suppressPivotMode) {
             this.addComponent(new PivotModePanel());
@@ -101,7 +90,7 @@ export class ColumnToolPanel extends Component implements IToolPanelComp {
     }
 
     private addComponent(component: Component): void {
-        this.context.wireBean(component);
+        this.getContext().wireBean(component);
         this.getGui().appendChild(component.getGui());
         this.childDestroyFuncs.push(component.destroy.bind(component));
     }
@@ -109,7 +98,7 @@ export class ColumnToolPanel extends Component implements IToolPanelComp {
     public destroyChildren(): void {
         this.childDestroyFuncs.forEach(func => func());
         this.childDestroyFuncs.length = 0;
-        _.removeAllChildren(this.getGui());
+        _.clearElement(this.getGui());
     }
 
     public refresh(): void {

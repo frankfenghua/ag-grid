@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -36,7 +36,12 @@ var VirtualList = /** @class */ (function (_super) {
         this.setTemplate(VirtualList.TEMPLATE);
         this.eListContainer = this.queryForHtmlElement(".ag-virtual-list-container");
         this.addScrollListener();
-        this.rowHeight = this.gridOptionsWrapper.getVirtualItemHeight();
+        var item = document.createElement('div');
+        ag_grid_community_1._.addCssClass(item, 'ag-virtual-list-item');
+        this.rowHeight = this.getItemHeight();
+    };
+    VirtualList.prototype.getItemHeight = function () {
+        return this.gridOptionsWrapper.getVirtualItemHeight();
     };
     VirtualList.prototype.ensureIndexVisible = function (index) {
         var lastRow = this.model.getRowCount();
@@ -129,7 +134,6 @@ var VirtualList = /** @class */ (function (_super) {
         var eDiv = document.createElement('div');
         ag_grid_community_1._.addCssClass(eDiv, 'ag-virtual-list-item');
         eDiv.style.top = (this.rowHeight * rowIndex) + "px";
-        eDiv.style.lineHeight = this.rowHeight + "px";
         var rowComponent = this.componentCreator(value);
         eDiv.appendChild(rowComponent.getGui());
         this.eListContainer.appendChild(eDiv);

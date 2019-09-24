@@ -1,6 +1,6 @@
 <?php
 $pageTitle = "Row Height: Styling & Appearance Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Row Height. Rows can have different Row Height. You can even change the row height dynamically at run time. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Core feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Row Height. Rows can have different Row Height. You can even change the row height dynamically at run time. Version 20 is available for download now, take it for a free two month trial.";
 $pageKeyboards = "ag-Grid ag grid javascript Row Height";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
@@ -14,12 +14,9 @@ include '../documentation-main/documentation_header.php';
     </p>
 
     <note>
-        Changing the row height is only supported in the <a href="../javascript-grid-client-side-model/">Client-side</a>
-        row model. You cannot use variable row height when using
-        <a href="../javascript-grid-virtual-paging/">virtual paging</a>,
+        You cannot use variable row height when using
         <a href="../javascript-grid-viewport/">viewport</a> or
-        <a href="../javascript-grid-server-side-model/">Server-side</a> row models.
-        This is because these row models need to work out the position of rows that are not loaded and hence need to
+        This is because this row model needs to work out the position of rows that are not loaded and hence needs to
         assume the row height is fixed.
     </note>
 
@@ -47,10 +44,10 @@ gridOptions.rowHeight = 50;</snippet>
 
     <snippet>
 gridOptions.getRowHeight = function(params) {
-    if (params.node.floating) {
-        return 25;
-    } else {
+    if (params.node.group) {
         return 50;
+    } else {
+        return 20;
     }
 }</snippet>
 
@@ -70,6 +67,7 @@ gridOptions.getRowHeight = function(params) {
         It uses the <code>getRowHeight()</code> callback to achieve this.
     </p>
 
+    <?= example('Row Height Simple', 'row-height-simple', 'generated') ?>
 
     <h2>Row Height More Complex Example</h2>
 
@@ -81,6 +79,7 @@ gridOptions.getRowHeight = function(params) {
         the contents of the cell.
     </p>
 
+    <?= example('Row Height Complex', 'row-height-complex', 'generated') ?>
 
     <h2>Auto Row Height</h2>
 
@@ -104,46 +103,44 @@ gridOptions.getRowHeight = function(params) {
     </p>
 
     <p>
-        The example below shows auto height in actions. The following can be noted:
-        <ul>
-            <li>
-                Columns Auto A, Auto B and Auto C have <code>autoHeight=true</code>,
-                so the height of each row is such that it fits all contents form these
-                three columns.
-            </li>
-            <li>All columns with auto-size have CSS <code>white-space: normal</code> to wrap the text.</li>
-            <li>
-                When a column is resized, the grid re-calculated the row heights after
-                the resize is finished.
-            </li>
-        </ul>
+        The example below shows auto height in action. The following can be noted:
     </p>
+    <ul>
+        <li>
+            Columns Auto A, Auto B and Auto C have <code>autoHeight=true</code>,
+            so the height of each row is such that it fits all contents form these
+            three columns.
+        </li>
+        <li>All columns with auto-size have CSS <code>white-space: normal</code> to wrap the text.</li>
+        <li>
+            When a column is resized, the grid re-calculates the row heights after
+            the resize is finished.
+        </li>
+    </ul>
 
-    <?= example('Auto Row Height', 'auto-row-height', 'generated', array('processVue' => true)) ?>
+    <!-- this example uses a timeout to set data - the runner doesn't currently support this sort of thing -->
+    <?= example('Auto Row Height', 'auto-row-height', 'generated') ?>
+
+    <h3>Lazy Height Calculation</h3>
 
     <p>
-        Auto height works by the grid creating an off-screen temporary row with all the
+        Auto height works by the grid creating an off-screen (not visible to the user)
+        temporary row with all the
         auto height columns rendered into it. The grid then measures the height of the
         temporary row. Because DOM interaction is required for each row this can be an
-        intensive process. For this reason be careful of the following:
-        <ul>
-            <li>
-                Only apply auto height to columns where it makes sense. For example if you have
-                many columns that do not require a variable height, then do not set them to auto-height.
-            </li>
-            <li>
-                Do not recalculate auto height to often. In the example above the code checks
-                the columns resize event <code>event.finished</code> so that the height is only calculated
-                when the resize is complete, rather than re-calculating the height continually
-                during the column resizing.
-            </li>
-            <li>
-                For large data grids (eg 10,000+ rows) the time taken to calculate the heights
-                may take to long and you may decide not to use the feature in these circumstances.
-                The row limit depends on your browser choice, computer speed and data so you will
-                need to decide for yourself how much data is to much for this feature.
-            </li>
-        </ul>
+        intensive process. For this reason the grid only calculates the height of the
+        row when it is needed - eg rows not yet visible due to vertical scrolling do not
+        have their heights calculated, similarly child rows of groups where the group
+        is not open do not have their heights calculated until the group is opened and
+        the child rows are visible.
+    </p>
+
+    <h3>Auto Height Performance Consideration</h3>
+
+    <p>
+        Because auto-height is a DOM intensive operation, consideration should be given
+        when and how to use it. Only apply auto height to columns where it makes sense. For example if you have
+        many columns that do not require a variable height, then do not set them to auto-height.
     </p>
 
     <h2>Changing Row Height</h2>
@@ -200,6 +197,8 @@ gridOptions.getRowHeight = function(params) {
     <p>Note that this example uses ag-Grid Enterprise as it uses grouping. Setting the row
     height is an ag-Grid free feature, we just demonstrate it against groups and normal
     rows below.</p>
+
+    <?= example('Changing Row Height', 'row-height-change', 'generated', array("enterprise" => 1)) ?>
 
 
     <h2>Height for Pinned Rows</h2>

@@ -91,10 +91,6 @@ include '../documentation-main/documentation_header.php';
             <td>Callback to perform additional sorting after the grid has sorted the rows. For more details see <a href="../javascript-grid-sorting/#post-sort">Post Sort</a>.</td>
         </tr>
         <tr>
-            <th>doesDataFlower(dataItem)</th>
-            <td>Tells the grid if this row should flower.</td>
-        </tr>
-        <tr>
             <th>navigateToNextCell(params)</th>
             <td>Allows overriding the default behaviour for when user hits navigation (arrow) key.</td>
         </tr>
@@ -149,6 +145,28 @@ include '../documentation-main/documentation_header.php';
             <td>
                 Allows default sorting of groups. See
                 <a href="../javascript-grid-grouping/#default-group-order">Default Group Order</a>.
+            </td>
+        </tr>
+        <tr>
+            <th>suppressKeyboardEvent(params)</th>
+            <td>
+                Suppress the grid taking action for the relevant keyboard event.
+                See <a href="../javascript-grid-keyboard-navigation/#suppressKeyboardEvents">
+                Suppress Grid Keyboard Events</a>.
+            </td>
+        </tr>
+        <tr>
+            <th>processChartOptions(params)</th>
+            <td>Callback to be used to with charts to override default chart options. See
+                <a href="../javascript-grid-charts-customisation/#overriding-chart-options">
+                    Overriding Chart Options</a>.
+            </td>
+        </tr>
+        </tr>
+            <th>getChartToolbarItems(params)</th>
+            <td>Callback to be used to customise the chart toolbar items. See
+                <a href="../javascript-grid-charts-chart-toolbar/#configuring-toolbar-items">
+                    Configuring Toolbar Items</a>.
             </td>
         </tr>
 

@@ -1,14 +1,13 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { Component } from "ag-grid-community";
 export declare class HorizontalResizeComp extends Component {
     private horizontalResizeService;
     private gridOptionsWrapper;
     private eventService;
     private startingWidth;
-    props: {
-        componentToResize: Component;
-    };
+    private elementToResize;
     constructor();
+    setElementToResize(elementToResize: HTMLElement): void;
     private postConstruct;
     private onResizeStart;
     private onResizing;

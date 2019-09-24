@@ -1,15 +1,11 @@
-// ag-grid-enterprise v20.0.0
-import { Component } from 'ag-grid-community';
+// ag-grid-enterprise v21.2.1
+import { Component, GridOptionsWrapper } from 'ag-grid-community';
 export declare class NameValueComp extends Component {
-    private key;
-    private defaultValue;
-    private gridOptionsWrapper;
-    private context;
+    protected gridOptionsWrapper: GridOptionsWrapper;
     private static TEMPLATE;
-    private props;
     private eLabel;
     private eValue;
-    constructor(key: string, defaultValue: string);
-    protected postConstruct(): void;
+    constructor();
+    setLabel(key: string, defaultValue: string): void;
     setValue(value: any): void;
 }

@@ -2,15 +2,15 @@ var columnDefs = [
     // this row just shows the row index, doesn't use any data from the row
     {headerName: "#", width: 50, cellRenderer:  'rowNodeIdRenderer'},
     {headerName: "Athlete", field: "athlete", width: 150},
-    {headerName: "Age", field: "age", width: 90},
-    {headerName: "Country", field: "country", width: 120},
+    {headerName: "Age", field: "age", width: 90, enablePivot: true},
+    {headerName: "Country", field: "country", width: 120, enableRowGroup: true},
     {headerName: "Year", field: "year", width: 90, filter: 'agNumberColumnFilter'},
     {headerName: "Date", field: "date", width: 110},
     {headerName: "Sport", field: "sport", width: 110, filter: 'agTextColumnFilter'},
-    {headerName: "Gold", field: "gold", width: 100},
-    {headerName: "Silver", field: "silver", width: 100},
-    {headerName: "Bronze", field: "bronze", width: 100, enableRowGroup: true, enablePivot: true, enableValue:true, pivot: true},
-    {headerName: "Total", field: "total", width: 100}
+    {headerName: "Gold", field: "gold", width: 100, enableValue:true},
+    {headerName: "Silver", field: "silver", width: 100, enableValue:true},
+    {headerName: "Bronze", field: "bronze", width: 100, enableValue:true},
+    {headerName: "Total", field: "total", width: 100, enableValue:true}
 ];
 
 var gridOptions = {
@@ -30,12 +30,14 @@ var gridOptions = {
     pagination:true,
     rowGroupPanelShow: 'always',
     statusBar: {
-        items: [
-            { component: 'agAggregationComponent' }
+        statusPanels: [
+            { statusPanel: 'agTotalAndFilteredRowCountComponent', align: 'left' },
+            { statusPanel: 'agAggregationComponent' }
         ]
     },
     paginationPageSize: 500,
     enableRangeSelection: true,
+    enableCharts: true,
     localeText: {
         // for filter panel
         page: 'daPage',
@@ -72,6 +74,10 @@ var gridOptions = {
         startsWith: 'daStarts dawith',
         endsWith: 'daEnds dawith',
 
+        // filter conditions
+        andCondition: 'daAND',
+        orCondition: 'daOR',
+
         // the header of the default group column
         group: 'laGroup',
 
@@ -104,8 +110,39 @@ var gridOptions = {
         collapseAll: 'laClose-em-up',
         toolPanel: 'laTool Panelo',
         export: 'laExporto',
-        csvExport: 'la CSV Exportp',
-        excelExport: 'la Excel Exporto',
+        csvExport: 'laCSV Exportp',
+        excelExport: 'laExcel Exporto (.xlsx)',
+        excelXmlExport: 'laExcel Exporto (.xml)',
+
+        // enterprise menu (charts)
+        pivotChartAndPivotMode: 'laPivot Chart & Pivot Mode',
+        pivotChart: 'laPivot Chart',
+        chartRange: 'laChart Range',
+
+        columnChart: 'laColumn',
+        groupedColumn: 'laGrouped',
+        stackedColumn: 'laStacked',
+        normalizedColumn: 'la100% Stacked',
+
+        barChart: 'laBar',
+        groupedBar: 'laGrouped',
+        stackedBar: 'laStacked',
+        normalizedBar: 'la100% Stacked',
+
+        pieChart: 'laPie',
+        pie: 'laPie',
+        doughnut: 'laDoughnut',
+
+        line: 'laLine',
+
+        xyChart: 'laX Y (Scatter)',
+        scatter: 'laScatter',
+        bubble: 'laBubble',
+
+        areaChart: 'laArea',
+        area: 'laArea',
+        stackedArea: 'laStacked',
+        normalizedArea: 'la100% Stacked',
 
         // enterprise menu pinning
         pinLeft: 'laPin &lt;&lt;',
@@ -119,13 +156,90 @@ var gridOptions = {
         none: 'laNone',
         count: 'laCount',
         average: 'laAverage',
+        filteredRows: 'laFiltered',
+        selectedRows: 'laSelected',
+        totalRows: 'laTotal Rows',
+        totalAndFilteredRows: 'laRows',
 
         // standard menu
         copy: 'laCopy',
         copyWithHeaders: 'laCopy Wit hHeaders',
         ctrlC: 'ctrl n C',
         paste: 'laPaste',
-        ctrlV: 'ctrl n V'
+        ctrlV: 'ctrl n V',
+
+        // charts
+        pivotChartTitle: 'laPivot Chart',
+        rangeChartTitle: 'laRange Chart',
+        settings: 'laSettings',
+        data: 'laData',
+        format: 'laFormat',
+        categories: 'laCategories',
+        series: 'laSeries',
+        axis: 'laAxis',
+        color: 'laColor',
+        thickness: 'laThickness',
+        xRotation: 'laX Rotation',
+        yRotation: 'laY Rotation',
+        ticks: 'laTicks',
+        width: 'laWidth',
+        length: 'laLength',
+        padding: 'laPadding',
+        chart: 'laChart',
+        title: 'laTitle',
+        font: 'laFont',
+        top: 'laTop',
+        right: 'laRight',
+        bottom: 'laBottom',
+        left: 'laLeft',
+        labels: 'laLabels',
+        size: 'laSize',
+        legend: 'laLegend',
+        position: 'laPosition',
+        markerSize: 'laMarker Size',
+        markerStroke: 'laMarker Stroke',
+        markerPadding: 'laMarker Padding',
+        itemPaddingX: 'laItem Padding X',
+        itemPaddingY: 'laItem Padding Y',
+        strokeWidth: 'laStroke Width',
+        offset: 'laOffset',
+        tooltips: 'laTooltips',
+        offsets: 'laOffsets',
+        callout: 'laCallout',
+        markers: 'laMarkers',
+        shadow: 'laShadow',
+        blur: 'laBlur',
+        xOffset: 'laX Offset',
+        yOffset: 'laY Offset',
+        lineWidth: 'laLine Width',
+        normal: 'laNormal',
+        bold: 'laBold',
+        italic: 'laItalic',
+        boldItalic: 'laBold Italic',
+        fillOpacity: 'laFill Opacity',
+        strokeOpacity: 'laLine Opacity',
+        columnGroup: 'laColumn',
+        barGroup: 'laBar',
+        pieGroup: 'laPie',
+        lineGroup: 'laLine',
+        scatterGroup: 'laScatter',
+        areaGroup: 'laArea',
+        groupedColumnTooltip: 'laGrouped',
+        stackedColumnTooltip: 'laStacked',
+        normalizedColumnTooltip: 'la100% Stacked',
+        groupedBarTooltip: 'laGrouped',
+        stackedBarTooltip: 'laStacked',
+        normalizedBarTooltip: 'la100% Stacked',
+        pieTooltip: 'laPie',
+        doughnutTooltip: 'laDoughnut',
+        lineTooltip: 'laLine',
+        groupedAreaTooltip: 'laGrouped',
+        stackedAreaTooltip: 'laStacked',
+        normalizedAreaTooltip: 'la100% Stacked',
+        scatterTooltip: 'laScatter',
+        bubbleTooltip: 'laBubble',
+        noDataToChart: 'laNo data available to be charted.',
+        pivotChartRequiresPivotMode: 'laPivot Chart requires Pivot Mode enabled.'
     }
 };
 

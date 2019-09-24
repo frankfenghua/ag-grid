@@ -1,14 +1,16 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { ILogger } from "../iLogger";
 import { Component } from "../widgets/component";
+import { ModuleNames } from "../modules/moduleNames";
 export interface ContextParams {
     seed: any;
     beans: any[];
     components: ComponentMeta[];
     enterpriseDefaultComponents: any[];
     overrideBeans: any[];
+    registeredModules: string[];
     debug: boolean;
 }
 export interface ComponentMeta {
@@ -16,31 +18,32 @@ export interface ComponentMeta {
     componentName: string;
 }
 export declare class Context {
-    private beans;
+    private beanWrappers;
     private contextParams;
     private logger;
+    private registeredModules;
     private componentsMappedByName;
     private destroyed;
     constructor(params: ContextParams, logger: ILogger);
+    private getBeanInstances;
     private setupComponents;
     private addComponent;
-    createComponent(element: Element, afterPreCreateCallback?: (comp: Component) => void): Component;
+    createComponentFromElement(element: Element, afterPreCreateCallback?: (comp: Component) => void): Component;
     wireBean(bean: any, afterPreCreateCallback?: (comp: Component) => void): void;
     private wireBeans;
     private createBeans;
-    private createBeanEntry;
+    private createBeanWrapper;
     private autoWireBeans;
     private methodWireBeans;
-    private autoWireBean;
+    private forEachMetaDataInHierarchy;
     private getBeanName;
-    private methodWireBean;
     private getBeansForParameters;
     private lookupBeanInstance;
-    private postConstruct;
-    private preConstruct;
+    private callLifeCycleMethods;
     getBean(name: string): any;
     getEnterpriseDefaultComponents(): any[];
     destroy(): void;
+    isModuleRegistered(moduleName: ModuleNames): boolean;
 }
 export declare function PreConstruct(target: Object, methodName: string, descriptor: TypedPropertyDescriptor<any>): void;
 export declare function PostConstruct(target: Object, methodName: string, descriptor: TypedPropertyDescriptor<any>): void;

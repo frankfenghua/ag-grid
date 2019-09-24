@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -28,9 +28,10 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-var component_1 = require("../../widgets/component");
+var popupComponent_1 = require("../../widgets/popupComponent");
 var context_1 = require("../../context/context");
 var gridOptionsWrapper_1 = require("../../gridOptionsWrapper");
+var utils_1 = require("../../utils");
 var PopupEditorWrapper = /** @class */ (function (_super) {
     __extends(PopupEditorWrapper, _super);
     function PopupEditorWrapper(cellEditor) {
@@ -40,7 +41,9 @@ var PopupEditorWrapper = /** @class */ (function (_super) {
         return _this;
     }
     PopupEditorWrapper.prototype.onKeyDown = function (event) {
-        this.params.onKeyDown(event);
+        if (!utils_1._.isUserSuppressingKeyboardEvent(this.gridOptionsWrapper, event, this.params.node, this.params.column, true)) {
+            this.params.onKeyDown(event);
+        }
     };
     PopupEditorWrapper.prototype.getGui = function () {
         // we call getGui() on child here (rather than in the constructor)
@@ -74,9 +77,6 @@ var PopupEditorWrapper = /** @class */ (function (_super) {
     PopupEditorWrapper.prototype.getValue = function () {
         return this.cellEditor.getValue();
     };
-    PopupEditorWrapper.prototype.isPopup = function () {
-        return true;
-    };
     PopupEditorWrapper.prototype.isCancelBeforeStart = function () {
         if (this.cellEditor.isCancelBeforeStart) {
             return this.cellEditor.isCancelBeforeStart();
@@ -103,5 +103,5 @@ var PopupEditorWrapper = /** @class */ (function (_super) {
         __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)
     ], PopupEditorWrapper.prototype, "gridOptionsWrapper", void 0);
     return PopupEditorWrapper;
-}(component_1.Component));
+}(popupComponent_1.PopupComponent));
 exports.PopupEditorWrapper = PopupEditorWrapper;

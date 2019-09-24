@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -27,14 +27,17 @@ var main_1 = require("ag-grid-community/main");
 var toolPanelColumnGroupComp_1 = require("./toolPanelColumnGroupComp");
 var toolPanelColumnComp_1 = require("./toolPanelColumnComp");
 var primaryColsHeaderPanel_1 = require("./primaryColsHeaderPanel");
+var ag_grid_community_1 = require("ag-grid-community");
 var PrimaryColsListPanel = /** @class */ (function (_super) {
     __extends(PrimaryColsListPanel, _super);
     function PrimaryColsListPanel() {
         return _super.call(this, PrimaryColsListPanel.TEMPLATE) || this;
     }
-    PrimaryColsListPanel.prototype.init = function () {
+    PrimaryColsListPanel.prototype.init = function (params, allowDragging) {
+        this.params = params;
+        this.allowDragging = allowDragging;
         this.addDestroyableEventListener(this.globalEventService, main_1.Events.EVENT_COLUMN_EVERYTHING_CHANGED, this.onColumnsChanged.bind(this));
-        this.expandGroupsByDefault = !this.props.params.contractColumnSelection;
+        this.expandGroupsByDefault = !this.params.contractColumnSelection;
         if (this.columnController.isReady()) {
             this.onColumnsChanged();
         }
@@ -47,7 +50,7 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
         this.updateVisibilityOfRows();
     };
     PrimaryColsListPanel.prototype.destroyColumnComps = function () {
-        main_1._.removeAllChildren(this.getGui());
+        main_1._.clearElement(this.getGui());
         if (this.columnComps) {
             main_1._.iterateObject(this.columnComps, function (key, renderedItem) { return renderedItem.destroy(); });
         }
@@ -60,8 +63,8 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
             return;
         }
         if (!columnGroup.isPadding()) {
-            var renderedGroup = new toolPanelColumnGroupComp_1.ToolPanelColumnGroupComp(columnGroup, dept, this.onGroupExpanded.bind(this), this.props.allowDragging, this.expandGroupsByDefault);
-            this.context.wireBean(renderedGroup);
+            var renderedGroup = new toolPanelColumnGroupComp_1.ToolPanelColumnGroupComp(columnGroup, dept, this.onGroupExpanded.bind(this), this.allowDragging, this.expandGroupsByDefault);
+            this.getContext().wireBean(renderedGroup);
             this.getGui().appendChild(renderedGroup.getGui());
             // we want to indent on the gui for the children
             newDept = dept + 1;
@@ -103,7 +106,7 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
         recursiveFunc(this.columnTree);
         var state;
         if (expandedCount > 0 && notExpandedCount > 0) {
-            state = primaryColsHeaderPanel_1.SELECTED_STATE.INDETERMINIATE;
+            state = primaryColsHeaderPanel_1.SELECTED_STATE.INDETERMINATE;
         }
         else if (notExpandedCount > 0) {
             state = primaryColsHeaderPanel_1.SELECTED_STATE.UNCHECKED;
@@ -117,10 +120,10 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
         if (column.getColDef() && column.getColDef().suppressToolPanel) {
             return;
         }
-        var renderedColumn = new toolPanelColumnComp_1.ToolPanelColumnComp(column, dept, this.props.allowDragging, groupsExist);
-        this.context.wireBean(renderedColumn);
-        this.getGui().appendChild(renderedColumn.getGui());
-        this.columnComps[column.getId()] = renderedColumn;
+        var columnComp = new toolPanelColumnComp_1.ToolPanelColumnComp(column, dept, this.allowDragging, groupsExist);
+        this.getContext().wireBean(columnComp);
+        this.getGui().appendChild(columnComp.getGui());
+        this.columnComps[column.getId()] = columnComp;
     };
     PrimaryColsListPanel.prototype.recursivelyAddComps = function (tree, dept, groupsExist) {
         var _this = this;
@@ -180,7 +183,8 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
                         filterPasses = displayName !== null ? displayName.toLowerCase().indexOf(_this.filterText) >= 0 : true;
                     }
                     else {
-                        filterPasses = true;
+                        // if this is a dummy column group, we should return false here
+                        filterPasses = item instanceof main_1.OriginalColumnGroup && item.getOriginalParent() ? true : false;
                     }
                 }
                 filterResults[item.getId()] = filterPasses;
@@ -199,7 +203,7 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
             var comp = _this.columnComps[child.getId()];
             if (comp) {
                 var passesFilter = filterResults ? filterResults[child.getId()] : true;
-                comp.setVisible(parentGroupsOpen && passesFilter);
+                comp.setDisplayed(parentGroupsOpen && passesFilter);
             }
             if (child instanceof main_1.OriginalColumnGroup) {
                 var columnGroup = child;
@@ -217,9 +221,20 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
         });
     };
     PrimaryColsListPanel.prototype.doSetSelectedAll = function (checked) {
-        main_1._.iterateObject(this.columnComps, function (key, column) {
-            column.onSelectAllChanged(checked);
-        });
+        if (this.columnApi.isPivotMode()) {
+            // if pivot mode is on, then selecting columns has special meaning (eg group, aggregate, pivot etc),
+            // so there is no bulk operation we can do.
+            main_1._.iterateObject(this.columnComps, function (key, column) {
+                column.onSelectAllChanged(checked);
+            });
+        }
+        else {
+            // however if pivot mode is off, then it's all about column visibility so we can do a bulk
+            // operation directly with the column controller. we could column.onSelectAllChanged(checked)
+            // as above, however this would work on each column independently and take longer.
+            var primaryCols = this.columnApi.getPrimaryColumns();
+            this.columnApi.setColumnsVisible(primaryCols, checked);
+        }
     };
     PrimaryColsListPanel.TEMPLATE = "<div class=\"ag-primary-cols-list-panel\"></div>";
     __decorate([
@@ -235,15 +250,9 @@ var PrimaryColsListPanel = /** @class */ (function (_super) {
         __metadata("design:type", main_1.EventService)
     ], PrimaryColsListPanel.prototype, "globalEventService", void 0);
     __decorate([
-        main_1.Autowired('context'),
-        __metadata("design:type", main_1.Context)
-    ], PrimaryColsListPanel.prototype, "context", void 0);
-    __decorate([
-        main_1.PostConstruct,
-        __metadata("design:type", Function),
-        __metadata("design:paramtypes", []),
-        __metadata("design:returntype", void 0)
-    ], PrimaryColsListPanel.prototype, "init", null);
+        main_1.Autowired('columnApi'),
+        __metadata("design:type", ag_grid_community_1.ColumnApi)
+    ], PrimaryColsListPanel.prototype, "columnApi", void 0);
     return PrimaryColsListPanel;
 }(main_1.Component));
 exports.PrimaryColsListPanel = PrimaryColsListPanel;

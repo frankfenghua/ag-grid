@@ -62,7 +62,7 @@ export class HeaderContainer {
         this.eventService.addEventListener(Events.EVENT_DISPLAYED_COLUMNS_CHANGED, this.onDisplayedColumnsChanged.bind(this));
     }
 
-    // if row group changes, that means we may need to add aggFunc's to the column headers,
+    // if row group changes, that means we may need to add aggFuncs to the column headers,
     // if the grid goes from no aggregation (ie no grouping) to grouping
     private onColumnRowGroupChanged(): void {
         this.onGridColumnsChanged();
@@ -111,6 +111,10 @@ export class HeaderContainer {
         this.removeHeaderRowComps();
     }
 
+    public getRowComps(): HeaderRowComp[] {
+        return this.headerRowComps;
+    }
+
     // grid cols have changed - this also means the number of rows in the header can have
     // changed. so we remove all the old rows and insert new ones for a complete refresh
     private onGridColumnsChanged() {
@@ -139,7 +143,7 @@ export class HeaderContainer {
             headerRowComp.destroy();
         });
         this.headerRowComps.length = 0;
-        _.removeAllChildren(this.eContainer);
+        _.clearElement(this.eContainer);
     }
 
     private createHeaderRowComps(): void {
@@ -153,6 +157,7 @@ export class HeaderContainer {
             const headerRowComp = new HeaderRowComp(dept, type, this.pinned, this.dropTarget);
             this.context.wireBean(headerRowComp);
             this.headerRowComps.push(headerRowComp);
+            headerRowComp.getGui().setAttribute('aria-rowindex', this.headerRowComps.length.toString());
             this.eContainer.appendChild(headerRowComp.getGui());
         }
 
@@ -162,6 +167,7 @@ export class HeaderContainer {
             const headerRowComp = new HeaderRowComp(rowCount, HeaderRowType.FLOATING_FILTER, this.pinned,  this.dropTarget);
             this.context.wireBean(headerRowComp);
             this.headerRowComps.push(headerRowComp);
+            headerRowComp.getGui().setAttribute('aria-rowindex', this.headerRowComps.length.toString());
             this.eContainer.appendChild(headerRowComp.getGui());
         }
     }

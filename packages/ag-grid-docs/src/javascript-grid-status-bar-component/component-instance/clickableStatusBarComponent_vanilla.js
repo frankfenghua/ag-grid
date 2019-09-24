@@ -4,21 +4,21 @@ function ClickableStatusBarComponent() {
 ClickableStatusBarComponent.prototype.init = function (params) {
     this.params = params;
 
+    this.visible = true;
     this.eGui = document.createElement('div');
+    this.eGui.className = 'ag-name-value';
 
-    var content = document.createElement('div');
-    var span = document.createElement('span');
-    span.innerText = 'Status Bar Component';
-    content.appendChild(span);
+    var label = document.createElement('span');
+    label.innerText = 'Status Bar Component  ';
+    this.eGui.appendChild(label);
 
     this.eButton = document.createElement('button');
 
     this.buttonListener = this.onButtonClicked.bind(this);
     this.eButton.addEventListener("click", this.buttonListener);
     this.eButton.innerHTML = 'Click Me';
-    content.appendChild(this.eButton);
-    
-    this.eGui.appendChild(content);
+
+    this.eGui.appendChild(this.eButton);
 };
 
 ClickableStatusBarComponent.prototype.getGui = function () {
@@ -35,8 +35,7 @@ ClickableStatusBarComponent.prototype.onButtonClicked = function () {
 
 ClickableStatusBarComponent.prototype.setVisible = function (visible) {
     this.visible = visible;
-
-    this.eGui.style.display = this.visible ? 'flex' : 'none';
+    this.eGui.style.display = this.visible ? 'block' : 'none';
 };
 
 ClickableStatusBarComponent.prototype.isVisible = function () {

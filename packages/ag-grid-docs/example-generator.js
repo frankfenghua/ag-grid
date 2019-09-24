@@ -83,7 +83,7 @@ function forEachExampleToGenerate(cb, final, scope = '*') {
     });
 }
 
-module.exports = (cb, scope) => {
+module.exports = (cb, scope, isDev) => {
     require('ts-node').register();
 
     const {vanillaToVue} = require('./src/example-runner/vanilla-to-vue.ts');
@@ -140,7 +140,7 @@ module.exports = (cb, scope) => {
 
             const reactScripts = glob.sync(path.join('./src', section, example, '*_react*'));
             try {
-                source = vanillaToReact(mainJs, indexHtml, options, extractComponentFileNames(reactScripts, '_react'));
+                source = vanillaToReact(mainJs, indexHtml, options, extractComponentFileNames(reactScripts, '_react'), isDev);
                 indexJSX = prettier.format(source, {parser: 'babylon', printWidth: 120});
             } catch (e) {
                 console.error(`Failed at ./src/${section}/${example}`, e);
@@ -151,7 +151,7 @@ module.exports = (cb, scope) => {
             let angularComponentFileNames = extractComponentFileNames(angularScripts, '_angular');
             let appComponentTS, appModuleTS;
             try {
-                source = vanillaToAngular(mainJs, indexHtml, options, angularComponentFileNames);
+                source = vanillaToAngular(mainJs, indexHtml, options, angularComponentFileNames, isDev);
 
                 appComponentTS = prettier.format(source, {printWidth: 120, parser: 'typescript'});
                 appModuleTS = prettier.format(appModuleAngular(angularComponentFileNames), {
@@ -167,8 +167,8 @@ module.exports = (cb, scope) => {
             try {
                 // vue is still new - only process examples marked as tested and good to go
                 // when all examples have been tested this check can be removed
-                if(options.processVue) {
-                    source = vanillaToVue(mainJs, indexHtml, options, extractComponentFileNames(vueScripts, '_vue'));
+                if(options.processVue || options.processVue === undefined) {
+                    source = vanillaToVue(mainJs, indexHtml, options, extractComponentFileNames(vueScripts, '_vue'), isDev);
                     mainApp = prettier.format(source, {parser: 'babylon', printWidth: 120});
                 }
             } catch (e) {
@@ -201,7 +201,7 @@ module.exports = (cb, scope) => {
 
             // vue is still new - only process examples marked as tested and good to go
             // when all examples have been tested this check can be removed
-            if(options.processVue) {
+            if(options.processVue || options.processVue === undefined) {
                 // fetch and move react files to _gen/vue
                 const vuePath = path.join(_gen, 'vue');
                 mkdirp.sync(vuePath);

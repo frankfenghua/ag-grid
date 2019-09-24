@@ -5,7 +5,6 @@ $pageKeyboards = "javascript data grid ag-Grid properties";
 $pageGroup = "reference";
 include '../documentation-main/documentation_header.php';
 ?>
-
     <h1>Grid Properties</h1>
 
     <p class="lead">
@@ -27,6 +26,12 @@ include '../documentation-main/documentation_header.php';
             <td>A <a href="../javascript-grid-column-definitions/#default-column-definitions">default column group</a>
                 definition. All column group definitions will use these properties. Items defined in the
                 actual column group definition get precedence.</td>
+        </tr>
+        <tr>
+            <th>columnTypes</th>
+            <td>An object map of <a href="../javascript-grid-column-definitions/#default-column-definitions">custom column types</a>
+                which contain groups of properties that column definitions can inherit.
+            </td>
         </tr>
         <tr>
             <th>colResizeDefault</th>
@@ -132,6 +137,20 @@ include '../documentation-main/documentation_header.php';
                 facilitate migration.
                 <a href="../javascript-grid-filtering/">Row Filtering</a>.</td>
         </tr>
+        <tr>
+            <th>suppressMaintainUnsortedOrder</th>
+            <td>
+                Set to true to suppress sorting of un-sorted data to match original row data.
+                See <a href="../javascript-grid-data-update/#big-data-small-transactions">Big Data Small Transactions</a>
+            </td>
+        </tr>
+        <tr>
+            <th>excludeChildrenWhenTreeDataFiltering</th>
+            <td>
+                Set to true to override the default tree data filtering behaviour to instead exclude child nodes from
+                filter results. See <a href="../javascript-grid-tree-data/#tree-data-filtering">Tree Data Filtering</a>.
+            </td>
+        </tr>
         </table>
     <h2>Selection</h2>
 
@@ -203,13 +222,6 @@ include '../documentation-main/documentation_header.php';
             </td>
         </tr>
         <tr>
-            <th>enableGroupEdit</th>
-            <td>
-                Set to true to enable <a href="../javascript-grid-cell-editing/#groupEditing">Group Editing</a>,
-                otherwise by default, row groups cannot be edited.
-            </td>
-        </tr>
-        <tr>
             <th>editType</th>
             <td>
                 Set to 'fullRow' to enable <a href="../javascript-grid-cell-editing/#fullRowEdit">Full Row Editing</a>.
@@ -219,6 +231,11 @@ include '../documentation-main/documentation_header.php';
         <tr>
             <th>enableCellChangeFlash</th>
             <td>Set to true to have cells flash after data changes.
+                See <a href="../javascript-grid-data-update/#flashing">Flashing Data Changes</a>.</td>
+        </tr>
+        <tr>
+            <th>allowShowChangeAfterFilter</th>
+            <td>Set to true to have cells flash after data changes even when the change is due to filtering.
                 See <a href="../javascript-grid-data-update/#flashing">Flashing Data Changes</a>.</td>
         </tr>
         <tr>
@@ -271,7 +288,8 @@ include '../documentation-main/documentation_header.php';
         </tr>
         <tr>
             <th>suppressAggAtRootLevel</th>
-            <td>When true, the aggregations won't be computed for root node of the grid.</td>
+            <td>When true, the aggregations won't be computed for root node of the grid.
+            See <a href="../javascript-grid-data-update/#big-data-small-transactions">Big Data Small Transactions</a></td>
         </tr>
         <tr>
             <th>aggregateOnlyChangedColumns</th>
@@ -366,8 +384,16 @@ include '../documentation-main/documentation_header.php';
         <tr>
             <th style="text-decoration: line-through">suppressRowVirtualisation</th>
             <td>There is no property suppressRowVirtualisation - if you want to do this, then set the rowBuffer
-            property to be very large, eg 9999. But be careful, lots of rendered ros will mean a very large amount
+            property to be very large, eg 9999. But be careful, lots of rendered rows will mean a very large amount
             of rendering in the DOM which will slow things down.</td>
+        </tr>
+        <tr>
+            <th>suppressMaxRenderedRowRestriction</th>
+            <td>By default the grid has limit of rendering a maximum of 500 rows at once (remember the grid only 
+            renders rows you can see, so unless your display shows more than 500 rows without vertically scrolling 
+            this will never be an issue).<br>
+            <strong>This is only relevant if you are manually setting rowBuffer to a high value (rendering more rows 
+            than can be seen) or if your grid height is able to display more than 500 rows at once</strong></td>
         </tr>
         <tr>
             <th>suppressScrollOnNewData</th>
@@ -467,6 +493,8 @@ include '../documentation-main/documentation_header.php';
                 See <a href="../javascript-grid-master-detail">Master Detail</a> for more details.
             </td>
         </tr>
+        <?php include '../javascript-grid-master-detail/masterDetailProperties.php' ?>
+        <?php printPropertiesRowsWithHelp($masterDetailProperties) ?>
 
         </table>
 <h2>Rendering & Styling</h2>
@@ -567,13 +595,27 @@ include '../documentation-main/documentation_header.php';
         </tr>
 
         </table>
+
+
+<h2>Charts</h2>
+<table class="table content reference">
+
+    <tr>
+        <th>enableCharts</th>
+        <td>Set to true to  <a href="../javascript-grid-charts-overview/#enabling-charts">Enable Charts</a>.</td>
+    </tr>
+
+</table>
+
+
+
 <h2>Miscellaneous</h2>
     <table class="table content reference">
         <tr>
             <th>popupParent</th>
             <td>DOM element to use as <a href="../javascript-grid-context-menu/#popup-parent">popup parent</a> for grid popups (context menu, column menu etc).</td>
         </tr>
-        <?php include '../javascript-grid-value-cache/valueCacheProperties.php' ?>
+        <?php include '../javascript-grid-value-getters/valueCacheProperties.php' ?>
         <?php printPropertiesRows($valueCacheProperties) ?>
         <tr>
             <th>defaultExportParams</th>
@@ -583,12 +625,19 @@ include '../documentation-main/documentation_header.php';
         <tr>
             <th>suppressMiddleClickScrolls</th>
             <td>If true, then middle clicks will result in 'click' events for cell and row. Otherwise the browser
-                will use middle click to scroll the grid.</td>
+                will use middle click to scroll the grid.<br>
+                <strong>Note:</strong> Not all browsers fire <code>click</code> events with the middle button. Most will
+                fire only <code>mousedown</code> and <code>mouseup</code> events, which can be used to focus a cell, but 
+                will not work to call the <code>onCellClicked</code> function.</td>
         </tr>
         <tr>
             <th>suppressPreventDefaultOnMouseWheel</th>
             <td>If true, mouse wheel events will be passed to the browser - useful if your grid has no vertical scrolls 
                 and you want the mouse to scroll the browser page.</td>
+        </tr>
+        <tr>
+            <th>enableBrowserTooltips</th>
+            <td>Set to true to use the browser's default tooltip instead of using Ag-Grid's Tooltip Component.</td>
         </tr>
         <tr>
             <th>enableCellExpressions</th>
@@ -675,15 +724,14 @@ include '../documentation-main/documentation_header.php';
             </td>
         </tr>
         <tr>
-            <th>suppressTabbing</th>
-            <td>
-                Set to true to remove the grid tabbing functionality. Use this if you want to manage tabbing
-                differently to what the grid provides.
-            </td>
-        </tr>
-        <tr>
             <th>enableRtl</th>
             <td>Set to true to operate grid in <a href="../javascript-grid-rtl/">RTL (Right to Left)</a> mode.</td>
+        </tr>
+        <tr>
+            <th>enableCellTextSelection</th>
+            <td>Set to true to be able to select the text within cells.<br>
+                <strong>Note:</strong> When this is set to true, the clipboard service is disabled.
+            </td>
         </tr>
         <tr>
             <th>debug</th>
@@ -702,6 +750,14 @@ include '../documentation-main/documentation_header.php';
             <td>
                 Set to true to not show <a href="../javascript-grid-context-menu">context menu</a>.
                 Use if you don't want to use the default 'right click' context menu.
+            </td>
+        </tr>
+        <tr>
+            <th>preventDefaultOnContextMenu</th>
+            <td>
+                When using <code>suppressContextMenu</code>, you can use the <code>onCellContextMenu</code> function
+                to provide your own code to handle cell <code>contextmenu</code> events. This flag is useful to prevent 
+                the browser from showing it's default context menu.
             </td>
         </tr>
         <tr>
@@ -769,7 +825,15 @@ include '../documentation-main/documentation_header.php';
                 <a href="../javascriptgridserversidemodel/">Serverside Row Model</a>.
             </td>
         </tr>
+        <tr>
+            <th>suppressBrowserResizeObserver</th>
+            <td>
+                The grid will check for ResizeObserver and use it if it exists in the browser,
+                otherwise it will use the grid's alternative implementation. Some users reported
+                issues with Chrome's ResizeObserver. Use this property to always use the grids
+                alternative implementation should such problems exist.
+            </td>
+        </tr>
     </table>
-
 
 <?php include '../documentation-main/documentation_footer.php';?>

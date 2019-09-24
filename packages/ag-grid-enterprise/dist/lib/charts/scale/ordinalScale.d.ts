@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import Scale from "./scale";
 /**
  * Maps a discrete domain to a discrete range.
@@ -6,10 +6,18 @@ import Scale from "./scale";
  */
 export declare class OrdinalScale<D, R> implements Scale<D, R> {
     unknown: R;
-    _domain: D[];
-    domain: D[];
-    _range: R[];
-    range: R[];
+    /**
+     * Using an object as a map prevents us from uniquely identifying objects and arrays:
+     *
+     *     index[{}]   === index[{foo: 'bar'}]    // true
+     *     index[[{}]] === index[[{foo: 'bar'}]]  // true
+     *
+     * Use `Map` when IE11 is irrelevant.
+     */
     private index;
+    private _domain;
+    domain: D[];
+    private _range;
+    range: R[];
     convert(d: D): R;
 }

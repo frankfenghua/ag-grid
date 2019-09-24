@@ -17,6 +17,7 @@ import { RowDataTransaction } from "../clientSide/clientSideRowModel";
 import { GridApi } from "../../gridApi";
 import { ColumnApi } from "../../columnController/columnApi";
 import { NumberSequence, _ } from "../../utils";
+import { RowRenderer } from "../../rendering/rowRenderer";
 
 @Bean('rowModel')
 export class InfiniteRowModel extends BeanStub implements IRowModel {
@@ -26,9 +27,9 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
     @Autowired('sortController') private sortController: SortController;
     @Autowired('selectionController') private selectionController: SelectionController;
     @Autowired('eventService') private eventService: EventService;
-    @Autowired('context') private context: Context;
     @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('columnApi') private columnApi: ColumnApi;
+    @Autowired('rowRenderer') private rowRenderer: RowRenderer;
 
     private infiniteCache: InfiniteCache | null;
     private rowNodeBlockLoader: RowNodeBlockLoader | null;
@@ -46,6 +47,9 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         };
     }
 
+    // we don't implement as lazy row heights is not supported in this row model
+    public ensureRowHeightsValid(startPixel: number, endPixel: number, startLimitIndex: number, endLimitIndex: number): boolean { return false; }
+
     @PostConstruct
     public init(): void {
         if (!this.gridOptionsWrapper.isRowModelInfinite()) {
@@ -62,10 +66,13 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
 
     @PreDestroy
     private destroyDatasource(): void {
-        if (this.datasource && this.datasource.destroy) {
-            this.datasource.destroy();
+        if (this.datasource) {
+            if (this.datasource.destroy) {
+                this.datasource.destroy();
+            }
+            this.rowRenderer.datasourceChanged();
+            this.datasource = null;
         }
-        this.datasource = null;
     }
 
     public isLastRowFound(): boolean {
@@ -104,11 +111,6 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
 
     private isSortModelDifferent(): boolean {
         return !_.jsonEquals(this.cacheParams.sortModel, this.sortController.getSortModel());
-    }
-
-    @PreDestroy
-    public destroy(): void {
-        super.destroy();
     }
 
     public getType(): string {
@@ -165,7 +167,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
             return;
         }
 
-        // if user is providing id's, then this means we can keep the selection between datsource hits,
+        // if user is providing id's, then this means we can keep the selection between datasource hits,
         // as the rows will keep their unique id's even if, for example, server side sorting or filtering
         // is done.
         const userGeneratingIds = _.exists(this.gridOptionsWrapper.getRowNodeIdFunc());
@@ -203,7 +205,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         // there is a bi-directional dependency between the loader and the cache,
         // so we create loader here, and then pass dependencies in setDependencies() method later
         this.rowNodeBlockLoader = new RowNodeBlockLoader(maxConcurrentRequests, blockLoadDebounceMillis);
-        this.context.wireBean(this.rowNodeBlockLoader);
+        this.getContext().wireBean(this.rowNodeBlockLoader);
 
         this.cacheParams = {
             // the user provided datasource
@@ -250,7 +252,7 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         }
 
         this.infiniteCache = new InfiniteCache(this.cacheParams);
-        this.context.wireBean(this.infiniteCache);
+        this.getContext().wireBean(this.infiniteCache);
 
         this.infiniteCache.addEventListener(RowNodeCache.EVENT_CACHE_UPDATED, this.onCacheUpdated.bind(this));
     }
@@ -295,25 +297,26 @@ export class InfiniteRowModel extends BeanStub implements IRowModel {
         return this.getRowCount() * this.rowHeight;
     }
 
+    public getTopLevelRowCount(): number {
+        return this.getRowCount();
+    }
+
+    public getTopLevelRowDisplayedIndex(topLevelIndex: number): number {
+        return topLevelIndex;
+    }
+
     public getRowIndexAtPixel(pixel: number): number {
         if (this.rowHeight !== 0) { // avoid divide by zero error
             const rowIndexForPixel = Math.floor(pixel / this.rowHeight);
-            if (rowIndexForPixel > this.getPageLastRow()) {
-                return this.getPageLastRow();
+            const lastRowIndex = this.getRowCount() - 1;
+            if (rowIndexForPixel > lastRowIndex) {
+                return lastRowIndex;
             } else {
                 return rowIndexForPixel;
             }
         } else {
             return 0;
         }
-    }
-
-    public getPageFirstRow(): number {
-        return 0;
-    }
-
-    public getPageLastRow(): number {
-        return this.infiniteCache ? this.infiniteCache.getVirtualRowCount() - 1 : 0;
     }
 
     public getRowCount(): number {

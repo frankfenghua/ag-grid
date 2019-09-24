@@ -20,7 +20,6 @@ export class DragService {
 
     private currentDragParams: DragListenerParams;
     private dragging: boolean;
-    private mouseEventLastTime: MouseEvent;
     private mouseStartEvent: MouseEvent;
     private touchLastTime: Touch;
     private touchStart: Touch;
@@ -73,7 +72,9 @@ export class DragService {
         const eDocument = this.gridOptionsWrapper.getDocument();
         const eBody = eDocument.querySelector('body') as HTMLElement;
         if (_.exists(eBody)) {
-            _.addOrRemoveCssClass(eBody, 'ag-body-no-select', noSelect);
+            // when we drag the mouse in ag-Grid, this class gets added / removed from the body, so that
+            // the mouse isn't selecting text when dragging.
+            _.addOrRemoveCssClass(eBody, 'ag-unselectable', noSelect);
         }
     }
 
@@ -87,7 +88,7 @@ export class DragService {
 
         if (includeTouch && !suppressTouch) {
             touchListener = this.onTouchStart.bind(this, params);
-            params.eElement.addEventListener('touchstart', touchListener, {passive:false} as any);
+            params.eElement.addEventListener('touchstart', touchListener, { passive:false } as any);
         }
 
         this.dragSources.push({
@@ -149,11 +150,11 @@ export class DragService {
         this.currentDragParams = params;
         this.dragging = false;
 
-        this.mouseEventLastTime = mouseEvent;
         this.mouseStartEvent = mouseEvent;
 
         const eDocument = this.gridOptionsWrapper.getDocument();
 
+        this.setNoSelectToBody(true);
         // we temporally add these listeners, for the duration of the drag, they
         // are removed in mouseup handling.
         eDocument.addEventListener('mousemove', this.onMouseMoveListener);
@@ -201,7 +202,6 @@ export class DragService {
             };
             this.eventService.dispatchEvent(event);
             this.currentDragParams.onDragStart(startEvent);
-            this.setNoSelectToBody(true);
         }
 
         this.currentDragParams.onDragging(currentEvent);
@@ -272,7 +272,6 @@ export class DragService {
         this.setNoSelectToBody(false);
 
         this.mouseStartEvent = null;
-        this.mouseEventLastTime = null;
         this.touchStart = null;
         this.touchLastTime = null;
         this.currentDragParams = null;

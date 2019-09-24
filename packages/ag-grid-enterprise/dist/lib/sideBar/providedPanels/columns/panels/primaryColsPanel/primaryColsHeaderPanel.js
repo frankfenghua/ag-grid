@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -28,7 +28,7 @@ var SELECTED_STATE;
 (function (SELECTED_STATE) {
     SELECTED_STATE[SELECTED_STATE["CHECKED"] = 0] = "CHECKED";
     SELECTED_STATE[SELECTED_STATE["UNCHECKED"] = 1] = "UNCHECKED";
-    SELECTED_STATE[SELECTED_STATE["INDETERMINIATE"] = 2] = "INDETERMINIATE";
+    SELECTED_STATE[SELECTED_STATE["INDETERMINATE"] = 2] = "INDETERMINATE";
 })(SELECTED_STATE = exports.SELECTED_STATE || (exports.SELECTED_STATE = {}));
 var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
     __extends(PrimaryColsHeaderPanel, _super);
@@ -40,26 +40,43 @@ var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
     }
     PrimaryColsHeaderPanel.prototype.preConstruct = function () {
         var translate = this.gridOptionsWrapper.getLocaleTextFunc();
-        this.setTemplate("<div class=\"ag-primary-cols-header-panel\">\n            <a href=\"javascript:void(0)\" (click)=\"onExpandClicked\" ref=\"eExpand\">\n                <span class=\"ag-icon ag-icon-tree-open\" ref=\"eExpandChecked\"></span>\n                <span class=\"ag-icon ag-icon-tree-closed\" ref=\"eExpandUnchecked\"></span>\n                <span class=\"ag-icon ag-icon ag-icon-tree-indeterminate\" ref=\"eExpandIndeterminate\"></span>\n            </a>\n            <a href=\"javascript:void(0)\" (click)=\"onSelectClicked\" ref=\"eSelect\">\n                <span class=\"ag-icon ag-icon-checkbox-checked\" ref=\"eSelectChecked\"></span>\n                <span class=\"ag-icon ag-icon-checkbox-unchecked\" ref=\"eSelectUnchecked\"></span>\n                <span class=\"ag-icon ag-icon-checkbox-indeterminate\" ref=\"eSelectIndeterminate\"></span>\n            </a>\n            <div class=\"ag-input-text-wrapper ag-primary-cols-filter-wrapper\" ref=\"eFilterWrapper\">\n                <input class=\"ag-primary-cols-filter\" ref=\"eFilterTextField\" type=\"text\" placeholder=\"" + translate('filterOoo', 'Filter...') + "\" (input)=\"onFilterTextChanged\">        \n            </div>\n        </div>");
+        this.setTemplate("<div class=\"ag-primary-cols-header-panel\" role=\"presentation\">\n            <div ref=\"eExpand\"></div>\n            <div ref=\"eSelect\"></div>\n            <div class=\"ag-input-wrapper ag-primary-cols-filter-wrapper\" ref=\"eFilterWrapper\" role=\"presentation\">\n                <input class=\"ag-primary-cols-filter\" ref=\"eFilterTextField\" type=\"text\" placeholder=\"" + translate('filterOoo', 'Filter...') + "\">        \n            </div>\n        </div>");
+    };
+    PrimaryColsHeaderPanel.prototype.postConstruct = function () {
+        this.addEventListeners();
+        this.createExpandIcons();
+        this.createCheckIcons();
+        this.setExpandState(SELECTED_STATE.CHECKED);
+        this.addDestroyableEventListener(this.eExpand, 'click', this.onExpandClicked.bind(this));
+        this.addDestroyableEventListener(this.eSelect, 'click', this.onSelectClicked.bind(this));
+        this.addDestroyableEventListener(this.eFilterTextField, 'input', this.onFilterTextChanged.bind(this));
     };
     PrimaryColsHeaderPanel.prototype.init = function (params) {
-        this.instantiate(this.context);
-        this.addEventListeners();
+        this.params = params;
         if (this.columnController.isReady()) {
             this.setColumnsCheckedState();
             this.showOrHideOptions();
         }
-        this.setExpandState(SELECTED_STATE.CHECKED);
+    };
+    PrimaryColsHeaderPanel.prototype.createExpandIcons = function () {
+        this.eExpand.appendChild(this.eExpandChecked = main_1._.createIconNoSpan('columnSelectOpen', this.gridOptionsWrapper));
+        this.eExpand.appendChild(this.eExpandUnchecked = main_1._.createIconNoSpan('columnSelectClosed', this.gridOptionsWrapper));
+        this.eExpand.appendChild(this.eExpandIndeterminate = main_1._.createIconNoSpan('columnSelectIndeterminate', this.gridOptionsWrapper));
+    };
+    PrimaryColsHeaderPanel.prototype.createCheckIcons = function () {
+        this.eSelect.appendChild(this.eSelectChecked = main_1._.createIconNoSpan('checkboxChecked', this.gridOptionsWrapper));
+        this.eSelect.appendChild(this.eSelectUnchecked = main_1._.createIconNoSpan('checkboxUnchecked', this.gridOptionsWrapper));
+        this.eSelect.appendChild(this.eSelectIndeterminate = main_1._.createIconNoSpan('checkboxIndeterminate', this.gridOptionsWrapper));
     };
     // we only show expand / collapse if we are showing columns
     PrimaryColsHeaderPanel.prototype.showOrHideOptions = function () {
-        var showFilter = !this.props.params.suppressColumnFilter;
-        var showSelect = !this.props.params.suppressColumnSelectAll;
-        var showExpand = !this.props.params.suppressColumnExpandAll;
+        var showFilter = !this.params.suppressColumnFilter;
+        var showSelect = !this.params.suppressColumnSelectAll;
+        var showExpand = !this.params.suppressColumnExpandAll;
         var groupsPresent = this.columnController.isPrimaryColumnGroupsPresent();
-        main_1._.setVisible(this.eFilterWrapper, showFilter);
-        main_1._.setVisible(this.eSelect, showSelect);
-        main_1._.setVisible(this.eExpand, showExpand && groupsPresent);
+        main_1._.setDisplayed(this.eFilterWrapper, showFilter);
+        main_1._.setDisplayed(this.eSelect, showSelect);
+        main_1._.setDisplayed(this.eExpand, showExpand && groupsPresent);
     };
     PrimaryColsHeaderPanel.prototype.addEventListeners = function () {
         var _this = this;
@@ -110,22 +127,22 @@ var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
     };
     PrimaryColsHeaderPanel.prototype.setExpandState = function (state) {
         this.expandState = state;
-        main_1._.setVisible(this.eExpandChecked, this.expandState === SELECTED_STATE.CHECKED);
-        main_1._.setVisible(this.eExpandUnchecked, this.expandState === SELECTED_STATE.UNCHECKED);
-        main_1._.setVisible(this.eExpandIndeterminate, this.expandState === SELECTED_STATE.INDETERMINIATE);
+        main_1._.setDisplayed(this.eExpandChecked, this.expandState === SELECTED_STATE.CHECKED);
+        main_1._.setDisplayed(this.eExpandUnchecked, this.expandState === SELECTED_STATE.UNCHECKED);
+        main_1._.setDisplayed(this.eExpandIndeterminate, this.expandState === SELECTED_STATE.INDETERMINATE);
     };
     PrimaryColsHeaderPanel.prototype.setColumnsCheckedState = function () {
         var allPrimaryColumns = this.columnController.getAllPrimaryColumns();
         var columns = [];
         if (allPrimaryColumns !== null) {
-            columns = allPrimaryColumns.filter(function (col) { return !col.isLockVisible(); });
+            columns = allPrimaryColumns.filter(function (col) { return !col.getColDef().lockVisible; });
         }
         var pivotMode = this.columnController.isPivotMode();
         var checkedCount = 0;
         var uncheckedCount = 0;
         columns.forEach(function (col) {
             // ignore lock visible columns
-            if (col.isLockVisible()) {
+            if (col.getColDef().lockVisible) {
                 return;
             }
             // not not count columns not in tool panel
@@ -152,7 +169,7 @@ var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
             }
         });
         if (checkedCount > 0 && uncheckedCount > 0) {
-            this.selectState = SELECTED_STATE.INDETERMINIATE;
+            this.selectState = SELECTED_STATE.INDETERMINATE;
         }
         else if (uncheckedCount > 0) {
             this.selectState = SELECTED_STATE.UNCHECKED;
@@ -160,14 +177,10 @@ var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
         else {
             this.selectState = SELECTED_STATE.CHECKED;
         }
-        main_1._.setVisible(this.eSelectChecked, this.selectState === SELECTED_STATE.CHECKED);
-        main_1._.setVisible(this.eSelectUnchecked, this.selectState === SELECTED_STATE.UNCHECKED);
-        main_1._.setVisible(this.eSelectIndeterminate, this.selectState === SELECTED_STATE.INDETERMINIATE);
+        main_1._.setDisplayed(this.eSelectChecked, this.selectState === SELECTED_STATE.CHECKED);
+        main_1._.setDisplayed(this.eSelectUnchecked, this.selectState === SELECTED_STATE.UNCHECKED);
+        main_1._.setDisplayed(this.eSelectIndeterminate, this.selectState === SELECTED_STATE.INDETERMINATE);
     };
-    __decorate([
-        main_1.Autowired('context'),
-        __metadata("design:type", main_1.Context)
-    ], PrimaryColsHeaderPanel.prototype, "context", void 0);
     __decorate([
         main_1.Autowired('gridOptionsWrapper'),
         __metadata("design:type", main_1.GridOptionsWrapper)
@@ -184,30 +197,6 @@ var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
         main_1.RefSelector('eFilterTextField'),
         __metadata("design:type", HTMLInputElement)
     ], PrimaryColsHeaderPanel.prototype, "eFilterTextField", void 0);
-    __decorate([
-        main_1.RefSelector('eSelectChecked'),
-        __metadata("design:type", HTMLElement)
-    ], PrimaryColsHeaderPanel.prototype, "eSelectChecked", void 0);
-    __decorate([
-        main_1.RefSelector('eSelectUnchecked'),
-        __metadata("design:type", HTMLElement)
-    ], PrimaryColsHeaderPanel.prototype, "eSelectUnchecked", void 0);
-    __decorate([
-        main_1.RefSelector('eSelectIndeterminate'),
-        __metadata("design:type", HTMLElement)
-    ], PrimaryColsHeaderPanel.prototype, "eSelectIndeterminate", void 0);
-    __decorate([
-        main_1.RefSelector('eExpandChecked'),
-        __metadata("design:type", HTMLElement)
-    ], PrimaryColsHeaderPanel.prototype, "eExpandChecked", void 0);
-    __decorate([
-        main_1.RefSelector('eExpandUnchecked'),
-        __metadata("design:type", HTMLElement)
-    ], PrimaryColsHeaderPanel.prototype, "eExpandUnchecked", void 0);
-    __decorate([
-        main_1.RefSelector('eExpandIndeterminate'),
-        __metadata("design:type", HTMLElement)
-    ], PrimaryColsHeaderPanel.prototype, "eExpandIndeterminate", void 0);
     __decorate([
         main_1.RefSelector('eExpand'),
         __metadata("design:type", HTMLElement)
@@ -229,9 +218,9 @@ var PrimaryColsHeaderPanel = /** @class */ (function (_super) {
     __decorate([
         main_1.PostConstruct,
         __metadata("design:type", Function),
-        __metadata("design:paramtypes", [Object]),
+        __metadata("design:paramtypes", []),
         __metadata("design:returntype", void 0)
-    ], PrimaryColsHeaderPanel.prototype, "init", null);
+    ], PrimaryColsHeaderPanel.prototype, "postConstruct", null);
     return PrimaryColsHeaderPanel;
 }(main_1.Component));
 exports.PrimaryColsHeaderPanel = PrimaryColsHeaderPanel;

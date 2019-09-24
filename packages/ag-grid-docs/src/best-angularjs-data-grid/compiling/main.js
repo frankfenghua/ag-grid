@@ -8,7 +8,8 @@ module.controller("exampleCtrl", function($scope, $http) {
     var columnDefs = [
         {headerName: "Athlete", field: "athlete", width: 150, cellRenderer: athleteCellRendererFunc},
         {headerName: "Age", field: "age", width: 90, cellRenderer: ageCellRendererFunc},
-        {headerName: "Country", field: "country", width: 120, cellRenderer: countryCellRendererFunc},
+        {headerName: "Country", field: "country", width: 160, cellRenderer: countryCellRendererFunc},
+        {headerName: "Selected", width: 120, cellRenderer: selectedCellRendererFunc},
         {headerName: "Year", field: "year", width: 90},
         {headerName: "Date", field: "date", width: 110},
         {headerName: "Sport", field: "sport", width: 110},
@@ -21,7 +22,19 @@ module.controller("exampleCtrl", function($scope, $http) {
     $scope.gridOptions = {
         columnDefs: columnDefs,
         rowData: null,
-        angularCompileRows: true
+        angularCompileRows: true,
+        rowSelection: 'multiple',
+        onFirstDataRendered(params) {
+            params.api.sizeColumnsToFit();
+        }
+    };
+
+    $scope.selectUnitedStatesNodes = function () {
+        $scope.gridOptions.api.forEachNode(function (node) {
+            if (node.data.country === "United States") {
+                node.setSelected(true);
+            }
+        });
     };
 
     function ageClicked(age) {
@@ -41,6 +54,10 @@ module.controller("exampleCtrl", function($scope, $http) {
         return '<country name="'+params.value+'"></country>';
     }
 
+    function selectedCellRendererFunc() {
+        return '<span ng-if="rowNode.selected">Selected</span><span ng-if="!rowNode.selected">Not Selected</span>';
+    }
+
     $http.get("https://raw.githubusercontent.com/ag-grid/ag-grid/master/packages/ag-grid-docs/src/olympicWinners.json")
         .then(function(res){
             $scope.gridOptions.api.setRowData(res.data);
@@ -50,6 +67,7 @@ module.controller("exampleCtrl", function($scope, $http) {
 module.directive('country', function () {
 
     var FLAG_CODES = {
+        'Great Britain': 'gb',
         'Ireland': 'ie',
         'United States': 'us',
         'Russia': 'ru',

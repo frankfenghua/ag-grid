@@ -7,6 +7,9 @@ import { Events } from "../../events";
 import { RowRenderer } from "../../rendering/rowRenderer";
 import { PaginationProxy } from "../paginationProxy";
 import { _ } from "../../utils";
+import { IServerSideRowModel } from "../../interfaces/iServerSideRowModel";
+import { IRowModel } from "../../interfaces/iRowModel";
+import { Constants } from "../../constants";
 
 export class PaginationComp extends Component {
 
@@ -14,11 +17,12 @@ export class PaginationComp extends Component {
     @Autowired('eventService') private eventService: EventService;
     @Autowired('paginationProxy') private paginationProxy: PaginationProxy;
     @Autowired('rowRenderer') private rowRenderer: RowRenderer;
+    @Autowired('rowModel') private rowModel: IRowModel;
 
-    @RefSelector('btFirst') private btFirst: HTMLButtonElement;
-    @RefSelector('btPrevious') private btPrevious: HTMLButtonElement;
-    @RefSelector('btNext') private btNext: HTMLButtonElement;
-    @RefSelector('btLast') private btLast: HTMLButtonElement;
+    @RefSelector('btFirst') private btFirst: HTMLElement;
+    @RefSelector('btPrevious') private btPrevious: HTMLElement;
+    @RefSelector('btNext') private btNext: HTMLElement;
+    @RefSelector('btLast') private btLast: HTMLElement;
 
     @RefSelector('lbRecordCount') private lbRecordCount: any;
     @RefSelector('lbFirstRowOnPage') private lbFirstRowOnPage: any;
@@ -27,19 +31,29 @@ export class PaginationComp extends Component {
     @RefSelector('lbCurrent') private lbCurrent: any;
     @RefSelector('lbTotal') private lbTotal: any;
 
+    private serverSideRowModel: IServerSideRowModel;
+
     constructor() {
         super();
     }
 
     @PostConstruct
     private postConstruct(): void {
-
+        const isRtl = this.gridOptionsWrapper.isEnableRtl();
         this.setTemplate(this.getTemplate());
+        this.btFirst.insertAdjacentElement('afterbegin', _.createIconNoSpan(isRtl ? 'last' : 'first', this.gridOptionsWrapper));
+        this.btPrevious.insertAdjacentElement('afterbegin', _.createIconNoSpan(isRtl ? 'next' : 'previous', this.gridOptionsWrapper));
+        this.btNext.insertAdjacentElement('afterbegin', _.createIconNoSpan(isRtl ? 'previous' : 'next', this.gridOptionsWrapper));
+        this.btLast.insertAdjacentElement('afterbegin', _.createIconNoSpan(isRtl ? 'first' : 'last', this.gridOptionsWrapper));
+
+        if (this.rowModel.getType() === Constants.ROW_MODEL_TYPE_SERVER_SIDE) {
+            this.serverSideRowModel = this.rowModel as IServerSideRowModel;
+        }
 
         const isPaging = this.gridOptionsWrapper.isPagination();
         const paginationPanelEnabled = isPaging && !this.gridOptionsWrapper.isSuppressPaginationPanel();
         if (!paginationPanelEnabled) {
-            this.setVisible(false);
+            this.setDisplayed(false);
             return;
         }
 
@@ -90,16 +104,24 @@ export class PaginationComp extends Component {
         const strNext = localeTextFunc('next', 'Next');
         const strLast = localeTextFunc('last', 'Last');
 
-        return `<div class="ag-paging-panel ag-font-style">
+        return `<div class="ag-paging-panel ag-unselectable">
                 <span ref="eSummaryPanel" class="ag-paging-row-summary-panel">
                     <span ref="lbFirstRowOnPage"></span> ${strTo} <span ref="lbLastRowOnPage"></span> ${strOf} <span ref="lbRecordCount"></span>
                 </span>
                 <span class="ag-paging-page-summary-panel">
-                    <button type="button" class="ag-paging-button" ref="btFirst">${strFirst}</button>
-                    <button type="button" class="ag-paging-button" ref="btPrevious">${strPrevious}</button>
+                    <div ref="btFirst" class="ag-paging-button">
+                        <button type="button">${strFirst}</button>
+                    </div>
+                    <div ref="btPrevious" class="ag-paging-button">
+                        <button type="button">${strPrevious}</button>
+                    </div>
                     ${strPage} <span ref="lbCurrent"></span> ${strOf} <span ref="lbTotal"></span>
-                    <button type="button" class="ag-paging-button" ref="btNext">${strNext}</button>
-                    <button type="button" class="ag-paging-button" ref="btLast">${strLast}</button>
+                    <div ref="btNext" class="ag-paging-button">
+                        <button type="button">${strNext}</button>
+                    </div>
+                    <div ref="btLast" class="ag-paging-button">
+                        <button type="button">${strLast}</button>
+                    </div>
                 </span>
             </div>`;
     }
@@ -126,17 +148,17 @@ export class PaginationComp extends Component {
         const totalPages = this.paginationProxy.getTotalPages();
 
         const disablePreviousAndFirst = currentPage === 0;
-        this.btPrevious.disabled = disablePreviousAndFirst;
-        this.btFirst.disabled = disablePreviousAndFirst;
+        _.addOrRemoveCssClass(this.btPrevious, 'ag-disabled', disablePreviousAndFirst);
+        _.addOrRemoveCssClass(this.btFirst, 'ag-disabled', disablePreviousAndFirst);
 
         const zeroPagesToDisplay = this.isZeroPagesToDisplay();
         const onLastPage = maxRowFound && currentPage === (totalPages - 1);
 
         const disableNext = onLastPage || zeroPagesToDisplay;
-        this.btNext.disabled = disableNext;
+        _.addOrRemoveCssClass(this.btNext, 'ag-disabled', disableNext);
 
         const disableLast = !maxRowFound || zeroPagesToDisplay || currentPage === (totalPages - 1);
-        this.btLast.disabled = disableLast;
+        _.addOrRemoveCssClass(this.btLast, 'ag-disabled', disableLast);
     }
 
     private updateRowLabels() {
@@ -144,7 +166,7 @@ export class PaginationComp extends Component {
         const pageSize = this.paginationProxy.getPageSize();
         const maxRowFound = this.paginationProxy.isLastPageFound();
         const rowCount = this.paginationProxy.isLastPageFound() ?
-            this.paginationProxy.getTotalRowCount() : null;
+            this.paginationProxy.getMasterRowCount() : null;
 
         let startRow: any;
         let endRow: any;
@@ -158,8 +180,13 @@ export class PaginationComp extends Component {
                 endRow = rowCount;
             }
         }
+
         this.lbFirstRowOnPage.innerHTML = this.formatNumber(startRow);
-        this.lbLastRowOnPage.innerHTML = this.formatNumber(endRow);
+        if (this.serverSideRowModel && this.serverSideRowModel.isLoading()) {
+            this.lbLastRowOnPage.innerHTML = '?';
+        } else {
+            this.lbLastRowOnPage.innerHTML = this.formatNumber(endRow);
+        }
     }
 
     private isZeroPagesToDisplay() {
@@ -172,7 +199,7 @@ export class PaginationComp extends Component {
         const lastPageFound = this.paginationProxy.isLastPageFound();
         const totalPages = this.paginationProxy.getTotalPages();
         const rowCount = this.paginationProxy.isLastPageFound() ?
-            this.paginationProxy.getTotalRowCount() : null;
+            this.paginationProxy.getMasterRowCount() : null;
 
         if (lastPageFound) {
             this.lbTotal.innerHTML = this.formatNumber(totalPages);

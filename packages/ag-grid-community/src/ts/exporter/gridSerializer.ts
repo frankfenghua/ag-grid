@@ -24,7 +24,7 @@ import { PinnedRowModel } from "../rowModels/pinnedRowModel";
 import { _ } from "../utils";
 
 /**
- * This interface works in conjuction with the GridSerializer. When serializing a grid, an instance that implements this interface
+ * This interface works in conjunction with the GridSerializer. When serializing a grid, an instance that implements this interface
  * must be passed in, the serializer will call back to the provided methods and finally call to parse to obtain the final result
  * of the serialization.
  *
@@ -226,7 +226,7 @@ export class GridSerializer {
 
         const onlySelectedNonStandardModel = !rowModelNormal && onlySelected;
 
-        let columnsToExport: Column[];
+        let columnsToExport: Column[] = [];
 
         if (_.existsAndNotEmpty(columnKeys)) {
             columnsToExport = this.columnController.getGridColumns(columnKeys!);
@@ -241,15 +241,11 @@ export class GridSerializer {
             columnsToExport = this.columnController.getAllDisplayedColumns();
         }
 
-        if (!columnsToExport || columnsToExport.length === 0) {
-            return '';
+        if (includeCustomHeader) {
+            gridSerializingSession.addCustomHeader(includeCustomHeader);
         }
 
         gridSerializingSession.prepare(columnsToExport);
-
-        if (includeCustomHeader) {
-            gridSerializingSession.addCustomHeader (includeCustomHeader);
-        }
 
         // first pass, put in the header names of the cols
         if (columnGroups) {

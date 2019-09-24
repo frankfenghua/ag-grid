@@ -1,14 +1,15 @@
 import { RowNode } from "./rowNode";
-import { ICellEditorComp } from "../rendering/cellEditors/iCellEditor";
-import { ICellRendererComp, ICellRendererFunc } from "../rendering/cellRenderers/iCellRenderer";
+import { ICellEditorComp, ICellEditorParams } from "../interfaces/iCellEditor";
+import { ICellRendererComp, ICellRendererFunc, ICellRendererParams } from "../rendering/cellRenderers/iCellRenderer";
 import { Column } from "./column";
 import { IFilterComp } from "../interfaces/iFilter";
 import { GridApi } from "../gridApi";
 import { ColumnApi } from "../columnController/columnApi";
 import { IHeaderGroupComp } from "../headerRendering/headerGroup/headerGroupComp";
-import { IFloatingFilterComp } from "../filter/floatingFilter";
+import { IFloatingFilterComp } from "../filter/floating/floatingFilter";
 import { CellClickedEvent, CellContextMenuEvent, CellDoubleClickedEvent } from "../events";
-import { DynamicComponentDef, DynamicComponentParams } from "../components/framework/componentResolver";
+import { ITooltipComp, ITooltipParams } from "../rendering/tooltipComponent";
+import { ComponentSelectorResult } from "../components/framework/userComponentFactory";
 
 /****************************************************************
  * Don't forget to update ComponentUtil if changing this class. PLEASE!*
@@ -32,6 +33,10 @@ export interface AbstractColDef {
     suppressToolPanel?: boolean;
     /** Tooltip for the column header */
     headerTooltip?: string;
+
+    tooltipComponent?: { new(): ITooltipComp } | string;
+    tooltipComponentFramework?: any;
+    tooltipComponentParams?: any;
 }
 
 export interface ColGroupDef extends AbstractColDef {
@@ -93,8 +98,11 @@ export interface ColDef extends AbstractColDef {
     /** The field where we get the tooltip on the object */
     tooltipField?: string;
 
+    /** @deprecated since v20.1, use colDef.tooltipValueGetter instead*/
+    tooltip?: (params: ITooltipParams) => string;
+
     /** The function used to calculate the tooltip of the object, tooltipField takes precedence*/
-    tooltip?: (params: TooltipParams) => string;
+    tooltipValueGetter?: (params: ITooltipParams) => string;
 
     /** Expression or function to get the cells value. */
     valueGetter?: ((params: ValueGetterParams) => any) | string;
@@ -131,13 +139,13 @@ export interface ColDef extends AbstractColDef {
     cellRenderer?: { new(): ICellRendererComp } | ICellRendererFunc | string;
     cellRendererFramework?: any;
     cellRendererParams?: any;
-    cellRendererSelector?: (params: DynamicComponentParams) => DynamicComponentDef;
+    cellRendererSelector?: (params: ICellRendererParams) => ComponentSelectorResult;
 
     /** Cell editor */
     cellEditor?: { new(): ICellEditorComp } | string ;
     cellEditorFramework?: any;
     cellEditorParams?: any;
-    cellEditorSelector?: (params: DynamicComponentParams) => DynamicComponentDef;
+    cellEditorSelector?: (params: ICellEditorParams) => ComponentSelectorResult;
 
     /** A function for rendering a pinned row cell. */
     pinnedRowCellRenderer?: { new(): ICellRendererComp } | ICellRendererFunc | string;
@@ -171,7 +179,7 @@ export interface ColDef extends AbstractColDef {
     pivot?: boolean;
 
     /** Comparator function for custom sorting. */
-    comparator?: (valueA: any, valueB: any, nodeA?: RowNode, nodeB?: RowNode, isInverted?: boolean) => number;
+    comparator?: (valueA: any, valueB: any, nodeA: RowNode, nodeB: RowNode, isInverted: boolean) => number;
 
     /** Comparator for values, used by renderer to know if values have changed. Cells who's values have not changed don't get refreshed. */
     equals?: (valueA: any, valueB: any) => boolean;
@@ -188,7 +196,14 @@ export interface ColDef extends AbstractColDef {
     /** If true, the header checkbox selection will work on filtered items*/
     headerCheckboxSelectionFilteredOnly?: boolean;
 
+    /** For grid row dragging, set to true to enable row dragging within the grid */
     rowDrag?: boolean | ((params: any) => boolean);
+
+    /** For native drag and drop, set to true to enable drag source */
+    dndSource?: boolean | ((params: any) => boolean);
+
+    /** For native drag and drop, set to true to allow custom onRowDrag processing */
+    dndSourceOnRowDrag?: ((params: {rowNode: RowNode, dragEvent: DragEvent}) => void);
 
     /** Set to true if no menu should be shown for this column header. */
     suppressMenu?: boolean;
@@ -200,7 +215,8 @@ export interface ColDef extends AbstractColDef {
     /** Set to true if sorting allowed for this column. */
     sortable?: boolean;
 
-    suppressSorting?: boolean; // // as of v20 deprecated, use colDef.sortable=false instead
+    /** @deprecated since v20, use colDef.sortable=false instead */
+    suppressSorting?: boolean;
 
     /** Set to true to not allow moving this column via dragging it's header */
     suppressMovable?: boolean;
@@ -217,7 +233,8 @@ export interface ColDef extends AbstractColDef {
     /** Set to true to block the user pinning the column, the column can only be pinned via definitions or API */
     lockPinned?: boolean;
 
-    suppressFilter?: boolean; // as of v20 deprecated, use colDef.filter=false instead
+    /** @deprecated since v20, use colDef.filter=false instead */
+    suppressFilter?: boolean;
 
     /** Set to true if you want the unsorted icon to be shown when no sort is applied to this column. */
     unSortIcon?: boolean;
@@ -225,7 +242,8 @@ export interface ColDef extends AbstractColDef {
     /** Set to true if you want this columns width to be fixed during 'size to fit' operation. */
     suppressSizeToFit?: boolean;
 
-    suppressResize?: boolean; // as of v20 deprecated, use colDef.resizable=false instead
+    /** @deprecated since v20, use colDef.resizable=false instead */
+    suppressResize?: boolean;
 
     /** Set to true if this column should be resizable */
     resizable?: boolean;
@@ -233,6 +251,7 @@ export interface ColDef extends AbstractColDef {
     /** Set to true if you do not want this column to be auto-resizable by double clicking it's edge. */
     suppressAutoSize?: boolean;
 
+    /** Allows user to suppress certain keyboard events */
     suppressKeyboardEvent?: (params: SuppressKeyboardEventParams) => boolean;
 
     /** If true, GUI will allow adding this columns as a row group */
@@ -318,11 +337,16 @@ export interface ColDef extends AbstractColDef {
     headerComponentParams?: any;
 
     /** The custom header component to be used for rendering the floating filter. If none specified the default ag-Grid is used**/
-    floatingFilterComponent?: string | { new(): IFloatingFilterComp<any, any, any> };
+    floatingFilterComponent?: string | { new(): IFloatingFilterComp };
     floatingFilterComponentParams?: any;
     floatingFilterComponentFramework?: any;
 
     refData?: { [key: string]: string };
+
+    /** Defines the column data type used when charting, i.e. 'category' | 'series' | 'excluded' | undefined **/
+    chartDataType?: string;
+
+    fillOperation?: string;
 }
 
 export interface IsColumnFunc {
@@ -345,6 +369,7 @@ export interface GetQuickFilterTextParams {
     data: any;
     column: Column;
     colDef: ColDef;
+    context: any;
 }
 
 export interface BaseColDefParams {
@@ -399,18 +424,7 @@ export interface CellClassParams {
     colDef: ColDef;
     rowIndex: number;
     $scope: any;
-    api: GridApi | null | undefined;
-    context: any;
-}
-
-export interface TooltipParams {
-    value: any;
-    valueFormatted: any;
-    data: any;
-    node: RowNode;
-    colDef: ColDef;
-    rowIndex: number;
-    $scope: any;
-    api: GridApi | null | undefined;
+    api: GridApi;
+    columnApi: ColumnApi;
     context: any;
 }

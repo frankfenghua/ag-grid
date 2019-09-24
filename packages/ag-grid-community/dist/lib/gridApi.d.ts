@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { ColumnApi } from "./columnController/columnApi";
@@ -6,9 +6,10 @@ import { GridPanel } from "./gridPanel/gridPanel";
 import { ColDef, ColGroupDef, IAggFunc } from "./entities/colDef";
 import { RowNode } from "./entities/rowNode";
 import { Column } from "./entities/column";
+import { GridCore } from "./gridCore";
 import { IRowModel } from "./interfaces/iRowModel";
-import { AddRangeSelectionParams, RangeSelection } from "./interfaces/iRangeController";
-import { GridCell, GridCellDef } from "./entities/gridCell";
+import { CellRange, CellRangeParams } from "./interfaces/iRangeController";
+import { CellPosition } from "./entities/cellPosition";
 import { IViewportDatasource } from "./interfaces/iViewportDatasource";
 import { IFilterComp } from "./interfaces/iFilter";
 import { CsvExportParams } from "./exporter/exportParams";
@@ -19,10 +20,12 @@ import { RowDataTransaction, RowNodeTransaction } from "./rowModels/clientSide/c
 import { AlignedGridsService } from "./alignedGridsService";
 import { AgEvent, ColumnEventType } from "./events";
 import { ICellRendererComp } from "./rendering/cellRenderers/iCellRenderer";
-import { ICellEditorComp } from "./rendering/cellEditors/iCellEditor";
+import { ICellEditorComp } from "./interfaces/iCellEditor";
 import { HeaderRootComp } from "./headerRendering/headerRootComp";
 import { IStatusPanelComp } from "./interfaces/iStatusPanel";
 import { SideBarDef } from "./entities/sideBar";
+import { ChartRef, ProcessChartOptionsParams } from "./entities/gridOptions";
+import { ChartOptions, ChartType } from "./interfaces/iChartOptions";
 export interface StartEditingCellParams {
     rowIndex: number;
     colKey: string | Column;
@@ -46,6 +49,14 @@ export interface GetCellEditorInstancesParams extends GetCellsParams {
 export interface RedrawRowsParams {
     rowNodes?: RowNode[];
 }
+export interface ChartRangeParams {
+    cellRange: CellRangeParams;
+    chartType: ChartType;
+    chartContainer?: HTMLElement;
+    suppressChartRanges?: boolean;
+    aggFunc?: string | IAggFunc;
+    processChartOptions?: (params: ProcessChartOptionsParams) => ChartOptions;
+}
 export interface DetailGridInfo {
     id: string;
     api: GridApi | null | undefined;
@@ -55,7 +66,6 @@ export declare class GridApi {
     private immutableService;
     private csvCreator;
     private excelCreator;
-    private gridCore;
     private rowRenderer;
     private filterManager;
     private columnController;
@@ -76,18 +86,20 @@ export declare class GridApi {
     private menuFactory;
     private contextMenuFactory;
     private cellRendererFactory;
-    private cellEditorFactory;
     private valueCache;
     private sideBarComp;
     private animationFrameService;
     private statusBarService;
+    private chartService;
     private gridPanel;
+    private gridCore;
     private headerRootComp;
     private clientSideRowModel;
     private infinitePageRowModel;
     private serverSideRowModel;
     private detailGridInfoMap;
     registerGridComp(gridPanel: GridPanel): void;
+    registerGridCore(gridCore: GridCore): void;
     registerHeaderRootComp(headerRootComp: HeaderRootComp): void;
     private init;
     /** Used internally by grid. Not intended to be used by the client. Interface may change between releases. */
@@ -100,16 +112,23 @@ export declare class GridApi {
     exportDataAsCsv(params?: CsvExportParams): void;
     getDataAsExcel(params?: ExcelExportParams): string;
     exportDataAsExcel(params?: ExcelExportParams): void;
+    /** @deprecated */
     setEnterpriseDatasource(datasource: IServerSideDatasource): void;
     setServerSideDatasource(datasource: IServerSideDatasource): void;
     setDatasource(datasource: IDatasource): void;
     setViewportDatasource(viewportDatasource: IViewportDatasource): void;
     setRowData(rowData: any[]): void;
+    /** @deprecated */
     setFloatingTopRowData(rows: any[]): void;
+    /** @deprecated */
     setFloatingBottomRowData(rows: any[]): void;
+    /** @deprecated */
     getFloatingTopRowCount(): number;
+    /** @deprecated */
     getFloatingBottomRowCount(): number;
+    /** @deprecated */
     getFloatingTopRow(index: number): RowNode;
+    /** @deprecated */
     getFloatingBottomRow(index: number): RowNode;
     setPinnedTopRowData(rows: any[]): void;
     setPinnedBottomRowData(rows: any[]): void;
@@ -133,10 +152,14 @@ export declare class GridApi {
     flashCells(params?: FlashCellsParams): void;
     redrawRows(params?: RedrawRowsParams): void;
     timeFullRedraw(count?: number): void;
+    /** @deprecated */
     refreshView(): void;
     refreshRows(rowNodes: RowNode[]): void;
+    /** @deprecated */
     rowDataChanged(rows: any): void;
+    /** @deprecated */
     softRefreshView(): void;
+    /** @deprecated */
     refreshGroupRows(): void;
     setFunctionsReadOnly(readOnly: boolean): void;
     refreshHeader(): void;
@@ -145,6 +168,7 @@ export declare class GridApi {
     isColumnFilterPresent(): boolean;
     isQuickFilterPresent(): boolean;
     getModel(): IRowModel;
+    setRowNodeExpanded(rowNode: RowNode, expanded: boolean): void;
     onGroupExpandedOrCollapsed(deprecated_refreshFromIndex?: any): void;
     refreshInMemoryRowModel(step?: string): any;
     refreshClientSideRowModel(step?: string): any;
@@ -199,14 +223,14 @@ export declare class GridApi {
     }[];
     setFilterModel(model: any): void;
     getFilterModel(): any;
-    getFocusedCell(): GridCell;
+    getFocusedCell(): CellPosition;
     clearFocusedCell(): void;
     setFocusedCell(rowIndex: number, colKey: string | Column, floating?: string): void;
     setSuppressRowDrag(value: boolean): void;
     setHeaderHeight(headerHeight: number): void;
     setGridAutoHeight(gridAutoHeight: boolean): void;
     setDomLayout(domLayout: string): void;
-    getPreferredWidth(): number;
+    setEnableCellTextSelection(selectable: boolean): void;
     setGroupHeaderHeight(headerHeight: number): void;
     setFloatingFiltersHeight(headerHeight: number): void;
     setPivotGroupHeaderHeight(headerHeight: number): void;
@@ -234,10 +258,13 @@ export declare class GridApi {
     dispatchEvent(event: AgEvent): void;
     destroy(): void;
     resetQuickFilter(): void;
-    getRangeSelections(): RangeSelection[];
+    getRangeSelections(): any;
+    getCellRanges(): CellRange[];
     camelCaseToHumanReadable(camelCase: string): string;
-    addRangeSelection(rangeSelection: AddRangeSelectionParams): void;
+    addRangeSelection(deprecatedNoLongerUsed: any): void;
+    addCellRange(params: CellRangeParams): void;
     clearRangeSelection(): void;
+    chartRange(params: ChartRangeParams): ChartRef | undefined;
     copySelectedRowsToClipboard(includeHeader: boolean, columnKeys?: (string | Column)[]): void;
     copySelectedRangeToClipboard(includeHeader: boolean): void;
     copySelectedRangeDown(): void;
@@ -249,7 +276,7 @@ export declare class GridApi {
     tabToPreviousCell(): boolean;
     getCellRendererInstances(params?: GetCellRendererInstancesParams): ICellRendererComp[];
     getCellEditorInstances(params?: GetCellEditorInstancesParams): ICellEditorComp[];
-    getEditingCells(): GridCellDef[];
+    getEditingCells(): CellPosition[];
     stopEditing(cancel?: boolean): void;
     startEditingCell(params: StartEditingCellParams): void;
     addAggFunc(key: string, aggFunc: IAggFunc): void;
@@ -268,6 +295,7 @@ export declare class GridApi {
     purgeVirtualPageCache(): void;
     purgeInfinitePageCache(): void;
     purgeInfiniteCache(): void;
+    /** @deprecated */
     purgeEnterpriseCache(route?: string[]): void;
     purgeServerSideCache(route?: string[]): void;
     getVirtualRowCount(): number;

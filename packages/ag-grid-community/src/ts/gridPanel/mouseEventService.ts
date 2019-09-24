@@ -1,6 +1,6 @@
 import { Bean, PostConstruct } from "../context/context";
 import { Autowired } from "../context/context";
-import { GridCell } from "../entities/gridCell";
+import { CellPosition } from "../entities/cellPosition";
 import { GridOptionsWrapper } from "../gridOptionsWrapper";
 import { CellComp } from "../rendering/cellComp";
 import { NumberSequence, _ } from '../utils';
@@ -29,18 +29,7 @@ export class MouseEventService {
     }
 
     public getRenderedCellForEvent(event: Event): CellComp {
-
-        let sourceElement = _.getTarget(event);
-
-        while (sourceElement) {
-            const renderedCell = this.gridOptionsWrapper.getDomData(sourceElement, CellComp.DOM_DATA_KEY_CELL_COMP);
-            if (renderedCell) {
-                return renderedCell as CellComp;
-            }
-            sourceElement = sourceElement.parentElement;
-        }
-
-        return null;
+        return _.getCellCompForEvent(this.gridOptionsWrapper, event);
     }
 
     // walks the path of the event, and returns true if this grid is the first one that it finds. if doing
@@ -62,9 +51,9 @@ export class MouseEventService {
         return false;
     }
 
-    public getGridCellForEvent(event: MouseEvent | KeyboardEvent): GridCell {
+    public getCellPositionForEvent(event: MouseEvent | KeyboardEvent): CellPosition {
         const cellComp = this.getRenderedCellForEvent(event);
-        return cellComp ? cellComp.getGridCell() : null;
+        return cellComp ? cellComp.getCellPosition() : null;
     }
 
 }

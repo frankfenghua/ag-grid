@@ -1,12 +1,10 @@
-// ag-grid-enterprise v20.0.0
-import { Column, IClipboardService } from "ag-grid-community";
+// ag-grid-enterprise v21.2.1
+import { CellPositionUtils, Column, GridCore, IClipboardService, RowPositionUtils } from "ag-grid-community";
 export declare class ClipboardService implements IClipboardService {
     private csvCreator;
     private loggerFactory;
     private selectionController;
     private rangeController;
-    private rowModel;
-    private pinnedRowModel;
     private valueService;
     private focusedCellController;
     private rowRenderer;
@@ -14,10 +12,13 @@ export declare class ClipboardService implements IClipboardService {
     private eventService;
     private cellNavigationService;
     private gridOptionsWrapper;
-    private gridCore;
     private columnApi;
     private gridApi;
+    cellPositionUtils: CellPositionUtils;
+    rowPositionUtils: RowPositionUtils;
     private logger;
+    private gridCore;
+    registerGridCore(gridCore: GridCore): void;
     private init;
     pasteFromClipboard(): void;
     private pasteToRange;
@@ -35,7 +36,6 @@ export declare class ClipboardService implements IClipboardService {
     private dispatchFlashCells;
     private userProcessCell;
     private userProcessHeader;
-    private getRowNode;
     copySelectedRowsToClipboard(includeHeaders?: boolean, columnKeys?: (string | Column)[]): void;
     private copyDataToClipboard;
     private executeOnTempElement;

@@ -5,6 +5,7 @@ import {
     DragAndDropService, DragItem, DragSource, DragSourceType,
     DropTarget
 } from "../../dragAndDrop/dragAndDropService";
+import { ColDef } from "../../entities/colDef";
 import { IHeaderComp, IHeaderParams } from "./headerComp";
 import { ColumnApi } from "../../columnController/columnApi";
 import { ColumnController } from "../../columnController/columnController";
@@ -16,7 +17,7 @@ import { IMenuFactory } from "../../interfaces/iMenuFactory";
 import { GridApi } from "../../gridApi";
 import { SortController } from "../../sortController";
 import { EventService } from "../../eventService";
-import { ComponentRecipes } from "../../components/framework/componentRecipes";
+import { UserComponentFactory } from "../../components/framework/userComponentFactory";
 import { AgCheckbox } from "../../widgets/agCheckbox";
 import { RefSelector } from "../../widgets/componentAnnotations";
 import { SelectAllFeature } from "./selectAllFeature";
@@ -30,7 +31,7 @@ import { _ } from "../../utils";
 export class HeaderWrapperComp extends Component {
 
     private static TEMPLATE =
-        '<div class="ag-header-cell" role="presentation" >' +
+        '<div class="ag-header-cell" role="presentation" unselectable="on">' +
           '<div ref="eResize" class="ag-header-cell-resize" role="presentation"></div>' +
           '<ag-checkbox ref="cbSelectAll" class="ag-header-select-all" role="presentation"></ag-checkbox>' +
             // <inner component goes here>
@@ -40,22 +41,21 @@ export class HeaderWrapperComp extends Component {
     @Autowired('dragAndDropService') private dragAndDropService: DragAndDropService;
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('horizontalResizeService') private horizontalResizeService: HorizontalResizeService;
-    @Autowired('context') private context: Context;
     @Autowired('menuFactory') private menuFactory: IMenuFactory;
     @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('sortController') private sortController: SortController;
     @Autowired('eventService') private eventService: EventService;
-    @Autowired('componentRecipes') private componentRecipes: ComponentRecipes;
+    @Autowired('userComponentFactory') private userComponentFactory: UserComponentFactory;
     @Autowired('columnHoverService') private columnHoverService: ColumnHoverService;
     @Autowired('beans') private beans: Beans;
 
     @RefSelector('eResize') private eResize: HTMLElement;
     @RefSelector('cbSelectAll') private cbSelectAll: AgCheckbox;
 
-    private column: Column;
-    private dragSourceDropTarget: DropTarget;
-    private pinned: string;
+    private readonly column: Column;
+    private readonly dragSourceDropTarget: DropTarget;
+    private readonly pinned: string;
 
     private resizeStartWidth: number;
     private resizeWithShiftKey:  boolean;
@@ -71,13 +71,17 @@ export class HeaderWrapperComp extends Component {
         return this.column;
     }
 
+    public getComponentHolder(): ColDef {
+        return this.column.getColDef();
+    }
+
     @PostConstruct
     public init(): void {
-        this.instantiate(this.context);
 
+        const colDef = this.getComponentHolder();
         const displayName = this.columnController.getDisplayNameForColumn(this.column, 'header', true);
-        const enableSorting = this.column.getColDef().sortable;
-        const enableMenu = this.menuFactory.isMenuEnabled(this.column) && !this.column.getColDef().suppressMenu;
+        const enableSorting = colDef.sortable;
+        const enableMenu = this.menuFactory.isMenuEnabled(this.column) && !colDef.suppressMenu;
 
         this.appendHeaderComp(displayName, enableSorting, enableMenu);
 
@@ -89,19 +93,19 @@ export class HeaderWrapperComp extends Component {
         this.setupSortableClass(enableSorting);
         this.addColumnHoverListener();
 
-        this.addFeature(this.context, new HoverFeature([this.column], this.getGui()));
+        this.addFeature(this.getContext(), new HoverFeature([this.column], this.getGui()));
 
         this.addDestroyableEventListener(this.column, Column.EVENT_FILTER_ACTIVE_CHANGED, this.onFilterChanged.bind(this));
         this.onFilterChanged();
 
-        this.addFeature(this.context, new SelectAllFeature(this.cbSelectAll, this.column));
+        this.addFeature(this.getContext(), new SelectAllFeature(this.cbSelectAll, this.column));
 
         const setLeftFeature = new SetLeftFeature(this.column, this.getGui(), this.beans);
         setLeftFeature.init();
         this.addDestroyFunc(setLeftFeature.destroy.bind(setLeftFeature));
 
         this.addAttributes();
-        CssClassApplier.addHeaderClassesFromColDef(this.column.getColDef(), this.getGui(), this.gridOptionsWrapper, this.column, null);
+        CssClassApplier.addHeaderClassesFromColDef(colDef, this.getGui(), this.gridOptionsWrapper, this.column, null);
     }
 
     private addColumnHoverListener(): void {
@@ -148,16 +152,12 @@ export class HeaderWrapperComp extends Component {
 
         const callback = this.afterHeaderCompCreated.bind(this, displayName);
 
-        this.componentRecipes.newHeaderComponent(params).then(callback);
+        this.userComponentFactory.newHeaderComponent(params).then(callback);
     }
 
     private afterHeaderCompCreated(displayName: string, headerComp: IHeaderComp): void {
         this.appendChild(headerComp);
         this.setupMove(headerComp.getGui(), displayName);
-
-        if (headerComp.destroy) {
-            this.addDestroyFunc(headerComp.destroy.bind(headerComp));
-        }
     }
 
     private onColumnMovingChanged(): void {
@@ -173,8 +173,8 @@ export class HeaderWrapperComp extends Component {
 
     private setupMove(eHeaderCellLabel: HTMLElement, displayName: string): void {
         const suppressMove = this.gridOptionsWrapper.isSuppressMovableColumns()
-            || this.column.getColDef().suppressMovable
-            || this.column.isLockPosition();
+            || this.getComponentHolder().suppressMovable
+            || this.column.getColDef().lockPosition;
 
         if (suppressMove) { return; }
 
@@ -204,7 +204,7 @@ export class HeaderWrapperComp extends Component {
     }
 
     private setupResize(): void {
-        const colDef = this.column.getColDef();
+        const colDef = this.getComponentHolder();
 
         // if no eResize in template, do nothing
         if (!this.eResize) {
@@ -253,12 +253,22 @@ export class HeaderWrapperComp extends Component {
         _.addCssClass(this.getGui(), 'ag-column-resizing');
     }
 
+    public getTooltipText(): string | undefined {
+        const colDef = this.getComponentHolder();
+
+        return colDef.headerTooltip;
+    }
+
     private setupTooltip(): void {
-        const colDef = this.column.getColDef();
+        const tooltipText = this.getTooltipText();
 
         // add tooltip if exists
-        if (colDef.headerTooltip) {
-            this.getGui().title = colDef.headerTooltip;
+        if (tooltipText == null) { return; }
+
+        if (this.gridOptionsWrapper.isEnableBrowserTooltips()) {
+            this.getGui().setAttribute('title', tooltipText);
+        } else {
+            this.beans.tooltipManager.registerTooltip(this);
         }
     }
 

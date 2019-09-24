@@ -303,29 +303,30 @@ private getCountryFilterParams():any {
         JavaScript).
     </p>
 
-    <h2 id="aggrid-angular-testing">Testing ag-Grid Angular Applications with Karma & Jasmine</h2>
+    <h2 id="aggrid-angular-testing">Testing ag-Grid Angular Applications</h2>
 
-    <p>As with your actual application, you need to ensure you <code>import</code> the <code>AgGridModule</code> when
-        specifying your tests:</p>
-
-    <snippet>
-TestBed.configureTestingModule({
-    imports: [
-        AgGridModule.withComponents([...optional Angular Components...]
-    ]
-    ...rest of module definition</snippet>
-
-    <p>You also need to aware that the Grid <code>API</code> and <code>ColumnAPI</code> will only be available after your
-        fixtures <code>detectChanges</code> has been invoked:</p>
-    <snippet>
-it('grid API is not available until  `detectChanges`', () =&gt; {
-    expect(component.gridOptions.api).not.toBeTruthy();
-});
-
-it('grid API is available after `detectChanges`', () =&gt; {
-    fixture.detectChanges();
-    expect(component.gridOptions.api).toBeTruthy();
-});</snippet>
+    <p>Please see the dedicated testing section <a href="../javascript-grid-testing-angular">here</a>.</p>
 </div>
+<div class="card" style="background-color: aliceblue">
+  <div class="card-body">
+    <h2 id="angular-grid-resources" style="margin-top: 10px">
+    Angular Grid Resources
+    </h2>
+    <br/>
+    <ul>
+      <li>
+        Learn how to customize our Angular Grid in this <a href="https://blog.ag-grid.com/learn-to-customize-angular-grid-in-less-than-10-minutes/" target="_blank">guide</a>.
+      </li>
+      <br/>
+      <li>
+        Browse our <strong><a href="../best-angular-2-data-grid/" target="_blank">Angular Grid</a></strong> page to discover all major benefits in using ag-Grid Angular.
+      </li>
+      <br>
+      <li>
+        Visit our <strong><a href="https://blog.ag-grid.com/tag/angular/">blog</a></strong> to discover all our Angular content.
+    </ul>
+  </div>
+</div>
+<br>
 
 <?php include '../documentation-main/documentation_footer.php'; ?>

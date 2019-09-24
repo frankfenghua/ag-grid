@@ -1,6 +1,5 @@
 import { CellComp } from "./cellComp";
 import { CellChangedEvent, DataChangedEvent, RowNode } from "../entities/rowNode";
-import { GridOptionsWrapper } from "../gridOptionsWrapper";
 import { Column } from "../entities/column";
 import {
     Events,
@@ -12,48 +11,19 @@ import {
     RowValueChangedEvent,
     VirtualRowRemovedEvent
 } from "../events";
-import { Autowired } from "../context/context";
-import { ICellRendererComp, ICellRendererParams } from "./cellRenderers/iCellRenderer";
+
+import { ICellRendererComp } from "./cellRenderers/iCellRenderer";
 import { RowContainerComponent } from "./rowContainerComponent";
 import { Component } from "../widgets/component";
-import { RefSelector } from "../widgets/componentAnnotations";
+
 import { Beans } from "./beans";
 import { ProcessRowParams } from "../entities/gridOptions";
 import { _ } from "../utils";
+import { IFrameworkOverrides } from "../interfaces/iFrameworkOverrides";
 
 interface CellTemplate {
     template: string;
     cellComps: CellComp[];
-}
-
-export class LoadingCellRenderer extends Component {
-
-    private static TEMPLATE =
-        `<div class="ag-stub-cell">
-            <span class="ag-loading-icon" ref="eLoadingIcon"></span>
-            <span class="ag-loading-text" ref="eLoadingText"></span>
-        </div>`;
-
-    @Autowired('gridOptionsWrapper') gridOptionsWrapper: GridOptionsWrapper;
-
-    @RefSelector('eLoadingIcon') private eLoadingIcon: HTMLElement;
-    @RefSelector('eLoadingText') private eLoadingText: HTMLElement;
-
-    constructor() {
-        super(LoadingCellRenderer.TEMPLATE);
-    }
-
-    public init(params: ICellRendererParams): void {
-        const eLoadingIcon = _.createIconNoSpan('groupLoading', this.gridOptionsWrapper, null);
-        this.eLoadingIcon.appendChild(eLoadingIcon);
-
-        const localeTextFunc = this.gridOptionsWrapper.getLocaleTextFunc();
-        this.eLoadingText.innerText = localeTextFunc('loadingOoo', 'Loading');
-    }
-
-    public refresh(params: any): boolean {
-        return false;
-    }
 }
 
 export class RowComp extends Component {
@@ -199,10 +169,12 @@ export class RowComp extends Component {
         const businessKey = this.getRowBusinessKey();
         const businessKeySanitised = _.escape(businessKey);
         const rowTopStyle = this.getInitialRowTopStyle();
+        const rowIdx = this.rowNode.getRowIndexString();
+        const headerRowCount = this.beans.gridPanel.headerRootComp.getHeaderRowCount();
 
         templateParts.push(`<div`);
         templateParts.push(` role="row"`);
-        templateParts.push(` row-index="${this.rowNode.getRowIndexString()}"`);
+        templateParts.push(` row-index="${rowIdx}" aria-rowindex="${headerRowCount + this.rowNode.rowIndex + 1}"`);
         templateParts.push(rowIdSanitised ? ` row-id="${rowIdSanitised}"` : ``);
         templateParts.push(businessKey ? ` row-business-key="${businessKeySanitised}"` : ``);
         templateParts.push(` comp-id="${this.getCompId()}"`);
@@ -254,7 +226,7 @@ export class RowComp extends Component {
         // if sliding in, we take the old row top. otherwise we just set the current row top.
         const pixels = this.slideRowIn ? this.roundRowTopToBounds(this.rowNode.oldRowTop) : this.rowNode.rowTop;
         const afterPaginationPixels = this.applyPaginationOffset(pixels);
-        const afterScalingPixels = this.beans.heightScaler.getRealPixelPosition(afterPaginationPixels);
+        const afterScalingPixels = this.beans.maxDivHeightScaler.getRealPixelPosition(afterPaginationPixels);
         const isSuppressRowTransform = this.beans.gridOptionsWrapper.isSuppressRowTransform();
 
         return isSuppressRowTransform ? `top: ${afterScalingPixels}px; ` : `transform: translateY(${afterScalingPixels}px);`;
@@ -301,8 +273,6 @@ export class RowComp extends Component {
             this.afterRowAttached(rowContainerComp, eRow);
             callback(eRow);
 
-            // console.log(`createRowContainer ${this.getCompId()}`);
-
             if (useAnimationsFrameForCreate) {
                 this.beans.taskQueue.addP1Task(this.lazyCreateCells.bind(this, cols, eRow), this.rowNode.rowIndex);
             } else {
@@ -320,7 +290,7 @@ export class RowComp extends Component {
         }
 
         const newChildScope = this.parentScope.$new();
-        newChildScope.data = data;
+        newChildScope.data = {...data };
         newChildScope.rowNode = this.rowNode;
         newChildScope.context = this.beans.gridOptionsWrapper.getContext();
 
@@ -338,7 +308,13 @@ export class RowComp extends Component {
         const isFullWidthCellFunc = this.beans.gridOptionsWrapper.getIsFullWidthCellFunc();
         const isFullWidthCell = isFullWidthCellFunc ? isFullWidthCellFunc(this.rowNode) : false;
         const isDetailCell = this.beans.doingMasterDetail && this.rowNode.detail;
-        const isGroupSpanningRow = this.rowNode.group && this.beans.gridOptionsWrapper.isGroupUseEntireRow();
+        const pivotMode = this.beans.columnController.isPivotMode();
+        // we only use full width for groups, not footers. it wouldn't make sense to include footers if not looking
+        // for totals. if users complain about this, then we should introduce a new property 'footerUseEntireRow'
+        // so each can be set independently (as a customer complained about footers getting full width, hence
+        // introducing this logic)
+        const isGroupRow = this.rowNode.group && !this.rowNode.footer;
+        const isFullWidthGroup =  isGroupRow && this.beans.gridOptionsWrapper.isGroupUseEntireRow(pivotMode);
 
         if (this.rowNode.stub) {
             this.createFullWidthRows(RowComp.LOADING_CELL_RENDERER, RowComp.LOADING_CELL_RENDERER_COMP_NAME);
@@ -346,7 +322,7 @@ export class RowComp extends Component {
             this.createFullWidthRows(RowComp.DETAIL_CELL_RENDERER, RowComp.DETAIL_CELL_RENDERER_COMP_NAME);
         } else if (isFullWidthCell) {
             this.createFullWidthRows(RowComp.FULL_WIDTH_CELL_RENDERER, null);
-        } else if (isGroupSpanningRow) {
+        } else if (isFullWidthGroup) {
             this.createFullWidthRows(RowComp.GROUP_ROW_RENDERER, RowComp.GROUP_ROW_RENDERER_COMP_NAME);
         } else {
             this.setupNormalRowContainers();
@@ -445,6 +421,35 @@ export class RowComp extends Component {
         return this.fullWidthRow;
     }
 
+    public refreshFullWidth(): boolean {
+
+        // returns 'true' if refresh succeeded
+        const tryRefresh = (eRow: HTMLElement, eCellComp: ICellRendererComp, pinned: string): boolean => {
+            if (!eRow || !eCellComp) {
+                // no refresh needed
+                return true;
+            }
+
+            if (!eCellComp.refresh) {
+                // no refresh method present, so can't refresh, hard refresh needed
+                return false;
+            }
+
+            const params = this.createFullWidthParams(eRow, pinned);
+            const refreshSucceeded = eCellComp.refresh(params);
+            return refreshSucceeded;
+        };
+
+        const normalSuccess = tryRefresh(this.eFullWidthRow, this.fullWidthRowComponent, null);
+        const bodySuccess = tryRefresh(this.eFullWidthRowBody, this.fullWidthRowComponentBody, null);
+        const leftSuccess = tryRefresh(this.eFullWidthRowLeft, this.fullWidthRowComponentLeft, Column.PINNED_LEFT);
+        const rightSuccess = tryRefresh(this.eFullWidthRowRight, this.fullWidthRowComponentRight, Column.PINNED_RIGHT);
+
+        const allFullWidthRowsRefreshed = normalSuccess && bodySuccess && leftSuccess && rightSuccess;
+
+        return allFullWidthRowsRefreshed;
+    }
+
     private addListeners(): void {
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_HEIGHT_CHANGED, this.onRowHeightChanged.bind(this));
         this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_ROW_SELECTED, this.onRowSelected.bind(this));
@@ -464,6 +469,19 @@ export class RowComp extends Component {
         this.addDestroyableEventListener(eventService, Events.EVENT_PAGINATION_CHANGED, this.onPaginationChanged.bind(this));
         this.addDestroyableEventListener(eventService, Events.EVENT_GRID_COLUMNS_CHANGED, this.onGridColumnsChanged.bind(this));
         this.addDestroyableEventListener(eventService, Events.EVENT_MODEL_UPDATED, this.onModelUpdated.bind(this));
+
+        this.addListenersForCellComps();
+    }
+
+    private addListenersForCellComps(): void {
+
+        this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_ROW_INDEX_CHANGED, () => {
+            this.forEachCellComp(cellComp => cellComp.onRowIndexChanged());
+        });
+        this.addDestroyableEventListener(this.rowNode, RowNode.EVENT_CELL_CHANGED, event => {
+            this.forEachCellComp(cellComp => cellComp.onCellChanged(event));
+        });
+
     }
 
     // when grid columns change, then all cells should be cleaned out,
@@ -516,11 +534,9 @@ export class RowComp extends Component {
     }
 
     private onExpandedChanged(): void {
-        if (this.rowNode.group && !this.rowNode.footer) {
-            const expanded = this.rowNode.expanded;
-            this.eAllRowContainers.forEach(row => _.addOrRemoveCssClass(row, 'ag-row-group-expanded', expanded));
-            this.eAllRowContainers.forEach(row => _.addOrRemoveCssClass(row, 'ag-row-group-contracted', !expanded));
-        }
+        const rowNode = this.rowNode;
+        this.eAllRowContainers.forEach(row => _.addOrRemoveCssClass(row, 'ag-row-group-expanded', rowNode.expanded));
+        this.eAllRowContainers.forEach(row => _.addOrRemoveCssClass(row, 'ag-row-group-contracted', !rowNode.expanded));
     }
 
     private onDisplayedColumnsChanged(): void {
@@ -531,27 +547,19 @@ export class RowComp extends Component {
 
     private destroyFullWidthComponents(): void {
         if (this.fullWidthRowComponent) {
-            if (this.fullWidthRowComponent.destroy) {
-                this.fullWidthRowComponent.destroy();
-            }
+            this.beans.detailRowCompCache.addOrDestroy(this.rowNode, null, this.fullWidthRowComponent);
             this.fullWidthRowComponent = null;
         }
         if (this.fullWidthRowComponentBody) {
-            if (this.fullWidthRowComponentBody.destroy) {
-                this.fullWidthRowComponentBody.destroy();
-            }
+            this.beans.detailRowCompCache.addOrDestroy(this.rowNode, null, this.fullWidthRowComponentBody);
             this.fullWidthRowComponent = null;
         }
         if (this.fullWidthRowComponentLeft) {
-            if (this.fullWidthRowComponentLeft.destroy) {
-                this.fullWidthRowComponentLeft.destroy();
-            }
+            this.beans.detailRowCompCache.addOrDestroy(this.rowNode, Column.PINNED_LEFT, this.fullWidthRowComponentLeft);
             this.fullWidthRowComponentLeft = null;
         }
         if (this.fullWidthRowComponentRight) {
-            if (this.fullWidthRowComponentRight.destroy) {
-                this.fullWidthRowComponentRight.destroy();
-            }
+            this.beans.detailRowCompCache.addOrDestroy(this.rowNode, Column.PINNED_RIGHT, this.fullWidthRowComponentRight);
             this.fullWidthRowComponent = null;
         }
     }
@@ -654,7 +662,7 @@ export class RowComp extends Component {
 
         // we want to try and keep editing and focused cells
         const editing = renderedCell.isEditing();
-        const focused = this.beans.focusedCellController.isCellFocused(renderedCell.getGridCell());
+        const focused = this.beans.focusedCellController.isCellFocused(renderedCell.getCellPosition());
 
         const mightWantToKeepCell = editing || focused;
 
@@ -854,12 +862,18 @@ export class RowComp extends Component {
                 }
             };
 
-            const res = this.beans.componentResolver.createAgGridComponent<ICellRendererComp>(null, params, cellRendererType, params, cellRendererName);
-            if (!res) {
-                console.error('ag-Grid: fullWidthCellRenderer not defined');
-                return;
+            // if doing master detail, it's possible we have a cached row comp from last time detail was displayed
+            const cachedRowComp = this.beans.detailRowCompCache.get(this.rowNode, pinned);
+            if (cachedRowComp) {
+                callback(cachedRowComp);
+            } else {
+                const res = this.beans.userComponentFactory.newFullWidthCellRenderer(params, cellRendererType, cellRendererName);
+                if (!res) {
+                    console.error('ag-Grid: fullWidthCellRenderer not defined');
+                    return;
+                }
+                res.then(callback);
             }
-            res.then(callback);
 
             this.afterRowAttached(rowContainerComp, eRow);
             eRowCallback(eRow);
@@ -898,6 +912,8 @@ export class RowComp extends Component {
 
     private getInitialRowClasses(extraCssClass: string): string[] {
         const classes: string[] = [];
+        const isTreeData = this.beans.gridOptionsWrapper.isTreeData();
+        const rowNode = this.rowNode;
 
         if (_.exists(extraCssClass)) {
             classes.push(extraCssClass);
@@ -912,24 +928,24 @@ export class RowComp extends Component {
 
         classes.push(this.rowIsEven ? 'ag-row-even' : 'ag-row-odd');
 
-        if (this.rowNode.isSelected()) {
+        if (rowNode.isSelected()) {
             classes.push('ag-row-selected');
         }
 
-        if (this.rowNode.group) {
+        if (rowNode.group) {
             classes.push('ag-row-group');
             // if a group, put the level of the group in
-            classes.push('ag-row-level-' + this.rowNode.level);
+            classes.push('ag-row-level-' + rowNode.level);
 
-            if (this.rowNode.footer) {
+            if (rowNode.footer) {
                 classes.push('ag-row-footer');
             }
         } else {
             // if a leaf, and a parent exists, put a level of the parent, else put level of 0 for top level item
-            classes.push('ag-row-level-' + (this.rowNode.parent ? (this.rowNode.parent.level + 1) : '0'));
+            classes.push('ag-row-level-' + (rowNode.parent ? (rowNode.parent.level + 1) : '0'));
         }
 
-        if (this.rowNode.stub) {
+        if (rowNode.stub) {
             classes.push('ag-row-stub');
         }
 
@@ -937,11 +953,16 @@ export class RowComp extends Component {
             classes.push('ag-full-width-row');
         }
 
-        if (this.rowNode.group && !this.rowNode.footer) {
-            classes.push(this.rowNode.expanded ? 'ag-row-group-expanded' : 'ag-row-group-contracted');
+        const addExpandedClass = isTreeData ?
+            // if doing tree data, we add the expanded classes if any children, as any node can be a parent
+            rowNode.allChildrenCount :
+            // if normal row grouping, we add expanded classes to groups only
+            rowNode.group && !rowNode.footer;
+        if (addExpandedClass) {
+            classes.push(rowNode.expanded ? 'ag-row-group-expanded' : 'ag-row-group-contracted');
         }
 
-        if (this.rowNode.dragging) {
+        if (rowNode.dragging) {
             classes.push('ag-row-dragging');
         }
 
@@ -1013,6 +1034,7 @@ export class RowComp extends Component {
                 node: this.rowNode,
                 rowIndex: this.rowNode.rowIndex,
                 api: this.beans.gridOptionsWrapper.getApi(),
+                columnApi: this.beans.gridOptionsWrapper.getColumnApi(),
                 $scope: this.scope,
                 context: this.beans.gridOptionsWrapper.getContext()
             }, onApplicableClass, onNotApplicableClass);
@@ -1206,7 +1228,6 @@ export class RowComp extends Component {
         this.addDomData(eRow);
 
         this.removeSecondPassFuncs.push(() => {
-            // console.log(eRow);
             rowContainerComp.removeRowElement(eRow);
         });
 
@@ -1276,6 +1297,10 @@ export class RowComp extends Component {
         const maxPixel = this.applyPaginationOffset(range.bottom, true) + 100;
 
         return Math.min(Math.max(minPixel, rowTop), maxPixel);
+    }
+
+    protected getFrameworkOverrides(): IFrameworkOverrides {
+        return this.beans.frameworkOverrides;
     }
 
     private onRowHeightChanged(): void {
@@ -1396,7 +1421,7 @@ export class RowComp extends Component {
         // visible (ie parent group was expanded) but is now not visible
         if (_.exists(pixels)) {
             const afterPaginationPixels = this.applyPaginationOffset(pixels);
-            const afterScalingPixels = this.beans.heightScaler.getRealPixelPosition(afterPaginationPixels);
+            const afterScalingPixels = this.beans.maxDivHeightScaler.getRealPixelPosition(afterPaginationPixels);
             const topPx = `${afterScalingPixels}px`;
 
             if (this.beans.gridOptionsWrapper.isSuppressRowTransform()) {
@@ -1418,8 +1443,18 @@ export class RowComp extends Component {
         return this.rowNode;
     }
 
-    public getRenderedCellForColumn(column: Column): CellComp {
-        return this.cellComps[column.getColId()];
+    public getRenderedCellForColumn(column: Column): CellComp | undefined {
+        const cellComp = this.cellComps[column.getColId()];
+
+        if (cellComp) {
+            return cellComp;
+        }
+
+        const spanList = Object.keys(this.cellComps)
+            .map(name => this.cellComps[name])
+            .filter(cmp => cmp && cmp.getColSpanningList().indexOf(column) !== -1);
+
+        return spanList.length ? spanList[0] : undefined;
     }
 
     private onRowIndexChanged(): void {
@@ -1431,6 +1466,7 @@ export class RowComp extends Component {
         const rowIndexStr = this.rowNode.getRowIndexString();
         const rowIsEven = this.rowNode.rowIndex % 2 === 0;
         const rowIsEvenChanged = this.rowIsEven !== rowIsEven;
+        const headerRowCount = this.beans.gridPanel.headerRootComp.getHeaderRowCount();
 
         if (rowIsEvenChanged) {
             this.rowIsEven = rowIsEven;
@@ -1438,6 +1474,7 @@ export class RowComp extends Component {
 
         this.eAllRowContainers.forEach(eRow => {
             eRow.setAttribute('row-index', rowIndexStr);
+            eRow.setAttribute('aria-rowindex', (headerRowCount + this.rowNode.rowIndex + 1).toString());
 
             if (!rowIsEvenChanged) { return; }
             _.addOrRemoveCssClass(eRow, 'ag-row-even', rowIsEven);

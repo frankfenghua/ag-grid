@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -44,27 +44,26 @@ var Column = /** @class */ (function () {
         this.sortedAt = colDef.sortedAt;
         this.colId = colId;
         this.primary = primary;
-        this.lockPosition = colDef.lockPosition === true;
-        this.lockPinned = colDef.lockPinned === true;
-        this.lockVisible = colDef.lockVisible === true;
     }
+    // gets called when user provides an alternative colDef, eg
+    Column.prototype.setColDef = function (colDef, userProvidedColDef) {
+        this.colDef = colDef;
+        this.userProvidedColDef = userProvidedColDef;
+    };
     Column.prototype.getUserProvidedColDef = function () {
         return this.userProvidedColDef;
-    };
-    Column.prototype.isLockPosition = function () {
-        return this.lockPosition;
-    };
-    Column.prototype.isLockVisible = function () {
-        return this.lockVisible;
-    };
-    Column.prototype.isLockPinned = function () {
-        return this.lockPinned;
     };
     Column.prototype.setParent = function (parent) {
         this.parent = parent;
     };
     Column.prototype.getParent = function () {
         return this.parent;
+    };
+    Column.prototype.setOriginalParent = function (originalParent) {
+        this.originalParent = originalParent;
+    };
+    Column.prototype.getOriginalParent = function () {
+        return this.originalParent;
     };
     // this is done after constructor as it uses gridOptionsWrapper
     Column.prototype.initialise = function () {
@@ -109,7 +108,7 @@ var Column = /** @class */ (function () {
     Column.prototype.isFilterAllowed = function () {
         // filter defined means it's a string, class or true.
         // if its false, null or undefined then it's false.
-        var filterDefined = !!this.colDef.filter;
+        var filterDefined = !!this.colDef.filter || !!this.colDef.filterFramework;
         return this.primary && filterDefined;
     };
     Column.prototype.isFieldContainsDots = function () {
@@ -121,7 +120,7 @@ var Column = /** @class */ (function () {
     Column.prototype.validate = function () {
         var colDefAny = this.colDef;
         if (!this.gridOptionsWrapper.isEnterprise()) {
-            var itemsNotAllowedWithoutEnterprise = ['enableRowGroup', 'rowGroup', 'rowGroupIndex', 'enablePivot', 'pivot', 'pivotIndex', 'aggFunc'];
+            var itemsNotAllowedWithoutEnterprise = ['enableRowGroup', 'rowGroup', 'rowGroupIndex', 'enablePivot', 'enableValue', 'pivot', 'pivotIndex', 'aggFunc', 'chartDataType'];
             itemsNotAllowedWithoutEnterprise.forEach(function (item) {
                 if (utils_1._.exists(colDefAny[item])) {
                     console.warn("ag-Grid: " + item + " is only valid in ag-Grid-Enterprise, your column definition should not have " + item);
@@ -129,7 +128,7 @@ var Column = /** @class */ (function () {
             });
         }
         if (this.gridOptionsWrapper.isTreeData()) {
-            var itemsNotAllowedWithTreeData = ['enableRowGroup', 'rowGroup', 'rowGroupIndex', 'enablePivot', 'pivot', 'pivotIndex'];
+            var itemsNotAllowedWithTreeData = ['rowGroup', 'rowGroupIndex', 'pivot', 'pivotIndex'];
             itemsNotAllowedWithTreeData.forEach(function (item) {
                 if (utils_1._.exists(colDefAny[item])) {
                     console.warn("ag-Grid: " + item + " is not possible when doing tree data, your column definition should not have " + item);
@@ -191,6 +190,10 @@ var Column = /** @class */ (function () {
             console.warn("ag-Grid: since v20, colDef.suppressResize is gone, instead use colDef.resizable=false.", this.colDef);
             this.colDef.resizable = false;
         }
+        if (colDefAny.tooltip) {
+            console.warn("ag-Grid: since v20.1, colDef.tooltip is gone, instead use colDef.tooltipValueGetter.", this.colDef);
+            this.colDef.tooltipValueGetter = colDefAny.tooltip;
+        }
     };
     Column.prototype.addEventListener = function (eventType, listener) {
         this.eventService.addEventListener(eventType, listener);
@@ -231,6 +234,9 @@ var Column = /** @class */ (function () {
     };
     Column.prototype.isRowDrag = function (rowNode) {
         return this.isColumnFunc(rowNode, this.colDef.rowDrag);
+    };
+    Column.prototype.isDndSource = function (rowNode) {
+        return this.isColumnFunc(rowNode, this.colDef.dndSource);
     };
     Column.prototype.isCellCheckboxSelection = function (rowNode) {
         return this.isColumnFunc(rowNode, this.colDef.checkboxSelection);
@@ -336,13 +342,18 @@ var Column = /** @class */ (function () {
     Column.prototype.isFilterActive = function () {
         return this.filterActive;
     };
-    Column.prototype.setFilterActive = function (active, source) {
+    // additionalEventAttributes is used by provided simple floating filter, so it can add 'floatingFilter=true' to the event
+    Column.prototype.setFilterActive = function (active, source, additionalEventAttributes) {
         if (source === void 0) { source = "api"; }
         if (this.filterActive !== active) {
             this.filterActive = active;
             this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_FILTER_ACTIVE_CHANGED, source));
         }
-        this.eventService.dispatchEvent(this.createColumnEvent(Column.EVENT_FILTER_CHANGED, source));
+        var filterChangedEvent = this.createColumnEvent(Column.EVENT_FILTER_CHANGED, source);
+        if (additionalEventAttributes) {
+            utils_1._.mergeDeep(filterChangedEvent, additionalEventAttributes);
+        }
+        this.eventService.dispatchEvent(filterChangedEvent);
     };
     Column.prototype.setPinned = function (pinned) {
         if (pinned === true || pinned === Column.PINNED_LEFT) {
@@ -521,6 +532,24 @@ var Column = /** @class */ (function () {
         }
         return menuTabs;
     };
+    // this used to be needed, as previous version of ag-grid had lockPosition as column state,
+    // so couldn't depend on colDef version.
+    Column.prototype.isLockPosition = function () {
+        console.warn('ag-Grid: since v21, col.isLockPosition() should not be used, please use col.getColDef().lockPosition instead.');
+        return this.colDef ? !!this.colDef.lockPosition : false;
+    };
+    // this used to be needed, as previous version of ag-grid had lockVisible as column state,
+    // so couldn't depend on colDef version.
+    Column.prototype.isLockVisible = function () {
+        console.warn('ag-Grid: since v21, col.isLockVisible() should not be used, please use col.getColDef().lockVisible instead.');
+        return this.colDef ? !!this.colDef.lockVisible : false;
+    };
+    // this used to be needed, as previous version of ag-grid had lockPinned as column state,
+    // so couldn't depend on colDef version.
+    Column.prototype.isLockPinned = function () {
+        console.warn('ag-Grid: since v21, col.isLockPinned() should not be used, please use col.getColDef().lockPinned instead.');
+        return this.colDef ? !!this.colDef.lockPinned : false;
+    };
     // + renderedHeaderCell - for making header cell transparent when moving
     Column.EVENT_MOVING_CHANGED = 'movingChanged';
     // + renderedCell - changing left position
@@ -557,10 +586,6 @@ var Column = /** @class */ (function () {
         context_1.Autowired('columnUtils'),
         __metadata("design:type", columnUtils_1.ColumnUtils)
     ], Column.prototype, "columnUtils", void 0);
-    __decorate([
-        context_1.Autowired('frameworkFactory'),
-        __metadata("design:type", Object)
-    ], Column.prototype, "frameworkFactory", void 0);
     __decorate([
         context_1.Autowired('columnApi'),
         __metadata("design:type", columnApi_1.ColumnApi)

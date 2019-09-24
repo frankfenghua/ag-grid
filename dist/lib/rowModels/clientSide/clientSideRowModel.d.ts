@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "../../entities/rowNode";
@@ -58,9 +58,14 @@ export declare class ClientSideRowModel {
     private nodeManager;
     private rowDataTransactionBatch;
     init(): void;
+    ensureRowHeightsValid(startPixel: number, endPixel: number, startLimitIndex: number, endLimitIndex: number): boolean;
+    private setRowTops;
+    private resetRowTops;
     ensureRowAtPixel(rowNode: RowNode, pixel: number): boolean;
     isLastRowFound(): boolean;
     getRowCount(): number;
+    getTopLevelRowCount(): number;
+    getTopLevelRowDisplayedIndex(topLevelIndex: number): number;
     getRowBounds(index: number): RowBounds | null;
     private onRowGroupOpened;
     private onFilterChanged;
@@ -77,9 +82,6 @@ export declare class ClientSideRowModel {
     getRootNode(): RowNode;
     getRow(index: number): RowNode;
     isRowPresent(rowNode: RowNode): boolean;
-    getVirtualRowCount(): number;
-    getPageFirstRow(): number;
-    getPageLastRow(): number;
     getRowIndexAtPixel(pixelToMatch: number): number;
     private isRowInPixel;
     getCurrentPageHeight(): number;

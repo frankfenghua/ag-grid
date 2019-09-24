@@ -1,28 +1,36 @@
-// ag-grid-enterprise v20.0.0
-import { BaseFilter, IDoesFilterPassParams, ISetFilterParams, SerializedSetFilter } from "ag-grid-community";
-export declare class SetFilter extends BaseFilter<string, ISetFilterParams, string[] | SerializedSetFilter | null> {
-    private model;
+// ag-grid-enterprise v21.2.1
+import { IDoesFilterPassParams, ISetFilterParams, ProvidedFilter } from "ag-grid-community";
+import { SetFilterModel } from "./setFilterModel";
+export declare class SetFilter extends ProvidedFilter {
+    private valueModel;
     private eSelectAll;
     private eSelectAllContainer;
     private eMiniFilter;
     private eFilterLoading;
     private valueFormatterService;
+    private eventService;
     private selectAllState;
+    private setFilterParams;
     private virtualList;
-    private debounceFilterChanged;
     private eCheckedIcon;
     private eUncheckedIcon;
     private eIndeterminateCheckedIcon;
-    constructor();
-    customInit(): void;
+    private appliedModelValuesMapped;
+    protected updateUiVisibility(): void;
+    protected createBodyTemplate(): string;
+    protected resetUiToDefaults(): void;
+    protected setModelIntoUi(model: SetFilterModel): void;
+    getModelFromUi(): SetFilterModel | null;
+    protected areModelsEqual(a: SetFilterModel, b: SetFilterModel): boolean;
+    setParams(params: ISetFilterParams): void;
+    private resetFilterValuesAndReapplyModel;
+    private setupSyncValuesLikeExcel;
     private updateCheckboxIcon;
     setLoading(loading: boolean): void;
-    initialiseFilterBodyUi(): void;
-    modelFromFloatingFilter(from: string): string[] | SerializedSetFilter;
-    refreshFilterBodyUi(): void;
+    private initialiseFilterBodyUi;
     private createSetListItem;
     afterGuiAttached(params: any): void;
-    isFilterActive(): boolean;
+    applyModel(): boolean;
     doesFilterPass(params: IDoesFilterPassParams): boolean;
     onNewRowsLoaded(): void;
     /**
@@ -40,9 +48,10 @@ export declare class SetFilter extends BaseFilter<string, ISetFilterParams, stri
      */
     resetFilterValues(): void;
     onAnyFilterChanged(): void;
-    bodyTemplate(): string;
     private updateSelectAll;
-    private onMiniFilterChanged;
+    private onMiniFilterKeyPress;
+    private onEnterKeyOnMiniFilter;
+    private onMiniFilterInput;
     private onSelectAll;
     private doSelectAll;
     private onItemSelected;
@@ -57,8 +66,4 @@ export declare class SetFilter extends BaseFilter<string, ISetFilterParams, stri
     isNothingSelected(): boolean;
     getUniqueValueCount(): number;
     getUniqueValue(index: any): string | null;
-    serialize(): string[] | SerializedSetFilter | null;
-    parse(dataModel: string[] | SerializedSetFilter): void;
-    resetState(): void;
-    isFilterConditionActive(): boolean;
 }

@@ -1,7 +1,8 @@
 import {
     _,
-    Autowired,
     Bean,
+    Autowired,
+    PostConstruct,
     BeanStub,
     Column,
     Component,
@@ -9,7 +10,6 @@ import {
     EventService,
     GetContextMenuItems,
     GetContextMenuItemsParams,
-    GridApi,
     GridOptionsWrapper,
     IAfterGuiAttachedParams,
     IComponent,
@@ -17,13 +17,14 @@ import {
     IRowModel,
     MenuItemDef,
     PopupService,
-    PostConstruct,
-    RowNode
+    RowNode,
+    ModuleNames,
+    ColumnController
 } from "ag-grid-community";
-import { ClipboardService } from "../clipboardService";
 import { MenuItemComponent } from "./menuItemComponent";
 import { MenuList } from "./menuList";
 import { MenuItemMapper } from "./menuItemMapper";
+import { RangeController } from "../rangeController";
 
 @Bean('contextMenuFactory')
 export class ContextMenuFactory implements IContextMenuFactory {
@@ -32,6 +33,8 @@ export class ContextMenuFactory implements IContextMenuFactory {
     @Autowired('popupService') private popupService: PopupService;
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('rowModel') private rowModel: IRowModel;
+    @Autowired('rangeController') private rangeController: RangeController;
+    @Autowired('columnController') private columnController: ColumnController;
 
     private activeMenu: ContextMenu | null;
 
@@ -55,7 +58,26 @@ export class ContextMenuFactory implements IContextMenuFactory {
                 // only makes sense if column exists, could have originated from a row
                 defaultMenuOptions.push('copy', 'copyWithHeaders', 'paste', 'separator');
             }
+        } else {
+            // if user clicks outside of a cell (eg below the rows, or not rows present)
+            // nothing to show, perhaps tool panels???
+        }
 
+        if (this.gridOptionsWrapper.isEnableCharts() && this.context.isModuleRegistered(ModuleNames.ChartsModule)) {
+
+            if (this.columnController.isPivotMode()) {
+                defaultMenuOptions.push('pivotChart');
+            }
+            // else {
+            //     defaultMenuOptions.push('pivotChartAndPivotMode');
+            // }
+
+            if (!this.rangeController.isEmpty()) {
+                defaultMenuOptions.push('chartRange');
+            }
+        }
+
+        if (_.exists(node)) {
             // if user clicks a cell
             const suppressExcel = this.gridOptionsWrapper.isSuppressExcelExport();
             const suppressCsv = this.gridOptionsWrapper.isSuppressCsvExport();
@@ -64,13 +86,6 @@ export class ContextMenuFactory implements IContextMenuFactory {
             if (anyExport) {
                 defaultMenuOptions.push('export');
             }
-        } else {
-            // if user clicks outside of a cell (eg below the rows, or not rows present)
-            // nothing to show, perhaps tool panels???
-        }
-
-        if (this.gridOptionsWrapper.isEnableCharts()) {
-            defaultMenuOptions.push('createChart');
         }
 
         if (this.gridOptionsWrapper.getContextMenuItemsFunc()) {
@@ -135,10 +150,6 @@ export class ContextMenuFactory implements IContextMenuFactory {
 
 class ContextMenu extends Component implements IComponent<any> {
 
-    @Autowired('context') private context: Context;
-    @Autowired('clipboardService') private clipboardService: ClipboardService;
-    @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
-    @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('eventService') private eventService: EventService;
     @Autowired('menuItemMapper') private menuItemMapper: MenuItemMapper;
 
@@ -152,7 +163,7 @@ class ContextMenu extends Component implements IComponent<any> {
     @PostConstruct
     private addMenuItems(): void {
         const menuList = new MenuList();
-        this.context.wireBean(menuList);
+        this.getContext().wireBean(menuList);
 
         const menuItemsMapped = this.menuItemMapper.mapWithStockItems(this.menuItems, null);
 
@@ -163,7 +174,9 @@ class ContextMenu extends Component implements IComponent<any> {
     }
 
     public afterGuiAttached(params: IAfterGuiAttachedParams): void {
-        this.addDestroyFunc(params.hidePopup);
+        if (params.hidePopup) {
+            this.addDestroyFunc(params.hidePopup);
+        }
 
         // if the body scrolls, we want to hide the menu, as the menu will not appear in the right location anymore
         this.addDestroyableEventListener(this.eventService, 'bodyScroll', this.destroy.bind(this));

@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -17,91 +17,102 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var context_1 = require("./context/context");
 var utils_1 = require("./utils");
-var themeNames = ['fresh', 'dark', 'blue', 'bootstrap', 'material', 'balham-dark', 'balham'];
-var themes = themeNames.concat(themeNames.map(function (name) { return "theme-" + name; }));
-var themeClass = new RegExp("ag-(" + themes.join('|') + ")");
-var matGridSize = 8;
-var freshGridSize = 4;
-var balhamGridSize = 4;
+var MAT_GRID_SIZE = 8;
+var FRESH_GRID_SIZE = 4;
+var BALHAM_GRID_SIZE = 4;
 var HARD_CODED_SIZES = {
     'ag-theme-material': {
-        headerHeight: matGridSize * 7,
-        virtualItemHeight: matGridSize * 5,
-        rowHeight: matGridSize * 6
+        headerHeight: MAT_GRID_SIZE * 7,
+        virtualItemHeight: MAT_GRID_SIZE * 5,
+        rowHeight: MAT_GRID_SIZE * 6
     },
     'ag-theme-classic': {
         headerHeight: 25,
-        virtualItemHeight: freshGridSize * 5,
+        virtualItemHeight: FRESH_GRID_SIZE * 5,
         rowHeight: 25
     },
     'ag-theme-balham': {
-        headerHeight: balhamGridSize * 8,
-        virtualItemHeight: balhamGridSize * 7,
-        rowHeight: balhamGridSize * 7
+        headerHeight: BALHAM_GRID_SIZE * 8,
+        virtualItemHeight: BALHAM_GRID_SIZE * 7,
+        rowHeight: BALHAM_GRID_SIZE * 7
     }
 };
+/**
+ * this object contains a list of Sass variables and an array
+ * of CSS styles required to get the correct value.
+ * eg. $virtual-item-height requires a structure, so we can get it's height.
+ * <div class="ag-theme-balham">
+ *     <div class="ag-virtual-list-container">
+ *         <div class="ag-virtual-list-item"></div>
+ *     </div>
+ */
+var SASS_PROPERTY_BUILDER = {
+    headerHeight: ['ag-header-row'],
+    virtualItemHeight: ['ag-virtual-list-container', 'ag-virtual-list-item'],
+    rowHeight: ['ag-row']
+};
+var CALCULATED_SIZES = {};
 var Environment = /** @class */ (function () {
     function Environment() {
-        this.sassVariables = {};
     }
-    // Approach described here:
-    // https://www.ofcodeandcolor.com/2017/04/02/encoding-data-in-css/
-    Environment.prototype.loadSassVariables = function () {
-        /*
-        var element = document.createElement('div');
-        element.className = 'sass-variables';
-        this.eGridDiv.appendChild(element);
-
-        var content = window.getComputedStyle(element, '::after').content;
-
-        try {
-            this.sassVariables = JSON.parse(JSON.parse(content));
-        } catch (e) {
-            throw new Error("Failed loading the theme sizing - check that you have the theme set up correctly.");
-        }
-
-        this.eGridDiv.removeChild(element);
-        */
-    };
     Environment.prototype.getSassVariable = function (theme, key) {
-        if (theme == 'ag-theme-material') {
-            return HARD_CODED_SIZES['ag-theme-material'][key];
+        var useTheme = 'ag-theme-' + (theme.match('material') ? 'material' : (theme.match('balham') ? 'balham' : 'classic'));
+        var defaultValue = HARD_CODED_SIZES[useTheme][key];
+        var calculatedValue = 0;
+        if (!CALCULATED_SIZES[theme]) {
+            CALCULATED_SIZES[theme] = {};
         }
-        else if (theme == 'ag-theme-balham' || theme == 'ag-theme-balham-dark') {
-            return HARD_CODED_SIZES['ag-theme-balham'][key];
+        if (CALCULATED_SIZES[theme][key]) {
+            return CALCULATED_SIZES[theme][key];
         }
-        return HARD_CODED_SIZES['ag-theme-classic'][key];
-        /*
-        const result = parseInt(this.sassVariables[key]);
-        if (!result || isNaN(result)) {
-            throw new Error(`Failed loading ${key} Sass variable from ${this.sassVariables}`);
+        if (SASS_PROPERTY_BUILDER[key]) {
+            var classList = SASS_PROPERTY_BUILDER[key];
+            var div = document.createElement('div');
+            var el = classList.reduce(function (el, currentClass, idx) {
+                if (idx === 0) {
+                    utils_1._.addCssClass(el, theme);
+                }
+                var div = document.createElement('div');
+                utils_1._.addCssClass(div, currentClass);
+                el.appendChild(div);
+                return div;
+            }, div);
+            if (document.body) {
+                document.body.appendChild(div);
+                calculatedValue = parseInt(window.getComputedStyle(el).height, 10);
+                document.body.removeChild(div);
+            }
         }
-        return result;
-        */
+        CALCULATED_SIZES[theme][key] = calculatedValue || defaultValue;
+        return CALCULATED_SIZES[theme][key];
+    };
+    Environment.prototype.isThemeDark = function () {
+        var theme = this.getTheme().theme;
+        return !!theme && theme.indexOf('dark') >= 0;
     };
     Environment.prototype.getTheme = function () {
+        var reg = /\bag-(fresh|dark|blue|material|bootstrap|(?:theme-([\w\-]*)))\b/;
+        var el = this.eGridDiv;
         var themeMatch;
-        var element = this.eGridDiv;
-        while (element != document.documentElement && themeMatch == null) {
-            themeMatch = element.className.match(themeClass);
-            element = element.parentElement;
-            if (element == null) {
+        while (el) {
+            themeMatch = reg.exec(el.className);
+            if (!themeMatch) {
+                el = el.parentElement;
+            }
+            else {
                 break;
             }
         }
-        if (themeMatch) {
-            var userTheme_1 = themeMatch[0];
-            var oldThemes = ['ag-fresh', 'ag-dark', 'ag-blue', 'ag-material', 'ag-bootstrap'];
-            var usingOldTheme = oldThemes.indexOf(userTheme_1) >= 0;
-            if (usingOldTheme) {
-                var newTheme_1 = userTheme_1.replace('ag-', 'ag-theme-');
-                utils_1._.doOnce(function () { return console.warn("ag-Grid: As of v19 old theme are no longer provided. Please replacement " + userTheme_1 + " with " + newTheme_1 + "."); }, 'using-old-theme');
-            }
-            return userTheme_1;
+        if (!themeMatch) {
+            return {};
         }
-        else {
-            return 'ag-theme-fresh';
+        var theme = themeMatch[0];
+        var usingOldTheme = themeMatch[2] === undefined;
+        if (usingOldTheme) {
+            var newTheme_1 = theme.replace('ag-', 'ag-theme-');
+            utils_1._.doOnce(function () { return console.warn("ag-Grid: As of v19 old theme are no longer provided. Please replace " + theme + " with " + newTheme_1 + "."); }, 'using-old-theme');
         }
+        return { theme: theme, el: el };
     };
     __decorate([
         context_1.Autowired('eGridDiv'),

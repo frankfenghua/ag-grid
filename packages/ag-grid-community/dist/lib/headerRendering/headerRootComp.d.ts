@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { GridPanel } from "../gridPanel/gridPanel";
@@ -11,13 +11,9 @@ export declare class HeaderRootComp extends Component {
     private eHeaderViewport;
     private gridOptionsWrapper;
     private columnController;
-    private context;
     private eventService;
     private gridApi;
     private autoWidthCalculator;
-    private pinnedLeftContainer;
-    private pinnedRightContainer;
-    private centerContainer;
     private childContainers;
     private gridPanel;
     private printLayout;
@@ -35,4 +31,5 @@ export declare class HeaderRootComp extends Component {
     setHeaderContainerWidth(width: number): void;
     setLeftVisible(visible: boolean): void;
     setRightVisible(visible: boolean): void;
+    getHeaderRowCount(): number;
 }

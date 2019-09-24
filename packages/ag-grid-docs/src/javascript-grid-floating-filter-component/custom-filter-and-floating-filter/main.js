@@ -82,7 +82,7 @@ function getNumberFilterComponent (){
 
         if (this.isFilterActive()){
             if (!value) return false;
-            return Number(value) > Number(filterValue)
+            return Number(value) > Number(filterValue);
         }
     };
 
@@ -102,6 +102,10 @@ function getNumberFilterComponent (){
         this.extractFilterText();
     };
 
+    NumberFilter.prototype.myMethodForTakingValueFromFloatingFilter = function (value) {
+        this.eFilterText.value = value;
+        this.onFilterChanged();
+    };
 
     NumberFilter.prototype.destroy = function () {
         this.eFilterText.removeEventListener("input", this.onFilterChanged);
@@ -118,21 +122,23 @@ function getNumberFloatingFilterComponent (){
     }
 
     NumberFloatingFilter.prototype.init = function (params) {
-        this.onFloatingFilterChanged = params.onFloatingFilterChanged;
         this.eGui = document.createElement('div');
-        this.eGui.innerHTML = '&gt; <input style="width:20px" type="text"/>'
+        this.eGui.innerHTML = '&gt; <input style="width:20px" type="text"/>';
         this.currentValue = null;
         this.eFilterInput = this.eGui.querySelector('input');
         var that = this;
         function onInputBoxChanged(){
             if (that.eFilterInput.value === '') {
                 //Remove the filter
-                that.onFloatingFilterChanged(null);
-                return;
+                params.parentFilterInstance( function(instance) {
+                    instance.myMethodForTakingValueFromFloatingFilter(null);
+                });
+            } else {
+                that.currentValue = Number(that.eFilterInput.value);
+                params.parentFilterInstance( function(instance) {
+                    instance.myMethodForTakingValueFromFloatingFilter(that.currentValue);
+                });
             }
-
-            that.currentValue = Number(that.eFilterInput.value);
-            that.onFloatingFilterChanged(that.currentValue);
         }
         this.eFilterInput.addEventListener('input', onInputBoxChanged);
     };

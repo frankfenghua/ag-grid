@@ -1,19 +1,24 @@
 <?php
 $pageTitle = "ag-Grid - Styling & Appearance: Animation";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Animation. Rows in the grid will Animate into place after the user sorts or filters. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Core feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Animation. Rows in the grid will Animate into place after the user sorts or filters.";
 $pageKeyboards = "Javascript Grid Animation";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
 ?>
 
+    <h1>Row Animation</h1>
 
-
-    <h1>Animation</h1>
+    <p class="lead">
+        Row animations occur after filtering, sorting, resizing height and expanding / collapsing a row group.
+        Each on these animations is turned OFF be default. They are all turned on
+        using using the property <code>animateRows=true</code>.
+    </p>
 
     <p>
-        The grid will animate the rows and columns in the following scenarios:
+        The grid will animate the rows in the following scenarios:
     </p>
-        <ul class="content">
+
+    <ul class="content">
         <li>Column Animations:
             <ul class="content">
                 <li>Moving Columns</li>
@@ -27,28 +32,6 @@ include '../documentation-main/documentation_header.php';
             </ul>
         </li>
     </ul>
-
-    <h2>Column Animations</h2>
-
-    <p>
-        Column animations happen when you move a column. The default is for animations to
-        be turned on. It is recommended that you leave the column move animations on unless
-        your target platform (browser and hardware) is to slow to manage the animations.
-        To turn OFF column animations, set the grid property <code>suppressColumnMoveAnimation=true</code>.
-    </p>
-
-    <p>
-        The move column animation transitions the columns position only. So when you move a column,
-        it animates to the new position. No other attribute apart from position is animated.
-    </p>
-
-    <h2>Row Animations</h2>
-
-    <p>
-        Row animations occur after filtering, sorting, resizing height and expanding / collapsing a row group.
-        Each on these animations is turned OFF be default. They are all turned on
-        using using the property <code>animateRows=true</code>.
-    </p>
 
     <note>
         Column animations are on by default, row animations are off by default. This is to keep

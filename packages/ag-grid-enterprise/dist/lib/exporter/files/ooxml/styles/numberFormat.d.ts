@@ -1,11 +1,11 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { ExcelOOXMLTemplate } from 'ag-grid-community';
+export interface NumberFormat {
+    formatCode: string;
+    numFmtId: number;
+}
 declare const numberFormatFactory: ExcelOOXMLTemplate;
 export default numberFormatFactory;
 export declare const numberFormatMap: {
     [key: string]: number;
 };
-export interface NumberFormat {
-    formatCode: string;
-    numFmtId: number;
-}

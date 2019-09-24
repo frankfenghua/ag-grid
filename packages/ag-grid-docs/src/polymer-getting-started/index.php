@@ -3,7 +3,7 @@ $pageTitle = "ag-Grid Reference: Getting Started with the Polymer Datagrid";
 $pageDescription = "ag-Grid is a feature-rich datagrid available in Free or Enterprise versions. This Getting Start guide covers installing our seed repo and getting up and running with a simple Polymer Datagrid. We also cover basisc configuration.";
 $pageKeyboards = "Polymer Grid";
 $pageGroup = "basics";
-include '../getting-started/header.php';
+include '../documentation-main/documentation_header.php';
 ?>
 
 <h1> Polymer Grid </h1>
@@ -203,9 +203,9 @@ window.customElements.define('polymer-getting-started-app', PolymerGettingStarte
 
 <snippet language="js">
 this.columnDefs = [
-    { headerName: "Make", field: "make", sortable=true },
-    { headerName: "Model", field: "model", sortable=true },
-    { headerName: "Price", field: "price", sortable=true },
+    { headerName: "Make", field: "make", sortable: true },
+    { headerName: "Model", field: "model", sortable: true },
+    { headerName: "Price", field: "price", sortable: true },
 ];
 </snippet>
 
@@ -213,7 +213,7 @@ this.columnDefs = [
     clicking and it will cycle through ascending, descending and no sort). Note that in this example we're sorting
     by <code>Price</code> in ascending order (indicated by the up arrow):</p>
 
-<img src="../images/js-gs-sorting.png" style="display: block;margin: auto;height: 170px;">
+<img src="../images/js-gs-sorting.png" alt="sorting" style="display: block;margin: auto;height: 170px;">
 
 <h3>Filtering</h3>
 
@@ -227,9 +227,9 @@ this.columnDefs = [
 
 <snippet language="js">
 this.columnDefs = [
-    { headerName: "Make", field: "make", sortable=true, filter=true },
-    { headerName: "Model", field: "model", sortable=true, filter=true },
-    { headerName: "Price", field: "price", sortable=true, filter=true },
+    { headerName: "Make", field: "make", sortable: true, filter: true },
+    { headerName: "Model", field: "model", sortable: true, filter: true },
+    { headerName: "Price", field: "price", sortable: true, filter: true },
 ];
 </snippet>
 
@@ -239,7 +239,7 @@ this.columnDefs = [
     <code>Model</code>
     column by the text <code>Celica</code> - only the row with <code>Celica</code> is shown now.</p>
 
-<img src="../images/js-gs-filtering.png" style="display: block;margin: auto;height: 170px;">
+<img src="../images/js-gs-filtering.png" alt="filtering" style="display: block;margin: auto;height: 170px;">
 
 <?= example('Polymer 3 Grid', 'simple-grid', 'as-is', array("noPlunker" => 1, "usePath" => "/", "exampleHeight" => 175)) ?>
 
@@ -257,4 +257,4 @@ this.columnDefs = [
             href="https://github.com/ag-grid/ag-grid-polymer-example">ag-Grid Polymer 3 Example Repo</a>.
 </note>
 
-<?php include '../getting-started/footer.php'; ?>
+<?php include '../documentation-main/documentation_footer.php'; ?>

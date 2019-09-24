@@ -27,23 +27,20 @@ export default abstract class ContinuousScale<R> implements Scale<number, R> {
     private piecewiseDeinterpolatorFactory?: PiecewiseDeinterpolatorFactory<R>;
     private piecewiseDeinterpolator?: Deinterpolator<R>;
 
-    _domain: number[] = [0, 1];
-    _range: R[] = [];
-
+    protected _domain: number[] = [0, 1];
     set domain(values: number[]) {
         this._domain = values.slice();
         this.rescale();
     }
-
     get domain(): number[] {
         return this._domain;
     }
 
+    protected _range: R[] = [];
     set range(values: R[]) {
         this._range = values.slice();
         this.rescale();
     }
-
     get range(): R[] {
         return this._range;
     }
@@ -86,8 +83,23 @@ export default abstract class ContinuousScale<R> implements Scale<number, R> {
         return this.piecewiseDeinterpolator(r);
     }
 
-    protected abstract deinterpolatorOf(a: number, b: number): Deinterpolator<number>
-    protected abstract reinterpolatorOf(a: number, b: number): Reinterpolator<number>
+    /**
+     * Creates a new deinterpolator for the given pair of output range numbers.
+     * The deinterpolator accepts a single parameter `v` in the [a, b] range
+     * and returns a value in the [0, 1] range.
+     * @param a
+     * @param b
+     */
+    protected abstract deinterpolatorOf(a: number, b: number): Deinterpolator<number>;
+
+    /**
+     * Creates a new interpolator for the given pair of input domain numbers.
+     * The interpolator accepts a single parameter `t` in the [0, 1] range and
+     * returns a value in the [a, b] range.
+     * @param a
+     * @param b
+     */
+    protected abstract reinterpolatorOf(a: number, b: number): Reinterpolator<number>;
 
     protected clampDeinterpolatorFactory(deinterpolatorOf: DeinterpolatorFactory<number>): DeinterpolatorFactory<number> {
         return (a, b) => {
@@ -100,7 +112,7 @@ export default abstract class ContinuousScale<R> implements Scale<number, R> {
                 } else {
                     return deinterpolate(x);
                 }
-            }
+            };
         };
     }
 
@@ -115,7 +127,7 @@ export default abstract class ContinuousScale<R> implements Scale<number, R> {
                 } else {
                     return reinterpolate(t);
                 }
-            }
+            };
         };
     }
 
@@ -176,6 +188,7 @@ export default abstract class ContinuousScale<R> implements Scale<number, R> {
         return (x) => td(rt(x));
     }
 
+    // TODO: not used right now, but not to be removed
     // private polymap(domain: number[], range: R[],
     //                 deinterpolatorOf: DeinterpolatorFactory<number>,
     //                 reinterpolatorOf: ReinterpolatorFactory<R>): Reinterpolator<R> {

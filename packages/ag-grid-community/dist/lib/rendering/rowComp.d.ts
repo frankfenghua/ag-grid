@@ -1,23 +1,13 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { CellComp } from "./cellComp";
 import { RowNode } from "../entities/rowNode";
-import { GridOptionsWrapper } from "../gridOptionsWrapper";
 import { Column } from "../entities/column";
-import { ICellRendererParams } from "./cellRenderers/iCellRenderer";
 import { RowContainerComponent } from "./rowContainerComponent";
 import { Component } from "../widgets/component";
 import { Beans } from "./beans";
-export declare class LoadingCellRenderer extends Component {
-    private static TEMPLATE;
-    gridOptionsWrapper: GridOptionsWrapper;
-    private eLoadingIcon;
-    private eLoadingText;
-    constructor();
-    init(params: ICellRendererParams): void;
-    refresh(params: any): boolean;
-}
+import { IFrameworkOverrides } from "../interfaces/iFrameworkOverrides";
 export declare class RowComp extends Component {
     static DOM_DATA_KEY_RENDERED_ROW: string;
     private static FULL_WIDTH_CELL_RENDERER;
@@ -87,7 +77,9 @@ export declare class RowComp extends Component {
     isEditing(): boolean;
     stopRowEditing(cancel: boolean): void;
     isFullWidth(): boolean;
+    refreshFullWidth(): boolean;
     private addListeners;
+    private addListenersForCellComps;
     private onGridColumnsChanged;
     private onRowNodeDataChanged;
     private onRowNodeCellChanged;
@@ -139,6 +131,7 @@ export declare class RowComp extends Component {
     private afterRowAttached;
     private addHoverFunctionality;
     private roundRowTopToBounds;
+    protected getFrameworkOverrides(): IFrameworkOverrides;
     private onRowHeightChanged;
     addEventListener(eventType: string, listener: Function): void;
     removeEventListener(eventType: string, listener: Function): void;
@@ -152,7 +145,7 @@ export declare class RowComp extends Component {
     private setRowTop;
     getAndClearNextVMTurnFunctions(): Function[];
     getRowNode(): RowNode;
-    getRenderedCellForColumn(column: Column): CellComp;
+    getRenderedCellForColumn(column: Column): CellComp | undefined;
     private onRowIndexChanged;
     private updateRowIndexes;
     ensureDomOrder(): void;

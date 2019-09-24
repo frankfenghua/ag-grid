@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -31,10 +31,10 @@ var componentUtil_1 = require("./components/componentUtil");
 exports.ComponentUtil = componentUtil_1.ComponentUtil;
 var colDefUtil_1 = require("./components/colDefUtil");
 exports.ColDefUtil = colDefUtil_1.ColDefUtil;
-var componentProvider_1 = require("./components/framework/componentProvider");
-exports.ComponentProvider = componentProvider_1.ComponentProvider;
-var componentResolver_1 = require("./components/framework/componentResolver");
-exports.ComponentResolver = componentResolver_1.ComponentResolver;
+var userComponentRegistry_1 = require("./components/framework/userComponentRegistry");
+exports.UserComponentRegistry = userComponentRegistry_1.UserComponentRegistry;
+var userComponentFactory_1 = require("./components/framework/userComponentFactory");
+exports.UserComponentFactory = userComponentFactory_1.UserComponentFactory;
 var agGridNg1_1 = require("./components/agGridNg1");
 exports.initialiseAgGridWithAngular1 = agGridNg1_1.initialiseAgGridWithAngular1;
 var agGridWebComponent_1 = require("./components/agGridWebComponent");
@@ -68,25 +68,25 @@ var column_1 = require("./entities/column");
 exports.Column = column_1.Column;
 var columnGroup_1 = require("./entities/columnGroup");
 exports.ColumnGroup = columnGroup_1.ColumnGroup;
-var gridCell_1 = require("./entities/gridCell");
-exports.GridCell = gridCell_1.GridCell;
-var gridRow_1 = require("./entities/gridRow");
-exports.GridRow = gridRow_1.GridRow;
 var originalColumnGroup_1 = require("./entities/originalColumnGroup");
 exports.OriginalColumnGroup = originalColumnGroup_1.OriginalColumnGroup;
 var rowNode_1 = require("./entities/rowNode");
 exports.RowNode = rowNode_1.RowNode;
 // filter
-var baseFilter_1 = require("./filter/baseFilter");
-exports.BaseFilter = baseFilter_1.BaseFilter;
-var dateFilter_1 = require("./filter/dateFilter");
-exports.DateFilter = dateFilter_1.DateFilter;
 var filterManager_1 = require("./filter/filterManager");
 exports.FilterManager = filterManager_1.FilterManager;
-var numberFilter_1 = require("./filter/numberFilter");
+var providedFilter_1 = require("./filter/provided/providedFilter");
+exports.ProvidedFilter = providedFilter_1.ProvidedFilter;
+var simpleFilter_1 = require("./filter/provided/simpleFilter");
+exports.SimpleFilter = simpleFilter_1.SimpleFilter;
+var scalerFilter_1 = require("./filter/provided/scalerFilter");
+exports.ScalerFilter = scalerFilter_1.ScalerFilter;
+var numberFilter_1 = require("./filter/provided/number/numberFilter");
 exports.NumberFilter = numberFilter_1.NumberFilter;
-var textFilter_1 = require("./filter/textFilter");
+var textFilter_1 = require("./filter/provided/text/textFilter");
 exports.TextFilter = textFilter_1.TextFilter;
+var dateFilter_1 = require("./filter/provided/date/dateFilter");
+exports.DateFilter = dateFilter_1.DateFilter;
 // gridPanel
 var gridPanel_1 = require("./gridPanel/gridPanel");
 exports.GridPanel = gridPanel_1.GridPanel;
@@ -121,6 +121,8 @@ exports.VerticalStack = verticalStack_1.VerticalStack;
 // misc
 var simpleHttpRequest_1 = require("./misc/simpleHttpRequest");
 exports.simpleHttpRequest = simpleHttpRequest_1.simpleHttpRequest;
+var resizeObserverService_1 = require("./misc/resizeObserverService");
+exports.ResizeObserverService = resizeObserverService_1.ResizeObserverService;
 var largeTextCellEditor_1 = require("./rendering/cellEditors/largeTextCellEditor");
 exports.LargeTextCellEditor = largeTextCellEditor_1.LargeTextCellEditor;
 var popupEditorWrapper_1 = require("./rendering/cellEditors/popupEditorWrapper");
@@ -145,12 +147,8 @@ exports.SetLeftFeature = setLeftFeature_1.SetLeftFeature;
 // rendering
 var autoWidthCalculator_1 = require("./rendering/autoWidthCalculator");
 exports.AutoWidthCalculator = autoWidthCalculator_1.AutoWidthCalculator;
-var cellEditorFactory_1 = require("./rendering/cellEditorFactory");
-exports.CellEditorFactory = cellEditorFactory_1.CellEditorFactory;
 var cellRendererFactory_1 = require("./rendering/cellRendererFactory");
 exports.CellRendererFactory = cellRendererFactory_1.CellRendererFactory;
-var cellRendererService_1 = require("./rendering/cellRendererService");
-exports.CellRendererService = cellRendererService_1.CellRendererService;
 var checkboxSelectionComponent_1 = require("./rendering/checkboxSelectionComponent");
 exports.CheckboxSelectionComponent = checkboxSelectionComponent_1.CheckboxSelectionComponent;
 var cellComp_1 = require("./rendering/cellComp");
@@ -183,20 +181,57 @@ var rowNodeBlock_1 = require("./rowModels/cache/rowNodeBlock");
 exports.RowNodeBlock = rowNodeBlock_1.RowNodeBlock;
 var rowNodeBlockLoader_1 = require("./rowModels/cache/rowNodeBlockLoader");
 exports.RowNodeBlockLoader = rowNodeBlockLoader_1.RowNodeBlockLoader;
+var paginationProxy_1 = require("./rowModels/paginationProxy");
+exports.PaginationProxy = paginationProxy_1.PaginationProxy;
 var rowNodeCache_1 = require("./rowModels/cache/rowNodeCache");
 exports.RowNodeCache = rowNodeCache_1.RowNodeCache;
 //styling
 var stylingService_1 = require("./styling/stylingService");
 exports.StylingService = stylingService_1.StylingService;
 // widgets
+var agAbstractField_1 = require("./widgets/agAbstractField");
+exports.AgAbstractField = agAbstractField_1.AgAbstractField;
 var agCheckbox_1 = require("./widgets/agCheckbox");
 exports.AgCheckbox = agCheckbox_1.AgCheckbox;
+var agRadioButton_1 = require("./widgets/agRadioButton");
+exports.AgRadioButton = agRadioButton_1.AgRadioButton;
+var agToggleButton_1 = require("./widgets/agToggleButton");
+exports.AgToggleButton = agToggleButton_1.AgToggleButton;
+var agInputTextField_1 = require("./widgets/agInputTextField");
+exports.AgInputTextField = agInputTextField_1.AgInputTextField;
+var agInputTextArea_1 = require("./widgets/agInputTextArea");
+exports.AgInputTextArea = agInputTextArea_1.AgInputTextArea;
+var agInputNumberField_1 = require("./widgets/agInputNumberField");
+exports.AgInputNumberField = agInputNumberField_1.AgInputNumberField;
+var agInputRange_1 = require("./widgets/agInputRange");
+exports.AgInputRange = agInputRange_1.AgInputRange;
+var agSelect_1 = require("./widgets/agSelect");
+exports.AgSelect = agSelect_1.AgSelect;
+var agSlider_1 = require("./widgets/agSlider");
+exports.AgSlider = agSlider_1.AgSlider;
+var agAngleSelect_1 = require("./widgets/agAngleSelect");
+exports.AgAngleSelect = agAngleSelect_1.AgAngleSelect;
+var agColorPicker_1 = require("./widgets/agColorPicker");
+exports.AgColorPicker = agColorPicker_1.AgColorPicker;
+var agGroupComponent_1 = require("./widgets/agGroupComponent");
+exports.AgGroupComponent = agGroupComponent_1.AgGroupComponent;
+var agDialog_1 = require("./widgets/agDialog");
+exports.AgDialog = agDialog_1.AgDialog;
+var agPanel_1 = require("./widgets/agPanel");
+exports.AgPanel = agPanel_1.AgPanel;
+var messageBox_1 = require("./widgets/messageBox");
+exports.MessageBox = messageBox_1.MessageBox;
 var component_1 = require("./widgets/component");
 exports.Component = component_1.Component;
+var popupComponent_1 = require("./widgets/popupComponent");
+exports.PopupComponent = popupComponent_1.PopupComponent;
 var popupService_1 = require("./widgets/popupService");
 exports.PopupService = popupService_1.PopupService;
 var touchListener_1 = require("./widgets/touchListener");
 exports.TouchListener = touchListener_1.TouchListener;
+// range
+var iRangeController_1 = require("./interfaces/iRangeController");
+exports.CellRangeType = iRangeController_1.CellRangeType;
 // exporter
 var csvCreator_1 = require("./exporter/csvCreator");
 exports.CsvCreator = csvCreator_1.CsvCreator;
@@ -213,8 +248,8 @@ exports.RowType = gridSerializer_2.RowType;
 var zipContainer_1 = require("./exporter/files/zip/zipContainer");
 exports.ZipContainer = zipContainer_1.ZipContainer;
 // root
-var baseFrameworkFactory_1 = require("./baseFrameworkFactory");
-exports.BaseFrameworkFactory = baseFrameworkFactory_1.BaseFrameworkFactory;
+var vanillaFrameworkOverrides_1 = require("./vanillaFrameworkOverrides");
+exports.VanillaFrameworkOverrides = vanillaFrameworkOverrides_1.VanillaFrameworkOverrides;
 var cellNavigationService_1 = require("./cellNavigationService");
 exports.CellNavigationService = cellNavigationService_1.CellNavigationService;
 var alignedGridsService_1 = require("./alignedGridsService");
@@ -248,6 +283,7 @@ exports.SortController = sortController_1.SortController;
 var templateService_1 = require("./templateService");
 exports.TemplateService = templateService_1.TemplateService;
 var utils_1 = require("./utils");
+exports.Color = utils_1.Color;
 exports.Utils = utils_1.Utils;
 exports.NumberSequence = utils_1.NumberSequence;
 exports._ = utils_1._;
@@ -258,9 +294,18 @@ var expressionService_1 = require("./valueService/expressionService");
 exports.ExpressionService = expressionService_1.ExpressionService;
 var logger_2 = require("./logger");
 exports.LoggerFactory = logger_2.LoggerFactory;
+var cellPosition_1 = require("./entities/cellPosition");
+exports.CellPositionUtils = cellPosition_1.CellPositionUtils;
+var rowPosition_1 = require("./entities/rowPosition");
+exports.RowPositionUtils = rowPosition_1.RowPositionUtils;
 var columnApi_1 = require("./columnController/columnApi");
 exports.ColumnApi = columnApi_1.ColumnApi;
 var frameworkComponentWrapper_1 = require("./components/framework/frameworkComponentWrapper");
 exports.BaseComponentWrapper = frameworkComponentWrapper_1.BaseComponentWrapper;
 var environment_1 = require("./environment");
 exports.Environment = environment_1.Environment;
+var tooltipManager_1 = require("./widgets/tooltipManager");
+exports.TooltipManager = tooltipManager_1.TooltipManager;
+// charts
+var iChartOptions_1 = require("./interfaces/iChartOptions");
+exports.ChartType = iChartOptions_1.ChartType;

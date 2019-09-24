@@ -18,11 +18,13 @@ include '../documentation-main/documentation_header.php';
         The differences between row models can be found in our <a href="../javascript-grid-row-models/">row models summary page</a>
     </note>
 
-    <p>
+    <p class="lead">
         A Viewport is a rowModel that allows showing a 'window' of data in your client. Typically all the data
         will reside on the server and the server will know what data is displayed in the client. This is again
         useful for the server to push changes out to the client as it knows what data is currently displayed.
     </p>
+
+    <? enterprise_feature("Viewport Row Model"); ?>
 
     <p>
         To enable the ViewPort, set the grid property <code>rowModelType='viewport'</code>.
@@ -288,11 +290,13 @@ interface IViewportDatasourceParams {
 
     <?= example('Pagination Viewport Example', 'pagination-viewport', 'generated', array('enterprise' => true, "processVue" => true)) ?>
 
-<!--
-This was example put in by niall for trying to figure out how to have unlimited number of rows in grid
-    <h1>Very Large Data Set</h1>
--->
-    <?/*= example('Viewport Big Data', 'viewport-big-data', 'generated', array( 'enterprise'=> true )) */?>
+    <!--
+    This was example put in by niall for trying to figure out how to have unlimited number of rows in grid
+        <h1>Very Large Data Set</h1>
+
+        example('Viewport Big Data', 'viewport-big-data', 'generated', array( 'enterprise'=> true ))
+
+    -->
 
 </div>
 

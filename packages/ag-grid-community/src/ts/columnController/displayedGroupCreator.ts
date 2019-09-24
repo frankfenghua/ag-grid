@@ -21,7 +21,7 @@ export class DisplayedGroupCreator {
         sortedVisibleColumns: Column[],
         // the tree of columns, as provided by the users, used to know what groups columns roll up into
         balancedColumnTree: OriginalColumnGroupChild[],
-        // create's unique id's for the group
+        // creates unique id's for the group
         groupInstanceIdCreator: GroupInstanceIdCreator,
         // whether it's left, right or center col
         pinned: string | null,
@@ -67,7 +67,7 @@ export class DisplayedGroupCreator {
                 // path (no groups), and we just add the column to the root list.
                 result.push(currentColumn);
             } else {
-                const leafGroup = currentRealPath[currentRealPath.length - 1];
+                const leafGroup = _.last(currentRealPath);
                 leafGroup.addChild(currentColumn);
             }
 

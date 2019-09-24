@@ -1,16 +1,18 @@
 <?php
 $pageTitle = "Grouping by Row: Core Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Grouping by Row. Use Grouping Rows to group the data over selected dimensions. You can set the data to group by specific columns, or allow the user to drag and drop columns of their choice and have it grouped on the fly. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Core feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Grouping by Row. Use Grouping Rows to group the data over selected dimensions. You can set the data to group by specific columns, or allow the user to drag and drop columns of their choice and have it grouped on the fly. Version 20 is available for download now, take it for a free two month trial.";
 $pageKeyboards = "ag-Grid Grid Grouping";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
 ?>
-    <h1>Row Grouping</h1>
+    <h1 class="heading-enterprise">Row Grouping</h1>
 
     <p class="lead">
         This page shows how to group your rows. It starts off with Auto Column Groups, the simplest way to configure row
         groups and then builds up into more advanced topics for row grouping.<br>
     </p>
+
+    <? enterprise_feature("Row Grouping"); ?>
 
     <p>
         Remember Row Grouping works with all frameworks eg Angular and React as well as plain JavaScript.
@@ -278,7 +280,7 @@ columnDefs = [
 
     <?= example('Hide Open Parents', 'hide-open-parents', 'generated', array("enterprise" => 1, "processVue" => true)) ?>
 
-    <h2 id="fullWidthRows">Keeping Columns Visible</h2>
+    <h2 id="keepingColumnsVisible">Keeping Columns Visible</h2>
 
     <p>
         By default dragging a column out of the grid will make it hidden and
@@ -412,61 +414,40 @@ gridOptions.groupRowRendererParams: {
 </snippet>
 
     <p>
-        Below shows an example of aggregating, then using the entire row to give a summary.
+        Below shows an example of aggregating with full width rows for groups. The following can be noted:
     </p>
 
-    <p>We use Components for the groupRowRenderer in this example.</p>
+    <ul>
+        <li>
+            Each group spans the width of the grid.
+        </li>
+        <li>
+            Each group uses a custom Cell Renderer. The cell renderer shows the aggregation data for each medal type.
+        </li>
+        <li>
+            Each medal column is editable, you can change the number of medals for any of the athletes.
+        </li>
+        <li>
+            The column Year has a filter on it.
+        </li>
+        <li>
+            The cell renderer has logic listening for changes to filtering and data cell changes*. This means the
+            aggregation data in the full with row is updated if:
+            <ol>
+                <li>If you edit any cell</li>
+                <li>If you filter the data (ie take rows out).</li>
+            </ol>
+        </li>
+    </ul>
+
+    <p>
+        <i>
+            * This is true for Vanilla Javascript and React. Angular uses data binding and thus the aggregation data
+            updates automatically without needing to listen to events.
+        </i>
+    </p>
 
     <?= example('Full Width Groups Rendering', 'full-width-groups-rendering', 'generated', array("enterprise" => 1, "processVue" => true)) ?>
-
-    <h2>Full Width Group Rows - Embedding</h2>
-
-    <p>
-        You have two choices when using full width groups using the property <code>embedFullWidthRows</code> as follows:
-</p>
-    <ul class="content">
-        <li><b>embedFullWidthRows = false: </b> The group row will always
-            span the width of the grid including pinned areas and is not impacted by horizontal scrolling.
-            This is the most common usage and thus the default. The only drawback is that for some
-            browsers (IE in particular), as you scroll vertically, the group row will lag behind the other rows.</li>
-        <li><b>embedFullWidthRows = true: </b> The group row will be split into three sections for center,
-            pinned left and pinned right. This is not ideal but works much faster with no IE issues.</li>
-    </ul>
-    <p>
-    So you might ask which one to use? The answer is the first one (just leave the property out, it's defaulted
-    to false) unless you want to avoid IE performance issues.
-    </p>
-
-    <p> The examples below demonstrate embedFullWidthRows on and off as follows:</p>
-
-    <ul class="content">
-        <li>Both grids have columns pinned left and right.</li>
-        <li>Both grids have group rows spanning the grid width.</li>
-        <li>The top grid as embedFullWidthRows=false, the bottom grid has embedFullWidthRows=true.</li>
-    </ul>
-
-    <p>So with this setup, you will notice the following difference:</p>
-
-    <ul class="content">
-        <li>
-            In the top grid, the group rows are not impacted by the pinning. In the bottom grid,
-            the groups are truncated if you make the Athlete & Year columns to small,
-            as the groups are sitting in the pinned section.
-        </li>
-        <li>
-            In the bottom grid, if you unpin the columns (via the column menu) then the group jumps
-            to the center.
-        </li>
-    </ul>
-
-    <?= example('Full Width Group Rows - embedFullWidthRows=false', 'full-width-group-rows-embedding-false', 'generated', array("enterprise" => 1, "exampleHeight" => 200, "processVue" => true)) ?>
-    <?= example('Full Width Group Rows - embedFullWidthRows=true', 'full-width-group-rows-embedding-true', 'generated', array("enterprise" => 1, "exampleHeight" => 200, "processVue" => true)) ?>
-
-    <p>
-        If you are using custom group row rendering (explained below) and embedFullWidthRows = true, the panel
-        you are rendering in is provided via the <code>pinned</code> parameter.
-    </p>
-
 
     <h2 id="default-group-order">Default Group Order</h2>
 
@@ -784,9 +765,10 @@ coldefs:[
     // The column we are grouping by, it is also hidden.
     {headerName: "Country", field: "country", width: 120, rowGroup:true, hide:true},
     // We appoint this column as the column to show the country groups.
-    // note that we need to provide an appropiate cell renderer.
+    // note that we need to provide an appropriate cell renderer.
     // in this case we are using the out of the box group cell renderer.
-    {headerName: "Country - group", showRowGroup='country', width: 120, cellRenderer:'agGroupCellRenderer'},
+    {headerName: "Country - group", showRowGroup: 'country', width: 120,
+     cellRenderer:'agGroupCellRenderer'},
 ]</snippet>
 
     <p>The following example shows how to appoint individual columns to show individual groups</p>

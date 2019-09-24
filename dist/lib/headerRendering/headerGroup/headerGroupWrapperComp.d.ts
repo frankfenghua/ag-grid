@@ -1,6 +1,7 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
+import { ColGroupDef } from "../../entities/colDef";
 import { Component } from "../../widgets/component";
 import { ColumnGroup } from "../../entities/columnGroup";
 import { DragItem, DropTarget } from "../../dragAndDrop/dragAndDropService";
@@ -10,8 +11,7 @@ export declare class HeaderGroupWrapperComp extends Component {
     private columnController;
     private horizontalResizeService;
     private dragAndDropService;
-    private context;
-    private componentRecipes;
+    private userComponentFactory;
     private gridApi;
     private columnApi;
     private beans;
@@ -29,6 +29,9 @@ export declare class HeaderGroupWrapperComp extends Component {
     constructor(columnGroup: ColumnGroup, dragSourceDropTarget: DropTarget, pinned: string);
     private postConstruct;
     private setupMovingCss;
+    getColumn(): ColumnGroup;
+    getComponentHolder(): ColGroupDef;
+    getTooltipText(): string | undefined;
     private setupTooltip;
     private onColumnMovingChanged;
     private addAttributes;

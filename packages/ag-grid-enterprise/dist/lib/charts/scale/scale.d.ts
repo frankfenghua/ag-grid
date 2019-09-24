@@ -1,10 +1,11 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 export default interface Scale<D, R> {
     domain: D[];
     range: R[];
     convert(value: D): R;
     invert?(value: R): D;
     ticks?(count: number): D[];
+    nice?(count: number): void;
     bandwidth?: number;
 }
 export declare type Reinterpolator<T> = (t: number) => T;

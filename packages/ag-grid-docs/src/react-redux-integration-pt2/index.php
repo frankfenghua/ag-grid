@@ -183,7 +183,12 @@ const mapStateToProps = (state) => ({files: state.files});
 const mapDispatchToProps = (dispatch) => ({actions: bindActionCreators(actions, dispatch)});
 
 // connect our component to the redux store
-export default connect(mapStateToProps, mapDispatchToProps)(FileBrowser);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+    null,
+    { forwardRef: true } // must be supplied for react/redux when using GridOptions.reactNext
+)(FileBrowser);
 </snippet>
     <p>
         In the code above we pass two functions to <code>connect</code> to map the required state (mapStateToProps) and
@@ -462,5 +467,21 @@ autoGroupColumnDef = {
         <li>Delta Row Updates</li>
         <li>Custom Cell Renderer Components</li>
     </ul>
-
+<div class="card" style="background-color: aliceblue">
+  <div class="card-body">
+<h2 id="angular-grid-resources" style="margin-top: 10px"> 
+    React Grid Resources
+</h2>
+<br/>
+<ul>
+    <li>
+        Get started with React Grid in 5 minutes in our <strong><a href="../react-getting-started/" target="_blank">guide</a></strong>.
+    </li>
+    <br/>
+    <li>
+        Browse our <strong><a href="../best-react-data-grid/" target="_blank">React Grid</a></strong> page to discover all major benefits in using ag-Grid React. 
+    </li>
+</ul>
+</div>
+</div>
 <?php include '../documentation-main/documentation_footer.php'; ?>

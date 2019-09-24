@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -39,8 +39,9 @@ var AutoHeightCalculator = /** @class */ (function () {
         var eBodyContainer = this.gridPanel.getCenterContainer();
         eBodyContainer.appendChild(this.eDummyContainer);
         var cellComps = [];
-        var cols = this.columnController.getAllAutoRowHeightCols();
-        cols.forEach(function (col) {
+        var autoRowHeightCols = this.columnController.getAllAutoRowHeightCols();
+        var visibleAutoRowHeightCols = autoRowHeightCols.filter(function (col) { return col.isVisible(); });
+        visibleAutoRowHeightCols.forEach(function (col) {
             var cellComp = new cellComp_1.CellComp(_this.$scope, _this.beans, col, rowNode, null, true, false);
             cellComp.setParentRow(_this.eDummyContainer);
             cellComps.push(cellComp);
@@ -67,7 +68,7 @@ var AutoHeightCalculator = /** @class */ (function () {
             cellComp.destroy();
         });
         // in case anything left over from last time
-        utils_1._.removeAllChildren(this.eDummyContainer);
+        utils_1._.clearElement(this.eDummyContainer);
         return maxCellHeight;
     };
     __decorate([

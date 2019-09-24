@@ -3,7 +3,6 @@ import {
     Column,
     ColumnController,
     Component,
-    Context,
     Events,
     EventService,
     GridOptionsWrapper,
@@ -14,26 +13,24 @@ import {
 } from "ag-grid-community/main";
 import { ToolPanelColumnCompParams } from "../../columnToolPanel";
 
-export enum SELECTED_STATE {CHECKED, UNCHECKED, INDETERMINIATE}
+export enum SELECTED_STATE { CHECKED, UNCHECKED, INDETERMINATE }
 
 export class PrimaryColsHeaderPanel extends Component {
-
-    @Autowired('context') private context: Context;
 
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('eventService') private eventService: EventService;
 
     @RefSelector('eFilterTextField')
+
     private eFilterTextField: HTMLInputElement;
+    private eSelectChecked: HTMLElement;
+    private eSelectUnchecked: HTMLElement;
+    private eSelectIndeterminate: HTMLElement;
 
-    @RefSelector('eSelectChecked') private eSelectChecked: HTMLElement;
-    @RefSelector('eSelectUnchecked') private eSelectUnchecked: HTMLElement;
-    @RefSelector('eSelectIndeterminate') private eSelectIndeterminate: HTMLElement;
-
-    @RefSelector('eExpandChecked') private eExpandChecked: HTMLElement;
-    @RefSelector('eExpandUnchecked') private eExpandUnchecked: HTMLElement;
-    @RefSelector('eExpandIndeterminate') private eExpandIndeterminate: HTMLElement;
+    private eExpandChecked: HTMLElement;
+    private eExpandUnchecked: HTMLElement;
+    private eExpandIndeterminate: HTMLElement;
 
     @RefSelector('eExpand') private eExpand: HTMLElement;
     @RefSelector('eSelect') private eSelect: HTMLElement;
@@ -44,56 +41,67 @@ export class PrimaryColsHeaderPanel extends Component {
     private expandState: SELECTED_STATE = SELECTED_STATE.CHECKED;
     private selectState: SELECTED_STATE = SELECTED_STATE.CHECKED;
 
-    private props: {
-        params: ToolPanelColumnCompParams;
-    };
+    private params: ToolPanelColumnCompParams;
 
     @PreConstruct
     private preConstruct(): void {
         const translate = this.gridOptionsWrapper.getLocaleTextFunc();
 
         this.setTemplate(
-            `<div class="ag-primary-cols-header-panel">
-            <a href="javascript:void(0)" (click)="onExpandClicked" ref="eExpand">
-                <span class="ag-icon ag-icon-tree-open" ref="eExpandChecked"></span>
-                <span class="ag-icon ag-icon-tree-closed" ref="eExpandUnchecked"></span>
-                <span class="ag-icon ag-icon ag-icon-tree-indeterminate" ref="eExpandIndeterminate"></span>
-            </a>
-            <a href="javascript:void(0)" (click)="onSelectClicked" ref="eSelect">
-                <span class="ag-icon ag-icon-checkbox-checked" ref="eSelectChecked"></span>
-                <span class="ag-icon ag-icon-checkbox-unchecked" ref="eSelectUnchecked"></span>
-                <span class="ag-icon ag-icon-checkbox-indeterminate" ref="eSelectIndeterminate"></span>
-            </a>
-            <div class="ag-input-text-wrapper ag-primary-cols-filter-wrapper" ref="eFilterWrapper">
-                <input class="ag-primary-cols-filter" ref="eFilterTextField" type="text" placeholder="${translate('filterOoo', 'Filter...')}" (input)="onFilterTextChanged">        
+        `<div class="ag-primary-cols-header-panel" role="presentation">
+            <div ref="eExpand"></div>
+            <div ref="eSelect"></div>
+            <div class="ag-input-wrapper ag-primary-cols-filter-wrapper" ref="eFilterWrapper" role="presentation">
+                <input class="ag-primary-cols-filter" ref="eFilterTextField" type="text" placeholder="${translate('filterOoo', 'Filter...')}">        
             </div>
         </div>`);
     }
 
     @PostConstruct
-    public init(params: ToolPanelColumnCompParams): void {
-        this.instantiate(this.context);
+    public postConstruct(): void {
         this.addEventListeners();
+        this.createExpandIcons();
+        this.createCheckIcons();
+        this.setExpandState(SELECTED_STATE.CHECKED);
+
+        this.addDestroyableEventListener(this.eExpand, 'click', this.onExpandClicked.bind(this));
+        this.addDestroyableEventListener(this.eSelect, 'click', this.onSelectClicked.bind(this));
+        this.addDestroyableEventListener(this.eFilterTextField, 'input', this.onFilterTextChanged.bind(this));
+    }
+
+    public init(params: ToolPanelColumnCompParams): void {
+        this.params = params;
 
         if (this.columnController.isReady()) {
             this.setColumnsCheckedState();
             this.showOrHideOptions();
         }
-        this.setExpandState(SELECTED_STATE.CHECKED);
+    }
+
+    private createExpandIcons() {
+        this.eExpand.appendChild(this.eExpandChecked = _.createIconNoSpan('columnSelectOpen', this.gridOptionsWrapper));
+        this.eExpand.appendChild(this.eExpandUnchecked = _.createIconNoSpan('columnSelectClosed', this.gridOptionsWrapper));
+        this.eExpand.appendChild(this.eExpandIndeterminate = _.createIconNoSpan('columnSelectIndeterminate', this.gridOptionsWrapper));
+    }
+
+    private createCheckIcons() {
+        this.eSelect.appendChild(this.eSelectChecked = _.createIconNoSpan('checkboxChecked', this.gridOptionsWrapper));
+        this.eSelect.appendChild(this.eSelectUnchecked = _.createIconNoSpan('checkboxUnchecked', this.gridOptionsWrapper));
+        this.eSelect.appendChild(this.eSelectIndeterminate =  _.createIconNoSpan('checkboxIndeterminate', this.gridOptionsWrapper));
     }
 
     // we only show expand / collapse if we are showing columns
     private showOrHideOptions(): void {
 
-        const showFilter = !this.props.params.suppressColumnFilter;
-        const showSelect = !this.props.params.suppressColumnSelectAll;
-        const showExpand = !this.props.params.suppressColumnExpandAll;
+        const showFilter = !this.params.suppressColumnFilter;
+        const showSelect = !this.params.suppressColumnSelectAll;
+        const showExpand = !this.params.suppressColumnExpandAll;
 
         const groupsPresent = this.columnController.isPrimaryColumnGroupsPresent();
 
-        _.setVisible(this.eFilterWrapper, showFilter);
-        _.setVisible(this.eSelect, showSelect);
-        _.setVisible(this.eExpand, showExpand && groupsPresent);
+        _.setDisplayed(this.eFilterWrapper, showFilter);
+        _.setDisplayed(this.eSelect, showSelect);
+        _.setDisplayed(this.eExpand, showExpand && groupsPresent);
     }
 
     private addEventListeners(): void {
@@ -149,9 +157,9 @@ export class PrimaryColsHeaderPanel extends Component {
     public setExpandState(state: SELECTED_STATE): void {
         this.expandState = state;
 
-        _.setVisible(this.eExpandChecked, this.expandState === SELECTED_STATE.CHECKED);
-        _.setVisible(this.eExpandUnchecked, this.expandState === SELECTED_STATE.UNCHECKED);
-        _.setVisible(this.eExpandIndeterminate, this.expandState === SELECTED_STATE.INDETERMINIATE);
+        _.setDisplayed(this.eExpandChecked, this.expandState === SELECTED_STATE.CHECKED);
+        _.setDisplayed(this.eExpandUnchecked, this.expandState === SELECTED_STATE.UNCHECKED);
+        _.setDisplayed(this.eExpandIndeterminate, this.expandState === SELECTED_STATE.INDETERMINATE);
     }
 
     private setColumnsCheckedState(): void {
@@ -159,7 +167,7 @@ export class PrimaryColsHeaderPanel extends Component {
         const allPrimaryColumns = this.columnController.getAllPrimaryColumns();
         let columns: Column[] = [];
         if (allPrimaryColumns !== null) {
-            columns = allPrimaryColumns.filter(col => !col.isLockVisible())
+            columns = allPrimaryColumns.filter(col => !col.getColDef().lockVisible);
         }
         const pivotMode = this.columnController.isPivotMode();
 
@@ -169,7 +177,7 @@ export class PrimaryColsHeaderPanel extends Component {
         columns.forEach(col => {
 
             // ignore lock visible columns
-            if (col.isLockVisible()) {
+            if (col.getColDef().lockVisible) {
                 return;
             }
 
@@ -198,15 +206,15 @@ export class PrimaryColsHeaderPanel extends Component {
         });
 
         if (checkedCount > 0 && uncheckedCount > 0) {
-            this.selectState = SELECTED_STATE.INDETERMINIATE;
+            this.selectState = SELECTED_STATE.INDETERMINATE;
         } else if (uncheckedCount > 0) {
             this.selectState = SELECTED_STATE.UNCHECKED;
         } else {
             this.selectState = SELECTED_STATE.CHECKED;
         }
 
-        _.setVisible(this.eSelectChecked, this.selectState === SELECTED_STATE.CHECKED);
-        _.setVisible(this.eSelectUnchecked, this.selectState === SELECTED_STATE.UNCHECKED);
-        _.setVisible(this.eSelectIndeterminate, this.selectState === SELECTED_STATE.INDETERMINIATE);
+        _.setDisplayed(this.eSelectChecked, this.selectState === SELECTED_STATE.CHECKED);
+        _.setDisplayed(this.eSelectUnchecked, this.selectState === SELECTED_STATE.UNCHECKED);
+        _.setDisplayed(this.eSelectIndeterminate, this.selectState === SELECTED_STATE.INDETERMINATE);
     }
 }

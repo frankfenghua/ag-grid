@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -28,19 +28,19 @@ var nameValueComp_1 = require("./nameValueComp");
 var SelectedRowsComp = /** @class */ (function (_super) {
     __extends(SelectedRowsComp, _super);
     function SelectedRowsComp() {
-        return _super.call(this, 'selectedRowCount', 'Selected') || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     SelectedRowsComp.prototype.postConstruct = function () {
-        _super.prototype.postConstruct.call(this);
         if (!this.isValidRowModel()) {
             console.warn("ag-Grid: agSelectedRowCountComponent should only be used with the client and server side row model.");
             return;
         }
+        this.setLabel('selectedRows', 'Selected');
         this.addCssClass('ag-status-panel');
         this.addCssClass('ag-status-panel-selected-row-count');
         var selectedRowCount = this.gridApi.getSelectedRows().length;
         this.setValue(selectedRowCount);
-        this.setVisible(selectedRowCount > 0);
+        this.setDisplayed(selectedRowCount > 0);
         var eventListener = this.onRowSelectionChanged.bind(this);
         this.eventService.addEventListener(ag_grid_community_1.Events.EVENT_MODEL_UPDATED, eventListener);
         this.eventService.addEventListener(ag_grid_community_1.Events.EVENT_SELECTION_CHANGED, eventListener);
@@ -53,7 +53,7 @@ var SelectedRowsComp = /** @class */ (function (_super) {
     SelectedRowsComp.prototype.onRowSelectionChanged = function () {
         var selectedRowCount = this.gridApi.getSelectedRows().length;
         this.setValue(selectedRowCount);
-        this.setVisible(selectedRowCount > 0);
+        this.setDisplayed(selectedRowCount > 0);
     };
     SelectedRowsComp.prototype.init = function () {
     };

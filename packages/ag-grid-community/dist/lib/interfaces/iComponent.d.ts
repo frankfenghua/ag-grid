@@ -1,10 +1,9 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Promise } from "../utils";
-export interface IAfterGuiAttachedParams {
-    hidePopup: () => void;
-}
+import { IAfterGuiAttachedParams } from "./iAfterGuiAttachedParams";
+/** This is for User Components only, do not implement this for internal components. */
 export interface IComponent<T> {
     /** Return the DOM element of your editor, this is what the grid puts into the DOM */
     getGui(): HTMLElement;

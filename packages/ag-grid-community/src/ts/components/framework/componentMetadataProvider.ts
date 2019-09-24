@@ -1,6 +1,6 @@
 import { Autowired, Bean, PostConstruct } from "../../context/context";
 import { IComponent } from "../../interfaces/iComponent";
-import { AgGridComponentFunctionInput } from "./componentProvider";
+import { AgGridComponentFunctionInput } from "./userComponentRegistry";
 import { AgComponentUtils } from "./agComponentUtils";
 
 export interface ComponentMetadata {
@@ -25,13 +25,17 @@ export class ComponentMetadataProvider {
             },
             detailCellRenderer: {
                 mandatoryMethodList: [],
-                optionalMethodList: []
+                optionalMethodList: ['refresh']
             },
             headerComponent: {
                 mandatoryMethodList: [],
                 optionalMethodList: []
             },
             headerGroupComponent: {
+                mandatoryMethodList: [],
+                optionalMethodList: []
+            },
+            loadingCellRenderer: {
                 mandatoryMethodList: [],
                 optionalMethodList: []
             },
@@ -67,7 +71,7 @@ export class ComponentMetadataProvider {
             },
             fullWidthCellRenderer: {
                 mandatoryMethodList: [],
-                optionalMethodList: ['afterGuiAttached'],
+                optionalMethodList: ['refresh', 'afterGuiAttached'],
                 functionAdapter: this.agComponentUtils.adaptCellRendererFunction.bind(this.agComponentUtils)
             },
             pinnedRowCellRenderer: {
@@ -100,6 +104,10 @@ export class ComponentMetadataProvider {
             toolPanel: {
                 mandatoryMethodList: [],
                 optionalMethodList: ['refresh', 'afterGuiAttached']
+            },
+            tooltipComponent: {
+                mandatoryMethodList: [],
+                optionalMethodList: []
             }
         };
     }

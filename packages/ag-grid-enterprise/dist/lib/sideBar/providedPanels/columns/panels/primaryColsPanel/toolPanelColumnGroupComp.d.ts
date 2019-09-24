@@ -1,20 +1,21 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { Component, OriginalColumnGroup } from "ag-grid-community/main";
 import { BaseColumnItem } from "./primaryColsPanel";
 export declare class ToolPanelColumnGroupComp extends Component implements BaseColumnItem {
     private static TEMPLATE;
     private gridOptionsWrapper;
     private columnController;
-    private context;
     private dragAndDropService;
     private eventService;
     private cbSelect;
+    private eLabel;
+    private eGroupOpenedIcon;
+    private eGroupClosedIcon;
+    private eColumnGroupIcons;
     private eDragHandle;
     private columnGroup;
     private expanded;
     private columnDept;
-    private eGroupClosedIcon;
-    private eGroupOpenedIcon;
     private expandedCallback;
     private allowDragging;
     private displayName;

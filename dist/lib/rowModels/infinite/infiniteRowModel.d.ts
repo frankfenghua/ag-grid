@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowNode } from "../../entities/rowNode";
@@ -12,15 +12,16 @@ export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     private sortController;
     private selectionController;
     private eventService;
-    private context;
     private gridApi;
     private columnApi;
+    private rowRenderer;
     private infiniteCache;
     private rowNodeBlockLoader;
     private datasource;
     private rowHeight;
     private cacheParams;
     getRowBounds(index: number): RowBounds;
+    ensureRowHeightsValid(startPixel: number, endPixel: number, startLimitIndex: number, endLimitIndex: number): boolean;
     init(): void;
     private destroyDatasource;
     isLastRowFound(): boolean;
@@ -29,7 +30,6 @@ export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     private onSortChanged;
     private onColumnEverything;
     private isSortModelDifferent;
-    destroy(): void;
     getType(): string;
     setDatasource(datasource: IDatasource | undefined): void;
     private checkForDeprecated;
@@ -45,9 +45,9 @@ export declare class InfiniteRowModel extends BeanStub implements IRowModel {
     getRowNode(id: string): RowNode | null;
     forEachNode(callback: (rowNode: RowNode, index: number) => void): void;
     getCurrentPageHeight(): number;
+    getTopLevelRowCount(): number;
+    getTopLevelRowDisplayedIndex(topLevelIndex: number): number;
     getRowIndexAtPixel(pixel: number): number;
-    getPageFirstRow(): number;
-    getPageLastRow(): number;
     getRowCount(): number;
     updateRowData(transaction: RowDataTransaction): void;
     isRowPresent(rowNode: RowNode): boolean;

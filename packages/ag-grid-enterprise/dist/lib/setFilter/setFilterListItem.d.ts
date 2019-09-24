@@ -1,12 +1,12 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { AgEvent, Column, Component } from "ag-grid-community";
 export interface SelectedEvent extends AgEvent {
 }
 export declare class SetFilterListItem extends Component {
     static EVENT_SELECTED: string;
     private gridOptionsWrapper;
-    private cellRendererService;
     private valueFormatterService;
+    private userComponentFactory;
     private static TEMPLATE;
     private eCheckbox;
     private eClickableArea;
@@ -16,6 +16,7 @@ export declare class SetFilterListItem extends Component {
     private eCheckedIcon;
     private eUncheckedIcon;
     constructor(value: any, column: Column);
+    private useCellRenderer;
     private init;
     isSelected(): boolean;
     setSelected(selected: boolean): void;

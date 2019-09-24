@@ -23,14 +23,14 @@ meta_and_links($title, $keywords, $description, false);
 
         <section id="punch">
             <div id="doodle-container">
-                <div id="doodle-misc"><img inline src="_assets/doodles/misc.svg" /></div>
-                <div id="doodle-checkbox-selection"><img inline src="_assets/doodles/checkbox-selection.svg" /></div>
-                <div id="doodle-context-menu"><img inline src="_assets/doodles/context-menu.svg" /></div>
-                <div id="doodle-editing"><img inline src="_assets/doodles/editing.svg" /></div>
-                <div id="doodle-range-selection"><img inline src="_assets/doodles/range-selection.svg" /></div>
-                <div id="doodle-quick-filter"><img inline src="_assets/doodles/quick-filter.svg" /></div>
-                <div id="doodle-tree-data"><img inline src="_assets/doodles/tree-data.svg" /></div>
-                <div id="doodle-column-menu"><img inline src="_assets/doodles/column-menu.svg" /></div>
+                <div id="doodle-misc"><img inline src="_assets/doodles/misc.svg" alt="doodle-misc" /></div>
+                <div id="doodle-checkbox-selection"><img inline src="_assets/doodles/checkbox-selection.svg" alt="doodle-checkbox-selection" /></div>
+                <div id="doodle-context-menu"><img inline src="_assets/doodles/context-menu.svg" alt="doodle-context-menu" /></div>
+                <div id="doodle-editing"><img inline src="_assets/doodles/editing.svg" alt="doodle-editing" /></div>
+                <div id="doodle-range-selection"><img inline src="_assets/doodles/range-selection.svg" alt="doodle-range-selection" /></div>
+                <div id="doodle-quick-filter"><img inline src="_assets/doodles/quick-filter.svg" alt="doodle-quick-filter" /></div>
+                <div id="doodle-tree-data"><img inline src="_assets/doodles/tree-data.svg" alt="doodle-tree-data" /></div>
+                <div id="doodle-column-menu"><img inline src="_assets/doodles/column-menu.svg" alt="doodle-column-menu" /></div>
             </div>
 
             <div>
@@ -43,7 +43,7 @@ meta_and_links($title, $keywords, $description, false);
 
                 <ul id="homepage-highlights">
                     <li>
-                        Over <strong>1,500</strong> Companies
+                        Over <strong>2,500</strong> Companies
                         use ag-Grid Enterprise.
                     </li>
 
@@ -53,13 +53,12 @@ meta_and_links($title, $keywords, $description, false);
                     </li>
 
                     <li>
-                        Over <strong>200,000</strong>
+                        Over <strong>500,000</strong>
                         Downloads per month.
                     </li>
                 </ul>
 
-                <a href="/javascript-grid-getting-started/" id="free-cta">Use Free Version</a>
-                <a href="/start-trial.php" id="enterprise-cta">Trial Enterprise Version</a>
+                <a href="/javascript-grid-getting-started/" id="free-cta">Get Started</a>
             </div>
         </section>
     </header>
@@ -67,7 +66,7 @@ meta_and_links($title, $keywords, $description, false);
     <div id="stage-frameworks">
         <section id="news-flash">
             <div>
-                11th Jan 2019: <a href="./ag-grid-changelog/?fixVersion=20.0.0">Version 20.0.0</a> Server Side Master Detail, Vue.js improvements and bug fixes
+                30th Aug 2019: <a href="./ag-grid-changelog/?fixVersion=21.2.0">Version 21.2.0</a> Pivot Chart, Pagination Enhancements, Scatter / Bubble Charts, Accessibility Enhancements ...
             </div>
         </section>
 
@@ -85,13 +84,12 @@ meta_and_links($title, $keywords, $description, false);
 
             <div>
                 <ul id="frameworks">
-                    <li id="fw-javascript"><a href="./best-javascript-data-grid/">JavaScript</a></li>
-                    <li id="fw-angular"><a href="./best-angular-2-data-grid/">Angular</a></li>
-                    <li id="fw-react"><a href="./best-react-data-grid/">React</a></li>
-                    <li id="fw-vue"><a href="./best-vuejs-data-grid/">Vue.js</a></li>
+                    <li id="fw-javascript"><a href="./javascript-getting-started/">JavaScript</a></li>
+                    <li id="fw-angular"><a href="./angular-getting-started/">Angular</a></li>
+                    <li id="fw-react"><a href="./react-getting-started/">React</a></li>
+                    <li id="fw-vue"><a href="./vue-getting-started/">Vue.js</a></li>
                     <li id="fw-angularjs"><a href="./best-angularjs-data-grid/">AngularJS 1.x</a></li>
-                    <li id="fw-polymer"><a href="./best-polymer-data-grid/">Polymer</a></li>
-                    <li id="fw-aurelia"><a href="./best-aurelia-data-grid/">Aurelia</a></li>
+                    <li id="fw-polymer"><a href="./polymer-getting-started/">Polymer</a></li>
                     <li id="fw-webcomponents"><a href="./best-web-component-data-grid/">Web Components</a></li>
                 </ul>
             </div>
@@ -104,8 +102,8 @@ meta_and_links($title, $keywords, $description, false);
         <section>
             <div class="demo" id="demo-1" data-load="home/demo-1.php">
                 <div class="loading">
-                <img src="_assets/doodles/checkbox-selection.svg">
-                <p>Loading Demo...</p>
+                    <img src="_assets/doodles/checkbox-selection.svg" alt="Loading..." />
+                    <p>Loading Demo...</p>
                 </div>
                 <div class="view-code">
                     <a href="/javascript-getting-started#summary">View Code</a>
@@ -123,7 +121,7 @@ meta_and_links($title, $keywords, $description, false);
 
             <div>
                 <div class="media">
-                    <img src="_assets/fw-logos/webpack.svg" />
+                    <img src="_assets/fw-logos/webpack.svg" alt="Webpack" />
                     <div class="media-body">
                         <h3>Webpack</h3>
                         <p><a href="/ag-grid-partners-with-webpack/">Read about our Partnership with webpack.</a></p>
@@ -131,7 +129,7 @@ meta_and_links($title, $keywords, $description, false);
                 </div>
 
                 <div class="media">
-                    <img src="_assets/fw-logos/plunker.svg" />
+                    <img src="_assets/fw-logos/plunker.svg" alt="Plunker" />
                     <div class="media-body">
                         <h3>Plunker</h3>
                         <p><a href="/ag-grid-proud-to-support-plunker/">Read about our Backing of Plunker.</a></p>
@@ -147,15 +145,31 @@ meta_and_links($title, $keywords, $description, false);
         <section>
             <div class="demo" id="demo-2" data-load="home/demo-2.php">
                 <div class="loading">
-                <img src="_assets/doodles/checkbox-selection.svg">
-                <p>Loading Demo...</p>
+                    <img src="_assets/doodles/checkbox-selection.svg" alt="Loading..." />
+                    <p>Loading Demo...</p>
                 </div>
                 <div class="view-code">
                     &nbsp;
                 </div>
             </div>
         </section>
-</div>
+    </div>
+
+    <div class="stage-scenarios">
+        <h2 class="heading-scenarios">Integrated Charting</h2>
+
+        <section>
+            <div class="demo" id="demo-2" data-load="home/demo-3.php">
+                <div class="loading">
+                    <img src="_assets/doodles/checkbox-selection.svg" alt="Loading..." />
+                    <p>Loading Demo...</p>
+                </div>
+                <div class="view-code">
+                    &nbsp;
+                </div>
+            </div>
+        </section>
+    </div>
 
     <div id="stage-testimonials">
         <section>
@@ -214,8 +228,8 @@ meta_and_links($title, $keywords, $description, false);
         <section>
             <div class="demo" data-load="home/demo-api.php">
                 <div class="loading">
-                <img src="_assets/doodles/checkbox-selection.svg">
-                <p>Loading Demo...</p>
+                    <img src="_assets/doodles/checkbox-selection.svg" alt="Loading..." />
+                    <p>Loading Demo...</p>
                 </div>
                 <div class="view-code">
                     <a href="/javascript-grid-animation/">View Code</a>

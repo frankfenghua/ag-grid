@@ -1,14 +1,11 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { IComponent } from "./iComponent";
-import { GridPanel } from "../gridPanel/gridPanel";
 export interface ISideBar extends IComponent<any> {
-    registerGridComp(gridPanel: GridPanel): void;
     refresh(): void;
-    setVisible(show: boolean): void;
+    setDisplayed(show: boolean): void;
     isToolPanelShowing(): boolean;
-    getPreferredWidth(): number;
     openToolPanel(key: string): void;
     close(): void;
     reset(): void;

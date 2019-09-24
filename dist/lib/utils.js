@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.0.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -10,7 +10,9 @@ var constants_1 = require("./constants");
 var FUNCTION_STRIP_COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
 var FUNCTION_ARGUMENT_NAMES = /([^\s,]+)/g;
 var AG_GRID_STOP_PROPAGATION = '__ag_Grid_Stop_Propagation';
-// util class, only used when debugging, for printing time to console
+/**
+ * A Util Class only used when debugging for printing time to console
+ */
 var Timer = /** @class */ (function () {
     function Timer() {
         this.timestamp = new Date().getTime();
@@ -23,7 +25,9 @@ var Timer = /** @class */ (function () {
     return Timer;
 }());
 exports.Timer = Timer;
-/** HTML Escapes. */
+/**
+ * HTML Escapes.
+ */
 var HTML_ESCAPES = {
     '&': '&amp;',
     '<': '&lt;',
@@ -35,7 +39,26 @@ var reUnescapedHtml = /[&<>"']/g;
 var Utils = /** @class */ (function () {
     function Utils() {
     }
-    // if the key was passed before, then doesn't execute the func
+    /**
+     * When in IE or Edge, when you are editing a cell, then click on another cell,
+     * the other cell doesn't keep focus, so navigation keys, type to start edit etc
+     * don't work. appears that when you update the dom in IE it looses focus
+     * https://ag-grid.com/forum/showthread.php?tid=4362
+     * @param {HTMLElement} el
+     */
+    Utils.doIeFocusHack = function (el) {
+        if (exports._.isBrowserIE() || exports._.isBrowserEdge()) {
+            if (exports._.missing(document.activeElement) || document.activeElement === document.body) {
+                // console.log('missing focus');
+                el.focus();
+            }
+        }
+    };
+    /**
+     * If the key was passed before, then doesn't execute the func
+     * @param {Function} func
+     * @param {string} key
+     */
     Utils.doOnce = function (func, key) {
         if (this.doOnceFlags[key]) {
             return;
@@ -43,7 +66,12 @@ var Utils = /** @class */ (function () {
         func();
         this.doOnceFlags[key] = true;
     };
-    // got from https://stackoverflow.com/questions/3944122/detect-left-mouse-button-press
+    /**
+     * Checks if event was issued by a left click
+     * from https://stackoverflow.com/questions/3944122/detect-left-mouse-button-press
+     * @param {MouseEvent} mouseEvent
+     * @returns {boolean}
+     */
     Utils.isLeftClick = function (mouseEvent) {
         if ("buttons" in mouseEvent) {
             return mouseEvent.buttons == 1;
@@ -51,8 +79,14 @@ var Utils = /** @class */ (function () {
         var button = mouseEvent.which || mouseEvent.button;
         return button == 1;
     };
-    // returns true if the event is close to the original event by X pixels either vertically or horizontally.
-    // we only start dragging after X pixels so this allows us to know if we should start dragging yet.
+    /**
+     * `True` if the event is close to the original event by X pixels either vertically or horizontally.
+     * we only start dragging after X pixels so this allows us to know if we should start dragging yet.
+     * @param {MouseEvent | TouchEvent} e1
+     * @param {MouseEvent | TouchEvent} e2
+     * @param {number} pixelCount
+     * @returns {boolean}
+     */
     Utils.areEventsNear = function (e1, e2, pixelCount) {
         // by default, we wait 4 pixels before starting the drag
         if (pixelCount === 0) {
@@ -121,15 +155,45 @@ var Utils = /** @class */ (function () {
             return currentObject;
         }
     };
+    Utils.getElementSize = function (el) {
+        var _a = window.getComputedStyle(el), height = _a.height, width = _a.width, paddingTop = _a.paddingTop, paddingRight = _a.paddingRight, paddingBottom = _a.paddingBottom, paddingLeft = _a.paddingLeft, marginTop = _a.marginTop, marginRight = _a.marginRight, marginBottom = _a.marginBottom, marginLeft = _a.marginLeft, boxSizing = _a.boxSizing;
+        return {
+            height: parseFloat(height),
+            width: parseFloat(width),
+            paddingTop: parseFloat(paddingTop),
+            paddingRight: parseFloat(paddingRight),
+            paddingBottom: parseFloat(paddingBottom),
+            paddingLeft: parseFloat(paddingLeft),
+            marginTop: parseFloat(marginTop),
+            marginRight: parseFloat(marginRight),
+            marginBottom: parseFloat(marginBottom),
+            marginLeft: parseFloat(marginLeft),
+            boxSizing: boxSizing
+        };
+    };
+    Utils.getInnerHeight = function (el) {
+        var size = this.getElementSize(el);
+        if (size.boxSizing === 'border-box') {
+            return size.height - size.paddingTop - size.paddingBottom;
+        }
+        return size.height;
+    };
+    Utils.getInnerWidth = function (el) {
+        var size = this.getElementSize(el);
+        if (size.boxSizing === 'border-box') {
+            return size.width - size.paddingLeft - size.paddingRight;
+        }
+        return size.width;
+    };
     Utils.getAbsoluteHeight = function (el) {
-        var styles = window.getComputedStyle(el);
-        var margin = parseFloat(styles.marginTop) + parseFloat(styles.marginBottom);
-        return Math.ceil(el.offsetHeight + margin);
+        var size = this.getElementSize(el);
+        var marginRight = size.marginBottom + size.marginTop;
+        return Math.ceil(el.offsetHeight + marginRight);
     };
     Utils.getAbsoluteWidth = function (el) {
-        var styles = window.getComputedStyle(el);
-        var margin = parseFloat(styles.marginLeft) + parseFloat(styles.marginRight);
-        return Math.ceil(el.offsetWidth + margin);
+        var size = this.getElementSize(el);
+        var marginWidth = size.marginLeft + size.marginRight;
+        return Math.ceil(el.offsetWidth + marginWidth);
     };
     Utils.getScrollLeft = function (element, rtl) {
         var scrollLeft = element.scrollLeft;
@@ -167,11 +231,6 @@ var Utils = /** @class */ (function () {
             }
         }
         element.scrollLeft = value;
-    };
-    Utils.clearElement = function (el) {
-        while (el.firstChild) {
-            el.removeChild(el.firstChild);
-        }
     };
     Utils.iterateNamedNodeMap = function (map, callback) {
         if (!map) {
@@ -288,6 +347,9 @@ var Utils = /** @class */ (function () {
         });
         return object;
     };
+    Utils.flatten = function (arrayOfArrays) {
+        return [].concat.apply([], arrayOfArrays);
+    };
     Utils.parseYyyyMmDdToDate = function (yyyyMmDd, separator) {
         try {
             if (!yyyyMmDd) {
@@ -386,14 +448,23 @@ var Utils = /** @class */ (function () {
             callback(value, index);
         }
     };
-    //Returns true if it is a DOM node
-    //taken from: http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object
+    /**
+     * Returns true if it is a DOM node
+     * taken from: http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object
+     * @param {any} o
+     * @return {boolean}
+     */
     Utils.isNode = function (o) {
         return (typeof Node === "function" ? o instanceof Node :
             o && typeof o === "object" && typeof o.nodeType === "number" && typeof o.nodeName === "string");
     };
-    //Returns true if it is a DOM element
-    //taken from: http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object
+    //
+    /**
+     * Returns true if it is a DOM element
+     * taken from: http://stackoverflow.com/questions/384286/javascript-isdom-how-do-you-check-if-a-javascript-object-is-a-dom-object
+     * @param {any} o
+     * @returns {boolean}
+     */
     Utils.isElement = function (o) {
         return (typeof HTMLElement === "function" ? o instanceof HTMLElement : //DOM2
             o && typeof o === "object" && o !== null && o.nodeType === 1 && typeof o.nodeName === "string");
@@ -401,7 +472,11 @@ var Utils = /** @class */ (function () {
     Utils.isNodeOrElement = function (o) {
         return this.isNode(o) || this.isElement(o);
     };
-    // makes a copy of a node list into a list
+    /**
+     * Makes a copy of a node list into a list
+     * @param {NodeList} nodeList
+     * @returns {Node[]}
+     */
     Utils.copyNodeList = function (nodeList) {
         var childCount = nodeList ? nodeList.length : 0;
         var res = [];
@@ -430,7 +505,7 @@ var Utils = /** @class */ (function () {
             // a key, or '2' for the '2' key. non-printable characters have names, eg 'Enter' or 'Backspace'.
             var printableCharacter = event.key.length === 1;
             // IE11 & Edge treat the numpad del key differently - with numlock on we get "Del" for key,
-            // so this addition checks if its IE11/Edge and handles that specific case the same was as all other browers
+            // so this addition checks if its IE11/Edge and handles that specific case the same was as all other browsers
             var numpadDelWithNumlockOnForEdgeOrIe = Utils.isNumpadDelWithNumlockOnForEdgeOrIe(event);
             return printableCharacter || numpadDelWithNumlockOnForEdgeOrIe;
         }
@@ -440,7 +515,66 @@ var Utils = /** @class */ (function () {
             return Utils.PRINTABLE_CHARACTERS.indexOf(pressedChar) >= 0;
         }
     };
-    //adds all type of change listeners to an element, intended to be a text field
+    /**
+     * Allows user to tell the grid to skip specific keyboard events
+     * @param {GridOptionsWrapper} gridOptionsWrapper
+     * @param {KeyboardEvent} keyboardEvent
+     * @param {RowNode} rowNode
+     * @param {Column} column
+     * @param {boolean} editing
+     * @returns {boolean}
+     */
+    Utils.isUserSuppressingKeyboardEvent = function (gridOptionsWrapper, keyboardEvent, rowNode, column, editing) {
+        var gridOptionsFunc = gridOptionsWrapper.getSuppressKeyboardEventFunc();
+        var colDefFunc = column.getColDef().suppressKeyboardEvent;
+        // if no callbacks provided by user, then do nothing
+        if (!gridOptionsFunc && !colDefFunc) {
+            return false;
+        }
+        var params = {
+            event: keyboardEvent,
+            editing: editing,
+            column: column,
+            api: gridOptionsWrapper.getApi(),
+            node: rowNode,
+            data: rowNode.data,
+            colDef: column.getColDef(),
+            context: gridOptionsWrapper.getContext(),
+            columnApi: gridOptionsWrapper.getColumnApi()
+        };
+        // colDef get first preference on suppressing events
+        if (colDefFunc) {
+            var colDefFuncResult = colDefFunc(params);
+            // if colDef func suppressed, then return now, no need to call gridOption func
+            if (colDefFuncResult) {
+                return true;
+            }
+        }
+        if (gridOptionsFunc) {
+            // if gridOption func, return the result
+            return gridOptionsFunc(params);
+        }
+        else {
+            // otherwise return false, don't suppress, as colDef didn't suppress and no func on gridOptions
+            return false;
+        }
+    };
+    Utils.getCellCompForEvent = function (gridOptionsWrapper, event) {
+        var sourceElement = this.getTarget(event);
+        while (sourceElement) {
+            var renderedCell = gridOptionsWrapper.getDomData(sourceElement, 'cellComp');
+            if (renderedCell) {
+                return renderedCell;
+            }
+            sourceElement = sourceElement.parentElement;
+        }
+        return null;
+    };
+    /**
+     * Adds all type of change listeners to an element, intended to be a text field
+     * @param {HTMLElement} element
+     * @param {EventListener} listener
+     */
     Utils.addChangeListener = function (element, listener) {
         element.addEventListener("changed", listener);
         element.addEventListener("paste", listener);
@@ -450,15 +584,17 @@ var Utils = /** @class */ (function () {
         element.addEventListener("keydown", listener);
         element.addEventListener("keyup", listener);
     };
-    //if value is undefined, null or blank, returns null, otherwise returns the value
+    /**
+     * If value is undefined, null or blank, returns null, otherwise returns the value
+     * @param {T} value
+     * @returns {T | null}
+     */
     Utils.makeNull = function (value) {
         var valueNoType = value;
         if (value === null || value === undefined || valueNoType === "") {
             return null;
         }
-        else {
-            return value;
-        }
+        return value;
     };
     Utils.missing = function (value) {
         return !this.exists(value);
@@ -499,11 +635,9 @@ var Utils = /** @class */ (function () {
     Utils.existsAndNotEmpty = function (value) {
         return value != null && this.exists(value) && value.length > 0;
     };
-    Utils.removeAllChildren = function (node) {
-        if (node) {
-            while (node.hasChildNodes() && node.lastChild) {
-                node.removeChild(node.lastChild);
-            }
+    Utils.clearElement = function (el) {
+        while (el && el.firstChild) {
+            el.removeChild(el.firstChild);
         }
     };
     Utils.removeElement = function (parent, cssSelector) {
@@ -517,9 +651,16 @@ var Utils = /** @class */ (function () {
     Utils.isVisible = function (element) {
         return (element.offsetParent !== null);
     };
+    Utils.callIfPresent = function (func) {
+        if (func) {
+            func();
+        }
+    };
     /**
-     * loads the template and returns it as an element. makes up for no simple way in
+     * Loads the template and returns it as an element. makes up for no simple way in
      * the dom api to load html directly, eg we cannot do this: document.createElement(template)
+     * @param {string} template
+     * @returns {HTMLElement}
      */
     Utils.loadTemplate = function (template) {
         var tempDiv = document.createElement("div");
@@ -546,9 +687,20 @@ var Utils = /** @class */ (function () {
             this.removeCssClass(element, className);
         }
     };
-    Utils.callIfPresent = function (func) {
-        if (func) {
-            func();
+    /**
+     * This method adds a class to an element and remove that class from all siblings.
+     * Useful for toggling state.
+     * @param {HTMLElement} element The element to receive the class
+     * @param {string} className The class to be assigned to the element
+     * @param {boolean} [inverted] This inverts the effect, adding the class to all siblings and
+     *        removing from the relevant element (useful when adding a class to hide non-selected elements).
+     */
+    Utils.radioCssClass = function (element, className, inverted) {
+        var parent = element.parentElement;
+        var sibling = parent.firstChild;
+        while (sibling) {
+            exports._.addOrRemoveCssClass(sibling, className, inverted ? (sibling !== element) : (sibling === element));
+            sibling = sibling.nextSibling;
         }
     };
     Utils.addCssClass = function (element, className) {
@@ -577,6 +729,25 @@ var Utils = /** @class */ (function () {
                 // do not use element.classList = className here, it will cause
                 // a read-only assignment error on some browsers (IE/Edge).
                 element.setAttribute('class', className);
+            }
+        }
+    };
+    Utils.removeCssClass = function (element, className) {
+        if (element.classList) {
+            if (element.classList.contains(className)) {
+                element.classList.remove(className);
+            }
+        }
+        else {
+            if (element.className && element.className.length > 0) {
+                var cssClasses = element.className.split(' ');
+                if (cssClasses.indexOf(className) >= 0) {
+                    // remove all instances of the item, not just the first, in case it's in more than once
+                    while (cssClasses.indexOf(className) >= 0) {
+                        cssClasses.splice(cssClasses.indexOf(className), 1);
+                    }
+                    element.setAttribute('class', cssClasses.join(' '));
+                }
             }
         }
     };
@@ -625,25 +796,6 @@ var Utils = /** @class */ (function () {
     Utils.sortNumberArray = function (numberArray) {
         numberArray.sort(function (a, b) { return a - b; });
     };
-    Utils.removeCssClass = function (element, className) {
-        if (element.classList) {
-            if (element.classList.contains(className)) {
-                element.classList.remove(className);
-            }
-        }
-        else {
-            if (element.className && element.className.length > 0) {
-                var cssClasses = element.className.split(' ');
-                if (cssClasses.indexOf(className) >= 0) {
-                    // remove all instances of the item, not just the first, in case it's in more than once
-                    while (cssClasses.indexOf(className) >= 0) {
-                        cssClasses.splice(cssClasses.indexOf(className), 1);
-                    }
-                    element.setAttribute('class', cssClasses.join(' '));
-                }
-            }
-        }
-    };
     Utils.removeRepeatsFromArray = function (array, object) {
         if (!array) {
             return;
@@ -657,14 +809,16 @@ var Utils = /** @class */ (function () {
         }
     };
     Utils.removeFromArray = function (array, object) {
-        if (array.indexOf(object) >= 0) {
-            array.splice(array.indexOf(object), 1);
+        var index = array.indexOf(object);
+        if (index >= 0) {
+            array.splice(index, 1);
         }
     };
     Utils.removeAllFromArray = function (array, toRemove) {
         toRemove.forEach(function (item) {
-            if (array.indexOf(item) >= 0) {
-                array.splice(array.indexOf(item), 1);
+            var index = array.indexOf(item);
+            if (index >= 0) {
+                array.splice(index, 1);
             }
         });
     };
@@ -744,6 +898,12 @@ var Utils = /** @class */ (function () {
             return (a > b ? 1 : (a < b ? -1 : 0));
         }
     };
+    Utils.last = function (arr) {
+        if (!arr || !arr.length) {
+            return undefined;
+        }
+        return arr[arr.length - 1];
+    };
     Utils.compareArrays = function (array1, array2) {
         if (this.missing(array1) && this.missing(array2)) {
             return true;
@@ -779,9 +939,9 @@ var Utils = /** @class */ (function () {
         }
         else {
             // otherwise put at start
-            if (eContainer.firstChild) {
+            if (eContainer.firstChild && eContainer.firstChild !== eChild) {
                 // insert it at the first location
-                eContainer.insertBefore(eChild, eContainer.firstChild);
+                eContainer.insertAdjacentElement('afterbegin', eChild);
             }
         }
     };
@@ -861,13 +1021,17 @@ var Utils = /** @class */ (function () {
         // took this from: http://blog.tompawlak.org/number-currency-formatting-javascript
         return (Math.round(value * 100) / 100).toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
     };
-    // the native method number.toLocaleString(undefined, {minimumFractionDigits: 0}) puts in decimal places in IE,
-    // so we use this method instead
+    /**
+     * the native method number.toLocaleString(undefined, {minimumFractionDigits: 0})
+     * puts in decimal places in IE, so we use this method instead
+     * from: http://blog.tompawlak.org/number-currency-formatting-javascript
+     * @param {number} value
+     * @returns {string}
+     */
     Utils.formatNumberCommas = function (value) {
         if (typeof value !== 'number') {
             return '';
         }
-        // took this from: http://blog.tompawlak.org/number-currency-formatting-javascript
         return value.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1,");
     };
     Utils.prependDC = function (parent, documentFragment) {
@@ -881,6 +1045,10 @@ var Utils = /** @class */ (function () {
     /**
      * If icon provided, use this (either a string, or a function callback).
      * if not, then use the default icon from the theme
+     * @param {string} iconName
+     * @param {GridOptionsWrapper} gridOptionsWrapper
+     * @param {Column | null} [column]
+     * @returns {HTMLElement}
      */
     Utils.createIcon = function (iconName, gridOptionsWrapper, column) {
         var iconContents = this.createIconNoSpan(iconName, gridOptionsWrapper, column);
@@ -933,6 +1101,7 @@ var Utils = /** @class */ (function () {
                 throw new Error(iconName + " did not find class");
             }
             span.setAttribute("class", "ag-icon ag-icon-" + cssClass);
+            span.setAttribute("unselectable", "on");
             return span;
         }
     };
@@ -977,24 +1146,20 @@ var Utils = /** @class */ (function () {
         return res;
     };
     Utils.getScrollbarWidth = function () {
-        var outer = document.createElement("div");
-        outer.style.visibility = "hidden";
-        outer.style.width = "100px";
-        outer.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
-        document.body.appendChild(outer);
-        var widthNoScroll = outer.offsetWidth;
-        // force scrollbars
-        outer.style.overflow = "scroll";
-        // add inner div
-        var inner = document.createElement("div");
-        inner.style.width = "100%";
-        outer.appendChild(inner);
-        var widthWithScroll = inner.offsetWidth;
+        var body = document.body;
+        var div = document.createElement("div");
+        div.style.width = div.style.height = "100px";
+        div.style.opacity = "0";
+        div.style.overflow = "scroll";
+        div.style.msOverflowStyle = "scrollbar"; // needed for WinJS apps
+        div.style.position = "absolute";
+        body.appendChild(div);
+        var width = div.offsetWidth - div.clientWidth;
         // remove divs
-        if (outer.parentNode) {
-            outer.parentNode.removeChild(outer);
+        if (div.parentNode) {
+            div.parentNode.removeChild(div);
         }
-        return widthNoScroll - widthWithScroll;
+        return width;
     };
     Utils.hasOverflowScrolling = function () {
         var prefixes = ['webkit', 'moz', 'o', 'ms'];
@@ -1070,7 +1235,8 @@ var Utils = /** @class */ (function () {
     Utils.isBrowserChrome = function () {
         if (this.isChrome === undefined) {
             var win = window;
-            this.isChrome = !!win.chrome && (!!win.chrome.webstore || !!win.chrome.runtime);
+            this.isChrome = (!!win.chrome && (!!win.chrome.webstore || !!win.chrome.runtime)) ||
+                (/Chrome/.test(navigator.userAgent) && /Google Inc/.test(navigator.vendor));
         }
         return this.isChrome;
     };
@@ -1088,11 +1254,28 @@ var Utils = /** @class */ (function () {
         }
         return this.isIPad;
     };
-    // srcElement is only available in IE. In all other browsers it is target
-    // http://stackoverflow.com/questions/5301643/how-can-i-make-event-srcelement-work-in-firefox-and-what-does-it-mean
+    /**
+     * srcElement is only available in IE. In all other browsers it is target
+     * http://stackoverflow.com/questions/5301643/how-can-i-make-event-srcelement-work-in-firefox-and-what-does-it-mean
+     * @param {Event} event
+     * @returns {Element}
+     */
     Utils.getTarget = function (event) {
         var eventNoType = event;
         return eventNoType.target || eventNoType.srcElement;
+    };
+    Utils.isElementChildOfClass = function (element, cls, maxNest) {
+        var counter = 0;
+        while (element) {
+            if (this.containsClass(element, cls)) {
+                return true;
+            }
+            element = element.parentElement;
+            if (maxNest && ++counter > maxNest) {
+                break;
+            }
+        }
+        return false;
     };
     Utils.isElementInEventPath = function (element, event) {
         if (!event || !element) {
@@ -1100,6 +1283,9 @@ var Utils = /** @class */ (function () {
         }
         var path = exports._.getEventPath(event);
         return path.indexOf(element) >= 0;
+    };
+    Utils.isFunction = function (val) {
+        return !!(val && val.constructor && val.call && val.apply);
     };
     Utils.createEventPath = function (event) {
         var res = [];
@@ -1110,16 +1296,24 @@ var Utils = /** @class */ (function () {
         }
         return res;
     };
-    // firefox doesn't have event.path set, or any alternative to it, so we hack
-    // it in. this is needed as it's to late to work out the path when the item is
-    // removed from the dom. used by MouseEventService, where it works out if a click
-    // was from the current grid, or a detail grid (master / detail).
+    /**
+     * firefox doesn't have event.path set, or any alternative to it, so we hack
+     * it in. this is needed as it's to late to work out the path when the item is
+     * removed from the dom. used by MouseEventService, where it works out if a click
+     * was from the current grid, or a detail grid (master / detail).
+     * @param {Event} event
+     */
     Utils.addAgGridEventPath = function (event) {
         event.__agGridEventPath = this.getEventPath(event);
     };
+    /**
+     * Gets the path for an Event.
+     * https://stackoverflow.com/questions/39245488/event-path-undefined-with-firefox-and-vue-js
+     * https://developer.mozilla.org/en-US/docs/Web/API/Event
+     * @param {Event} event
+     * @returns {EventTarget[]}
+     */
     Utils.getEventPath = function (event) {
-        // https://stackoverflow.com/questions/39245488/event-path-undefined-with-firefox-and-vue-js
-        // https://developer.mozilla.org/en-US/docs/Web/API/Event
         var eventNoType = event;
         if (eventNoType.deepPath) {
             // IE supports deep path
@@ -1149,7 +1343,11 @@ var Utils = /** @class */ (function () {
             arrayCopy.forEach(callback);
         }
     };
-    // taken from: http://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+    /**
+     * Gets the document body width
+     * from: http://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+     * @returns {number}
+     */
     Utils.getBodyWidth = function () {
         if (document.body) {
             return document.body.clientWidth;
@@ -1162,7 +1360,11 @@ var Utils = /** @class */ (function () {
         }
         return -1;
     };
-    // taken from: http://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+    /**
+     * Gets the body height
+     * from: http://stackoverflow.com/questions/1038727/how-to-get-browser-width-using-javascript-code
+     * @returns {number}
+     */
     Utils.getBodyHeight = function () {
         if (document.body) {
             return document.body.clientHeight;
@@ -1202,21 +1404,38 @@ var Utils = /** @class */ (function () {
             });
         }
     };
-    // from https://gist.github.com/youssman/745578062609e8acac9f
+    /**
+     * Converts a camelCase string into hyphenated string
+     * from https://gist.github.com/youssman/745578062609e8acac9f
+     * @param {string} str
+     * @return {string}
+     */
     Utils.camelCaseToHyphen = function (str) {
         if (str === null || str === undefined) {
             return null;
         }
         return str.replace(/([A-Z])/g, function (g) { return '-' + g[0].toLowerCase(); });
     };
-    // from https://stackoverflow.com/questions/6660977/convert-hyphens-to-camel-case-camelcase
+    /**
+     * Converts a hyphenated string into camelCase string
+     * from https://stackoverflow.com/questions/6660977/convert-hyphens-to-camel-case-camelcase
+     * @param {string} str
+     * @return {string}
+     */
     Utils.hyphenToCamelCase = function (str) {
         if (str === null || str === undefined) {
             return null;
         }
         return str.replace(/-([a-z])/g, function (g) { return g[1].toUpperCase(); });
     };
-    // pas in an object eg: {color: 'black', top: '25px'} and it returns "color: black; top: 25px;" for html
+    Utils.capitalise = function (str) {
+        return str[0].toUpperCase() + str.substr(1).toLowerCase();
+    };
+    /**
+     * Converts a CSS object into string
+     * @param {Object} stylesToUse an object eg: {color: 'black', top: '25px'}
+     * @return {string} A string like "color: black; top: 25px;" for html
+     */
     Utils.cssStyleObjectToMarkup = function (stylesToUse) {
         var _this = this;
         if (!stylesToUse) {
@@ -1230,7 +1449,10 @@ var Utils = /** @class */ (function () {
         return resParts.join(' ');
     };
     /**
-     * From http://stackoverflow.com/questions/9716468/is-there-any-function-like-isnumeric-in-javascript-to-validate-numbers
+     * Check if a value is numeric
+     * from http://stackoverflow.com/questions/9716468/is-there-any-function-like-isnumeric-in-javascript-to-validate-numbers
+     * @param {any} value
+     * @return {boolean}
      */
     Utils.isNumeric = function (value) {
         if (value === '') {
@@ -1244,7 +1466,6 @@ var Utils = /** @class */ (function () {
         }
         return toEscape.replace(reUnescapedHtml, function (chr) { return HTML_ESCAPES[chr]; });
     };
-    // Taken from here: https://github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
     /**
      * Mouse wheel (and 2-finger trackpad) support on the web sucks.  It is
      * complicated, thus this doc is long and (hopefully) detailed enough to answer
@@ -1344,6 +1565,9 @@ var Utils = /** @class */ (function () {
      *         Firefox v4/OS X  |     undefined    |       1
      *         Firefox v4/Win7  |     undefined    |       3
      *
+     * from: https://github.com/facebook/fixed-data-table/blob/master/src/vendor_upstream/dom/normalizeWheel.js
+     * @param {any} event
+     * @return {any}
      */
     Utils.normalizeWheel = function (event) {
         var PIXEL_STEP = 10;
@@ -1406,7 +1630,11 @@ var Utils = /** @class */ (function () {
         };
     };
     /**
-     * https://stackoverflow.com/questions/24004791/can-someone-explain-the-debounce-function-in-javascript
+     * from https://stackoverflow.com/questions/24004791/can-someone-explain-the-debounce-function-in-javascript
+     * @param {Function} func The function to be debounced
+     * @param {number} wait The time in ms to debounce
+     * @param {boolean} immediate If it should run immediately or wait for the initial debounce delay
+     * @return {Function} The debounced function
      */
     Utils.debounce = function (func, wait, immediate) {
         if (immediate === void 0) { immediate = false; }
@@ -1416,9 +1644,12 @@ var Utils = /** @class */ (function () {
         var timeout;
         // Calling debounce returns a new anonymous function
         return function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i] = arguments[_i];
+            }
             // reference the context and args for the setTimeout function
             var context = this;
-            var args = arguments;
             // Should the function be called now? If immediate is true
             //   and not already in a timeout then the answer is: Yes
             var callNow = immediate && !timeout;
@@ -1446,12 +1677,15 @@ var Utils = /** @class */ (function () {
             }
         };
     };
-    // a user once raised an issue - they said that when you opened a popup (eg context menu)
-    // and then clicked on a selection checkbox, the popup wasn't closed. this is because the
-    // popup listens for clicks on the body, however ag-grid WAS stopping propagation on the
-    // checkbox clicks (so the rows didn't pick them up as row selection selection clicks).
-    // to get around this, we have a pattern to stop propagation for the purposes of ag-Grid,
-    // but we still let the event pass back to teh body.
+    /**
+     * a user once raised an issue - they said that when you opened a popup (eg context menu)
+     * and then clicked on a selection checkbox, the popup wasn't closed. this is because the
+     * popup listens for clicks on the body, however ag-grid WAS stopping propagation on the
+     * checkbox clicks (so the rows didn't pick them up as row selection selection clicks).
+     * to get around this, we have a pattern to stop propagation for the purposes of ag-Grid,
+     * but we still let the event pass back to teh body.
+     * @param {Event} event
+     */
     Utils.stopPropagationForAgGrid = function (event) {
         event[AG_GRID_STOP_PROPAGATION] = true;
     };
@@ -1490,36 +1724,47 @@ var Utils = /** @class */ (function () {
         if (expression.indexOf('.') > -1) {
             var fields = expression.split('.');
             var thisKey = fields[0];
-            var nextValue = source[thisKey];
-            if (nextValue != null) {
-                return Utils.get(nextValue, fields.slice(1, fields.length).join('.'), defaultValue);
+            var nextValue_1 = source[thisKey];
+            if (nextValue_1 != null) {
+                return Utils.get(nextValue_1, fields.slice(1, fields.length).join('.'), defaultValue);
             }
-            else {
-                return defaultValue;
-            }
+            return defaultValue;
+        }
+        var nextValue = source[expression];
+        return nextValue != null ? nextValue : defaultValue;
+    };
+    Utils.addSafePassiveEventListener = function (frameworkOverrides, eElement, event, listener) {
+        var isPassive = Utils.PASSIVE_EVENTS.indexOf(event) >= 0;
+        var isOutsideAngular = Utils.OUTSIDE_ANGULAR_EVENTS.indexOf(event) >= 0;
+        var options = isPassive ? { passive: true } : undefined;
+        if (isOutsideAngular) {
+            frameworkOverrides.addEventListenerOutsideAngular(eElement, event, listener, options);
         }
         else {
-            var nextValue = source[expression];
-            return nextValue != null ? nextValue : defaultValue;
+            eElement.addEventListener(event, listener, options);
         }
     };
-    Utils.addSafePassiveEventListener = function (eElement, event, listener) {
-        eElement.addEventListener(event, listener, (Utils.passiveEvents.indexOf(event) > -1 ? { passive: true } : undefined));
-    };
+    /**
+     * Converts a camelCase string into regular text
+     * from: https://stackoverflow.com/questions/15369566/putting-space-in-camel-case-string-using-regular-expression
+     * @param {string} camelCase
+     * @return {string}
+     */
     Utils.camelCaseToHumanText = function (camelCase) {
         if (!camelCase || camelCase == null) {
             return null;
         }
-        // Who needs to learn how to code when you have stack overflow!
-        // from: https://stackoverflow.com/questions/15369566/putting-space-in-camel-case-string-using-regular-expression
         var rex = /([A-Z])([A-Z])([a-z])|([a-z])([A-Z])/g;
         var words = camelCase.replace(rex, '$1$4 $2$3$5').replace('.', ' ').split(' ');
         return words.map(function (word) { return word.substring(0, 1).toUpperCase() + ((word.length > 1) ? word.substring(1, word.length) : ''); }).join(' ');
     };
-    // displays a message to the browser. this is useful in iPad, where you can't easily see the console.
-    // so the javascript code can use this to give feedback. this is NOT intended to be called in production.
-    // it is intended the ag-Grid developer calls this to troubleshoot, but then takes out the calls before
-    // checking in.
+    /**
+     * Displays a message to the browser. this is useful in iPad, where you can't easily see the console.
+     * so the javascript code can use this to give feedback. this is NOT intended to be called in production.
+     * it is intended the ag-Grid developer calls this to troubleshoot, but then takes out the calls before
+     * checking in.
+     * @param {string} msg
+     */
     Utils.message = function (msg) {
         var eMessage = document.createElement('div');
         eMessage.innerHTML = msg;
@@ -1534,15 +1779,19 @@ var Utils = /** @class */ (function () {
         eBox.insertBefore(eMessage, eBox.children[0]);
         // eBox.appendChild(eMessage);
     };
-    // gets called by: a) ClientSideNodeManager and b) GroupStage to do sorting.
-    // when in ClientSideNodeManager we always have indexes (as this sorts the items the
-    // user provided) but when in GroupStage, the nodes can contain filler nodes that
-    // don't have order id's
+    /**
+     * Gets called by: a) ClientSideNodeManager and b) GroupStage to do sorting.
+     * when in ClientSideNodeManager we always have indexes (as this sorts the items the
+     * user provided) but when in GroupStage, the nodes can contain filler nodes that
+     * don't have order id's
+     * @param {RowNode[]} rowNodes
+     * @param {Object} rowNodeOrder
+     */
     Utils.sortRowNodesByOrder = function (rowNodes, rowNodeOrder) {
         if (!rowNodes) {
             return;
         }
-        rowNodes.sort(function (nodeA, nodeB) {
+        var comparator = function (nodeA, nodeB) {
             var positionA = rowNodeOrder[nodeA.id];
             var positionB = rowNodeOrder[nodeB.id];
             var aHasIndex = positionA !== undefined;
@@ -1558,18 +1807,38 @@ var Utils = /** @class */ (function () {
                 // when comparing two filler nodes, we have no index to compare them
                 // against, however we want this sorting to be deterministic, so that
                 // the rows don't jump around as the user does delta updates. so we
-                // want the same sort result. so we use the id - which doesn't make sense
+                // want the same sort result. so we use the __objectId - which doesn't make sense
                 // from a sorting point of view, but does give consistent behaviour between
                 // calls. otherwise groups jump around as delta updates are done.
-                return nodeA.id > nodeB.id ? 1 : -1;
+                // note: previously here we used nodeId, however this gave a strange order
+                // as string ordering of numbers is wrong, so using id based on creation order
+                // as least gives better looking order.
+                return nodeA.__objectId - nodeB.__objectId;
             }
             else if (aHasIndex) {
                 return 1;
             }
-            else {
-                return -1;
+            return -1;
+        };
+        // const a = new Date().getTime();
+        // check if the list first needs sorting
+        var rowNodeA;
+        var rowNodeB;
+        var atLeastOneOutOfOrder = false;
+        for (var i = 0; i < rowNodes.length - 1; i++) {
+            rowNodeA = rowNodes[i];
+            rowNodeB = rowNodes[i + 1];
+            if (comparator(rowNodeA, rowNodeB) > 0) {
+                atLeastOneOutOfOrder = true;
+                break;
             }
-        });
+        }
+        // const b = new Date().getTime();
+        if (atLeastOneOutOfOrder) {
+            rowNodes.sort(comparator);
+        }
+        // const c = new Date().getTime();
+        // console.log(`${this.count}: ${rowNodes.length} items, ${b-a}ms ${atLeastOneOutOfOrder} ${c-b}ms`);
     };
     Utils.fuzzyCheckStrings = function (inputValues, validValues, allSuggestions) {
         var _this = this;
@@ -1595,8 +1864,12 @@ var Utils = /** @class */ (function () {
         });
         return thisSuggestions;
     };
-    //Algorithm to do fuzzy search
-    //https://stackoverflow.com/questions/23305000/javascript-fuzzy-search-that-makes-sense
+    /**
+     * Algorithm to do fuzzy search
+     * from https://stackoverflow.com/questions/23305000/javascript-fuzzy-search-that-makes-sense
+     * @param {string} from
+     * @return {[]}
+     */
     Utils.get_bigrams = function (from) {
         var s = from.toLowerCase();
         var v = new Array(s.length - 1);
@@ -1615,6 +1888,27 @@ var Utils = /** @class */ (function () {
         }
         return false;
     };
+    /**
+     * cell renderers are used in a few places. they bind to dom slightly differently to other cell renderes as they
+     * can return back strings (instead of html elemnt) in the getGui() method. common code placed here to handle that.
+     * @param {Promise<ICellRendererComp>} cellRendererPromise
+     * @param {HTMLElement} eTarget
+     */
+    Utils.bindCellRendererToHtmlElement = function (cellRendererPromise, eTarget) {
+        cellRendererPromise.then(function (cellRenderer) {
+            var gui = cellRenderer.getGui();
+            if (gui != null) {
+                if (typeof gui == 'object') {
+                    eTarget.appendChild(gui);
+                }
+                else {
+                    eTarget.innerHTML = gui;
+                }
+            }
+        });
+    };
+    Utils.PASSIVE_EVENTS = ['touchstart', 'touchend', 'touchmove', 'touchcancel'];
+    Utils.OUTSIDE_ANGULAR_EVENTS = ['mouseover', 'mouseout', 'mouseenter', 'mouseleave'];
     Utils.PRINTABLE_CHARACTERS = 'qwertyuiopasdfghjklzxcvbnmQWERTYUIOPASDFGHJKLZXCVBNM1234567890!"£$%^&*()_+-=[];\'#,./\\|<>?:@~{}';
     Utils.NUMPAD_DEL_NUMLOCK_ON_KEY = 'Del';
     Utils.NUMPAD_DEL_NUMLOCK_ON_CHARCODE = 46;
@@ -1634,34 +1928,87 @@ var Utils = /** @class */ (function () {
         }
         return hex;
     };
+    /**
+     * It encodes any string in UTF-8 format
+     * taken from https://github.com/mathiasbynens/utf8.js
+     * @param {string} s
+     * @returns {string}
+     */
     Utils.utf8_encode = function (s) {
-        var utftext = '';
-        s = s.replace(/\r\n/g, "\n");
-        for (var n = 0, len = s.length; n < len; n++) {
-            var c = s.charCodeAt(n);
-            if (c < 128) {
-                utftext += String.fromCharCode(c);
+        var stringFromCharCode = String.fromCharCode;
+        function ucs2decode(string) {
+            var output = [];
+            var counter = 0;
+            var length = string.length;
+            var value;
+            var extra;
+            while (counter < length) {
+                value = string.charCodeAt(counter++);
+                if (value >= 0xD800 && value <= 0xDBFF && counter < length) {
+                    // high surrogate, and there is a next character
+                    extra = string.charCodeAt(counter++);
+                    if ((extra & 0xFC00) == 0xDC00) { // low surrogate
+                        output.push(((value & 0x3FF) << 10) + (extra & 0x3FF) + 0x10000);
+                    }
+                    else {
+                        // unmatched surrogate; only append this code unit, in case the next
+                        // code unit is the high surrogate of a surrogate pair
+                        output.push(value);
+                        counter--;
+                    }
+                }
+                else {
+                    output.push(value);
+                }
             }
-            else if ((c > 127) && (c < 2048)) {
-                utftext += String.fromCharCode((c >> 6) | 192);
-                utftext += String.fromCharCode((c & 63) | 128);
-            }
-            else {
-                utftext += String.fromCharCode((c >> 12) | 224);
-                utftext += String.fromCharCode(((c >> 6) & 63) | 128);
-                utftext += String.fromCharCode((c & 63) | 128);
+            return output;
+        }
+        function checkScalarValue(codePoint) {
+            if (codePoint >= 0xD800 && codePoint <= 0xDFFF) {
+                throw Error('Lone surrogate U+' + codePoint.toString(16).toUpperCase() +
+                    ' is not a scalar value');
             }
         }
-        return utftext;
+        function createByte(codePoint, shift) {
+            return stringFromCharCode(((codePoint >> shift) & 0x3F) | 0x80);
+        }
+        function encodeCodePoint(codePoint) {
+            if ((codePoint & 0xFFFFFF80) == 0) { // 1-byte sequence
+                return stringFromCharCode(codePoint);
+            }
+            var symbol = '';
+            if ((codePoint & 0xFFFFF800) == 0) { // 2-byte sequence
+                symbol = stringFromCharCode(((codePoint >> 6) & 0x1F) | 0xC0);
+            }
+            else if ((codePoint & 0xFFFF0000) == 0) { // 3-byte sequence
+                checkScalarValue(codePoint);
+                symbol = stringFromCharCode(((codePoint >> 12) & 0x0F) | 0xE0);
+                symbol += createByte(codePoint, 6);
+            }
+            else if ((codePoint & 0xFFE00000) == 0) { // 4-byte sequence
+                symbol = stringFromCharCode(((codePoint >> 18) & 0x07) | 0xF0);
+                symbol += createByte(codePoint, 12);
+                symbol += createByte(codePoint, 6);
+            }
+            symbol += stringFromCharCode((codePoint & 0x3F) | 0x80);
+            return symbol;
+        }
+        var codePoints = ucs2decode(s);
+        var length = codePoints.length;
+        var index = -1;
+        var codePoint;
+        var byteString = '';
+        while (++index < length) {
+            codePoint = codePoints[index];
+            byteString += encodeCodePoint(codePoint);
+        }
+        return byteString;
     };
-    // static prepend(parent: HTMLElement, child: HTMLElement): void {
-    //     if (this.exists(parent.firstChild)) {
-    //         parent.insertBefore(child, parent.firstChild);
-    //     } else {
-    //         parent.appendChild(child);
-    //     }
-    // }
     Utils.iconNameClassMap = {
+        columnGroupOpened: 'expanded',
+        columnGroupClosed: 'contracted',
+        columnSelectClosed: 'tree-closed',
+        columnSelectOpen: 'tree-open',
         columnMovePin: 'pin',
         columnMoveAdd: 'plus',
         columnMoveHide: 'eye-slash',
@@ -1674,16 +2021,22 @@ var Utils = /** @class */ (function () {
         dropNotAllowed: 'not-allowed',
         groupContracted: 'expanded',
         groupExpanded: 'contracted',
+        chart: 'chart',
         checkboxChecked: 'checkbox-checked',
         checkboxUnchecked: 'checkbox-unchecked',
         checkboxIndeterminate: 'checkbox-indeterminate',
         checkboxCheckedReadOnly: 'checkbox-checked-readonly',
         checkboxUncheckedReadOnly: 'checkbox-unchecked-readonly',
         checkboxIndeterminateReadOnly: 'checkbox-indeterminate-readonly',
+        radioButtonOn: 'radio-button-on',
+        radioButtonOff: 'radio-button-off',
         groupLoading: 'loading',
+        data: 'data',
         menu: 'menu',
         filter: 'filter',
         columns: 'columns',
+        maximze: 'maximize',
+        minimize: 'minimize',
         menuPin: 'pin',
         menuValue: 'aggregation',
         menuAddRowGroup: 'group',
@@ -1694,16 +2047,14 @@ var Utils = /** @class */ (function () {
         pivotPanel: 'pivot',
         rowGroupPanel: 'group',
         valuePanel: 'aggregation',
-        columnGroupOpened: 'expanded',
-        columnGroupClosed: 'contracted',
-        columnSelectClosed: 'tree-closed',
-        columnSelectOpen: 'tree-open',
-        // from deprecated header, remove at some point
+        columnDrag: 'column-drag',
+        rowDrag: 'row-drag',
+        save: 'save',
+        /** from @deprecated header, remove at some point */
         sortAscending: 'asc',
         sortDescending: 'desc',
         sortUnSort: 'none'
     };
-    Utils.passiveEvents = ['touchstart', 'touchend', 'touchmove', 'touchcancel'];
     Utils.string_similarity = function (str1, str2) {
         if (str1.length > 0 && str2.length > 0) {
             var pairs1 = Utils.get_bigrams(str1);

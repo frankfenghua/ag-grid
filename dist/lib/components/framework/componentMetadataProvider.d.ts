@@ -1,8 +1,8 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { IComponent } from "../../interfaces/iComponent";
-import { AgGridComponentFunctionInput } from "./componentProvider";
+import { AgGridComponentFunctionInput } from "./userComponentRegistry";
 export interface ComponentMetadata {
     mandatoryMethodList: string[];
     optionalMethodList: string[];

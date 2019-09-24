@@ -1,6 +1,6 @@
-import { IFilterParams } from "./iFilter";
-import { ICellRendererComp, ICellRendererFunc } from "../rendering/cellRenderers/iCellRenderer";
-import { ColDef } from "../entities/colDef";
+import {ICellRendererComp, ICellRendererFunc} from "../rendering/cellRenderers/iCellRenderer";
+import {ColDef} from "../entities/colDef";
+import {IProvidedFilterParams} from "../filter/provided/providedFilter";
 
 export interface SetFilterValuesFuncParams {
     success: (values: string[]) => void;
@@ -9,17 +9,17 @@ export interface SetFilterValuesFuncParams {
 export type SetFilterValuesFunc = (params: SetFilterValuesFuncParams) => void;
 export type SetFilterValues = SetFilterValuesFunc | any[];
 
-export interface ISetFilterParams extends IFilterParams {
+export interface ISetFilterParams extends IProvidedFilterParams {
     suppressRemoveEntries ?: boolean;
     values ?: SetFilterValues;
     cellHeight: number;
-    apply: boolean;
     suppressSorting: boolean;
     cellRenderer: {new(): ICellRendererComp} | ICellRendererFunc | string;
-    newRowsAction: string;
     suppressMiniFilter: boolean;
+    suppressSelectAll: boolean;
     selectAllOnMiniFilter: boolean;
+    syncValuesLikeExcel: boolean;
     comparator?: (a: any, b: any) => number;
-    debounceMs?: number;
     miniFilterSearchByRefDataKey?: boolean;
+    textFormatter?: (from: string) => string;
 }

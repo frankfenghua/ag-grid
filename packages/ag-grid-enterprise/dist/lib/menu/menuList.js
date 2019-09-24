@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -58,11 +58,11 @@ var MenuList = /** @class */ (function (_super) {
     MenuList.prototype.addItem = function (menuItemDef) {
         var _this = this;
         var cMenuItem = new menuItemComponent_1.MenuItemComponent(menuItemDef);
-        this.context.wireBean(cMenuItem);
+        this.getContext().wireBean(cMenuItem);
         this.getGui().appendChild(cMenuItem.getGui());
         this.addDestroyFunc(function () { return cMenuItem.destroy(); });
         cMenuItem.addEventListener(menuItemComponent_1.MenuItemComponent.EVENT_ITEM_SELECTED, function (event) {
-            if (menuItemDef.subMenu) {
+            if (menuItemDef.subMenu && !menuItemDef.action) {
                 _this.showChildMenu(menuItemDef, cMenuItem, event.mouseEvent);
             }
             else {
@@ -103,7 +103,7 @@ var MenuList = /** @class */ (function (_super) {
             if (shouldShow && !showingThisMenu) {
                 _this.showChildMenu(menuItemDef, menuItemComp, null);
             }
-        }, 500);
+        }, 300);
     };
     MenuList.prototype.addSeparator = function () {
         this.getGui().appendChild(ag_grid_community_1._.loadTemplate(MenuList.SEPARATOR_TEMPLATE));
@@ -112,7 +112,7 @@ var MenuList = /** @class */ (function (_super) {
         var _this = this;
         this.removeChildPopup();
         var childMenu = new MenuList();
-        this.context.wireBean(childMenu);
+        this.getContext().wireBean(childMenu);
         childMenu.addMenuItems(menuItemDef.subMenu);
         var ePopup = ag_grid_community_1._.loadTemplate('<div class="ag-menu"></div>');
         ePopup.appendChild(childMenu.getGui());
@@ -145,10 +145,6 @@ var MenuList = /** @class */ (function (_super) {
     // private instance = Math.random();
     MenuList.TEMPLATE = '<div class="ag-menu-list"></div>';
     MenuList.SEPARATOR_TEMPLATE = "<div class=\"ag-menu-separator\">\n            <span class=\"ag-menu-separator-cell\"></span>\n            <span class=\"ag-menu-separator-cell\"></span>\n            <span class=\"ag-menu-separator-cell\"></span>\n            <span class=\"ag-menu-separator-cell\"></span>\n        </div>";
-    __decorate([
-        ag_grid_community_1.Autowired('context'),
-        __metadata("design:type", ag_grid_community_1.Context)
-    ], MenuList.prototype, "context", void 0);
     __decorate([
         ag_grid_community_1.Autowired('popupService'),
         __metadata("design:type", ag_grid_community_1.PopupService)

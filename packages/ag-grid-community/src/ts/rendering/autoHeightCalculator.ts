@@ -22,7 +22,6 @@ export class AutoHeightCalculator {
     }
 
     public getPreferredHeightForRow(rowNode: RowNode): number {
-
         if (!this.eDummyContainer) {
             this.eDummyContainer = document.createElement('div');
 
@@ -37,8 +36,10 @@ export class AutoHeightCalculator {
         eBodyContainer.appendChild(this.eDummyContainer);
 
         const cellComps: CellComp[] = [];
-        const cols = this.columnController.getAllAutoRowHeightCols();
-        cols.forEach(col => {
+        const autoRowHeightCols = this.columnController.getAllAutoRowHeightCols();
+        const visibleAutoRowHeightCols = autoRowHeightCols.filter(col => col.isVisible());
+
+        visibleAutoRowHeightCols.forEach(col => {
             const cellComp = new CellComp(
                 this.$scope,
                 this.beans,
@@ -78,7 +79,7 @@ export class AutoHeightCalculator {
         });
 
         // in case anything left over from last time
-        _.removeAllChildren(this.eDummyContainer);
+        _.clearElement(this.eDummyContainer);
 
         return maxCellHeight;
     }

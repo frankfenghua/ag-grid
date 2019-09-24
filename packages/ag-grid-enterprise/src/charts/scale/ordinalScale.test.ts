@@ -1,4 +1,4 @@
-import {OrdinalScale} from "./ordinalScale";
+import { OrdinalScale } from "./ordinalScale";
 
 test('initial state', () => {
     const scale = new OrdinalScale<number, string>();
@@ -18,6 +18,7 @@ test('implicit domain creation and explicit unknown', () => {
     expect(scale.domain).toEqual([3, 2, 1]);
     expect(scale.range).toEqual([]);
 
+    expect(scale.unknown).toBe(undefined);
     const unknown = 'derp';
     scale.unknown = unknown;
     expect(scale.convert(4)).toBe(unknown);

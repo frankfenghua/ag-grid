@@ -1,6 +1,6 @@
 <?php
 $pageTitle = "Master Detail: Enterprise Grade Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Master Detail. Use Master Detail to expand rows and have another grid with different columns inside. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Enterprise feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Master Detail. Use Master Detail to expand rows and have another grid with different columns inside. Version 20 is available for download now, take it for a free two month trial.";
 $pageKeyboards = "ag-Grid full width master detail javascript datagrid";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
@@ -11,6 +11,8 @@ include '../documentation-main/documentation_header.php';
 <p class="lead">
     This section describes how to nest grids inside grids using a Master / Detail configuration.
 </p>
+
+<? enterprise_feature("Master Detail"); ?>
 
 <p>
     With the Master Detail grid configuration, the top level grid is referred to as the 'master grid' and the nested grid
@@ -156,7 +158,15 @@ masterGridOptions.api.forEachDetailGridInfo(function(detailGridInfo) {
 
 <?= example('Editing Cells with Master / Detail', 'cell-editing', 'generated', array("processVue" => true, "enterprise" => 1)) ?>
 
+<h2>Example - Details scrolls horizontally with Master</h2>
+<p>
+    If your Grid is scrollable horizontally, you will notice that the Master Detail remains in a fixed position. This happens
+    because the Master Detail is rendered inside the <a href="/javascript-grid-full-width-rows"> Full Width Row</a> (an element 
+    that spans across the Grid Viewport). To force this full width row to fill the Grid scrollable area, it is necessary to enable 
+    the <code>embedFullWidthRows</code> property.
+</p>
 
+<?= example('Detail scrolls with Master', 'detail-scrolls-with-master', 'generated', array("processVue" => true, "enterprise" => 1)) ?>
 
 <h2>Overriding the Default Detail Cell Renderer</h2>
 
@@ -234,7 +244,7 @@ detailCellRendererParams: {
 <?= example('Customising via Template Callback', 'template-callback-customisation', 'generated', array("processVue" => true, "enterprise" => 1)) ?>
 
 
-<h2>Providing a custom Detail Cell Renderer</h2>
+<h2>Providing a Custom Detail Cell Renderer</h2>
 
 <p>
     The previous section described how to override the detail template used in the default Cell Renderer, however it is also
@@ -527,6 +537,85 @@ var masterGridOptions = {
 </p>
 
 <?= example('Lazy Load Detail Rows', 'lazy-load-rows', 'generated', array("processVue" => true, "enterprise" => 1)) ?>
+
+<h2 id="keeping-row-details">Keeping Detail Rows</h2>
+
+<p>
+    When a master row is expanded a detail row is created. When the master row is collapsed, the detail row is
+    destroyed. When the master row is expanded a second time, a detail rows is created again from scratch. This can
+    be undesirable behaviour if there was context in the detail row, e.g. if the user sorted or filtered data
+    in the detail row, the sort or filter will be reset the second time the detail row is displayed.
+</p>
+
+<p>
+    To prevent losing the context of details rows, the grid provides two properties to cache the details rows
+    to be reused the next time the row is shows. The properties are as follows:
+</p>
+
+<table class="table reference">
+    <?php include './masterDetailProperties.php' ?>
+    <?php printPropertiesRows($masterDetailProperties) ?>
+</table>
+
+<p>
+    The example below demonstrates keeping detail rows. Note the following:
+</p>
+
+<ul>
+    <li>
+        The detail grid has property <code>keepDetailRows=true</code> to turn on keeping detail rows.
+    </li>
+    <li>
+        The detail grid has property <code>keepDetailRowsCount=2</code> which sets the number of details rows
+        to keep to 2.
+    </li>
+    <li>
+        All the detail grids allow moving and sorting columns. If you change the state of a detail grid
+        (e.g. by sorting a detail grid), that state will be kept if you close the parent row and then open
+        the parent row again.
+    </li>
+    <li>
+        The maximum number of detail rows kept is two. If you open three detail grids and apply sorting on
+        each grid, then close all three detail grids (so none are showing) and then open the three grids
+        again, only two of the grids will have the sort state kept.
+    </li>
+</ul>
+
+<?= example('Keep Detail Rows', 'keep-detail-rows', 'generated', array("processVue" => true, "enterprise" => 1)) ?>
+
+<h2>Changing Data & Refresh</h2>
+
+<p>
+    By default when updating data using <a href="../javascript-grid-data-update/#transactions">transactions</a> then
+    detail rows / grids get refreshed when there is new data for the master row they belong to. Other rows (where no
+    data change accrued) do not get updated.
+</p>
+
+<p>
+    This refresh behaviour can be undesirable as the refresh will reset the detail grid loosing any context (eg
+    sorting and filtering in the detail grid will be lost).
+</p>
+
+<p>
+    To change this behaviour, and never have the detail row / grid refresh, set <code>suppressRefresh</code>
+    parameter on the detail cell renderer params.
+</p>
+
+<p>
+    The example below demonstrates changing data without refreshing the detail grids. Note the following:
+</p>
+
+<ul>
+    <li>The grid refreshes a row each second by incrementing the call count.</li>
+    <li>The detail grid never refreshes, thus any sort or filter applied will remain.</li>
+</ul>
+
+<note>
+    To fully understand this example, try opening it in Plunker and remove the <code>suppressRefresh</code> property.
+</note>
+
+<?= example('Suppress Refresh', 'suppress-refresh', 'generated', array("processVue" => true, "enterprise" => 1)) ?>
+
 
 <h2>Supported Modes</h2>
 

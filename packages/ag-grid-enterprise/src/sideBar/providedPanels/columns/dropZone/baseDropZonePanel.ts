@@ -76,7 +76,7 @@ export abstract class BaseDropZonePanel extends Component {
     protected abstract getIconName(): string;
 
     constructor(horizontal: boolean, valueColumn: boolean, name: string) {
-        super(`<div class="ag-column-drop ag-font-style ag-column-drop-${horizontal ? 'horizontal' : 'vertical'} ag-column-drop-${name}"></div>`);
+        super(`<div class="ag-column-drop ag-unselectable ag-column-drop-${horizontal ? 'horizontal' : 'vertical'} ag-column-drop-${name}"></div>`);
         this.horizontal = horizontal;
         this.valueColumn = valueColumn;
 
@@ -100,8 +100,8 @@ export abstract class BaseDropZonePanel extends Component {
         this.guiDestroyFunctions.forEach((func) => func());
         this.guiDestroyFunctions.length = 0;
         this.childColumnComponents.length = 0;
-        _.removeAllChildren(this.getGui());
-        _.removeAllChildren(this.eColumnDropList);
+        _.clearElement(this.getGui());
+        _.clearElement(this.eColumnDropList);
     }
 
     public init(params: BaseDropZonePanelParams): void {
@@ -455,14 +455,7 @@ export abstract class BaseDropZonePanel extends Component {
         if (this.horizontal) {
             // for RTL it's a left arrow, otherwise it's a right arrow
             const enableRtl = this.beans.gridOptionsWrapper.isEnableRtl();
-            const charCode = enableRtl ?
-                BaseDropZonePanel.CHAR_LEFT_ARROW : BaseDropZonePanel.CHAR_RIGHT_ARROW;
-            const spanClass = enableRtl ? 'ag-left-arrow' : 'ag-right-arrow';
-            const eArrow = document.createElement('span');
-
-            eArrow.className = spanClass;
-            eArrow.innerHTML = charCode;
-            eParent.appendChild(eArrow);
+            eParent.appendChild(_.createIconNoSpan(enableRtl ? 'smallLeft' : 'smallRight', this.beans.gridOptionsWrapper));
         }
     }
 }

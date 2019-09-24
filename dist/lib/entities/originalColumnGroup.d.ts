@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { OriginalColumnGroupChild } from "./originalColumnGroupChild";
@@ -8,10 +8,9 @@ import { IEventEmitter } from "../interfaces/iEventEmitter";
 export declare class OriginalColumnGroup implements OriginalColumnGroupChild, IEventEmitter {
     static EVENT_EXPANDED_CHANGED: string;
     static EVENT_EXPANDABLE_CHANGED: string;
-    private columnApi;
-    private gridApi;
     private localEventService;
     private colGroupDef;
+    private originalParent;
     private children;
     private groupId;
     private expandable;
@@ -19,6 +18,8 @@ export declare class OriginalColumnGroup implements OriginalColumnGroupChild, IE
     private padding;
     private level;
     constructor(colGroupDef: ColGroupDef, groupId: string, padding: boolean, level: number);
+    setOriginalParent(originalParent: OriginalColumnGroup | null): void;
+    getOriginalParent(): OriginalColumnGroup | null;
     getLevel(): number;
     isVisible(): boolean;
     isPadding(): boolean;
@@ -35,6 +36,7 @@ export declare class OriginalColumnGroup implements OriginalColumnGroupChild, IE
     getColumnGroupShow(): string | undefined;
     setupExpandable(): void;
     setExpandable(): void;
+    findChildren(): OriginalColumnGroupChild[];
     private onColumnVisibilityChanged;
     addEventListener(eventType: string, listener: Function): void;
     removeEventListener(eventType: string, listener: Function): void;

@@ -66,6 +66,14 @@ export class EnterpriseMenuFactory implements IMenuFactory {
 
     public showMenuAfterButtonClick(column: Column, eventSource: HTMLElement, defaultTab?:string, restrictToTabs?:string[]): void {
 
+        let multiplier = -1;
+        let alignSide: 'left' | 'right' = 'left';
+
+        if (this.gridOptionsWrapper.isEnableRtl()) {
+            multiplier = 1;
+            alignSide = 'right';
+        }
+
         this.showMenu(column, (menu: EnterpriseMenu) => {
             const minDims = menu.getMinDimensions();
             this.popupService.positionPopupUnderComponent({
@@ -73,10 +81,11 @@ export class EnterpriseMenuFactory implements IMenuFactory {
                 type: 'columnMenu',
                 eventSource: eventSource,
                 ePopup: menu.getGui(),
-                nudgeX: -9,
-                nudgeY: -26,
+                nudgeX: 9 * multiplier,
+                nudgeY: -23,
                 minWidth: minDims.width,
                 minHeight: minDims.height,
+                alignSide,
                 keepWithinBounds: true
             });
             if (defaultTab) {
@@ -146,7 +155,6 @@ export class EnterpriseMenu extends BeanStub {
 
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('filterManager') private filterManager: FilterManager;
-    @Autowired('context') private context: Context;
     @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('eventService') private eventService: EventService;
@@ -189,22 +197,23 @@ export class EnterpriseMenu extends BeanStub {
 
     @PostConstruct
     public init(): void {
-        const items:TabbedItem[] = this.column.getMenuTabs (this.restrictTo ? this.restrictTo : EnterpriseMenu.TABS_DEFAULT)
-            .filter(menuTabName =>
-                this.isValidMenuTabItem(menuTabName)
-            )
-            .filter(menuTabName =>
-                this.isNotSuppressed(menuTabName)
-            )
-            .map(menuTabName =>
-                this.createTab(menuTabName)
-            );
+        const tabs = this.getTabsToCreate()
+            .map(menuTabName => this.createTab(menuTabName));
+
         this.tabbedLayout = new TabbedLayout({
-            items: items,
+            items: tabs,
             cssClass: 'ag-menu',
             onActiveItemClicked: this.onHidePopup.bind(this),
             onItemClicked: this.onTabItemClicked.bind(this)
         });
+    }
+
+    private getTabsToCreate() {
+        if (this.restrictTo) { return this.restrictTo; }
+
+        return this.column.getMenuTabs(EnterpriseMenu.TABS_DEFAULT)
+            .filter(tabName => this.isValidMenuTabItem(tabName))
+            .filter(tabName => this.isNotSuppressed(tabName));
     }
 
     private isValidMenuTabItem(menuTabName: string): boolean {
@@ -302,7 +311,7 @@ export class EnterpriseMenu extends BeanStub {
     private getDefaultMenuOptions(): string[] {
         const result: string[] = [];
 
-        const allowPinning = !this.column.isLockPinned();
+        const allowPinning = !this.column.getColDef().lockPinned;
 
         const rowGroupCount = this.columnController.getRowGroupColumns().length;
         const doingGrouping = rowGroupCount > 0;
@@ -374,7 +383,7 @@ export class EnterpriseMenu extends BeanStub {
     private createMainPanel(): TabbedItem {
 
         this.mainMenuList = new MenuList();
-        this.context.wireBean(this.mainMenuList);
+        this.getContext().wireBean(this.mainMenuList);
 
         const menuItems = this.getMenuItems();
         const menuItemsMapped = this.menuItemMapper.mapWithStockItems(menuItems, this.column);
@@ -437,7 +446,7 @@ export class EnterpriseMenu extends BeanStub {
             suppressSideButtons: false,
             api: this.gridApi
         });
-        this.context.wireBean(this.columnSelectPanel);
+        this.getContext().wireBean(this.columnSelectPanel);
 
         eWrapperDiv.appendChild(this.columnSelectPanel.getGui());
 

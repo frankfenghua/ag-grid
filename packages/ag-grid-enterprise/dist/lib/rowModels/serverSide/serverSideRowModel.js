@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -28,11 +28,14 @@ var __param = (this && this.__param) || function (paramIndex, decorator) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var ag_grid_community_1 = require("ag-grid-community");
 var serverSideCache_1 = require("./serverSideCache");
+var serverSideBlock_1 = require("./serverSideBlock");
 var ServerSideRowModel = /** @class */ (function (_super) {
     __extends(ServerSideRowModel, _super);
     function ServerSideRowModel() {
         return _super !== null && _super.apply(this, arguments) || this;
     }
+    // we don't implement as lazy row heights is not supported in this row model
+    ServerSideRowModel.prototype.ensureRowHeightsValid = function (startPixel, endPixel, startLimitIndex, endLimitIndex) { return false; };
     ServerSideRowModel.prototype.postConstruct = function () {
         this.rowHeight = this.gridOptionsWrapper.getRowHeightAsNumber();
         this.addEventListeners();
@@ -41,14 +44,14 @@ var ServerSideRowModel = /** @class */ (function (_super) {
             this.setDatasource(datasource);
         }
     };
-    ServerSideRowModel.prototype.destroy = function () {
-        _super.prototype.destroy.call(this);
-    };
     ServerSideRowModel.prototype.destroyDatasource = function () {
-        if (this.datasource && this.datasource.destroy) {
-            this.datasource.destroy();
+        if (this.datasource) {
+            if (this.datasource.destroy) {
+                this.datasource.destroy();
+            }
+            this.rowRenderer.datasourceChanged();
+            this.datasource = undefined;
         }
-        this.datasource = undefined;
     };
     ServerSideRowModel.prototype.setBeans = function (loggerFactory) {
         this.logger = loggerFactory.create('ServerSideRowModel');
@@ -187,8 +190,9 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         }
         var shouldAnimate = function () {
             var rowAnimationEnabled = _this.gridOptionsWrapper.isAnimateRows();
-            if (rowNode.master)
+            if (rowNode.master) {
                 return rowAnimationEnabled && rowNode.expanded;
+            }
             return rowAnimationEnabled;
         };
         this.updateRowIndexesAndBounds();
@@ -207,7 +211,7 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         this.rootNode = new ag_grid_community_1.RowNode();
         this.rootNode.group = true;
         this.rootNode.level = -1;
-        this.context.wireBean(this.rootNode);
+        this.getContext().wireBean(this.rootNode);
         if (this.datasource) {
             this.createNewRowNodeBlockLoader();
             this.cacheParams = this.createCacheParams();
@@ -240,7 +244,7 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         var maxConcurrentRequests = this.gridOptionsWrapper.getMaxConcurrentDatasourceRequests();
         var blockLoadDebounceMillis = this.gridOptionsWrapper.getBlockLoadDebounceMillis();
         this.rowNodeBlockLoader = new ag_grid_community_1.RowNodeBlockLoader(maxConcurrentRequests, blockLoadDebounceMillis);
-        this.context.wireBean(this.rowNodeBlockLoader);
+        this.getContext().wireBean(this.rowNodeBlockLoader);
     };
     ServerSideRowModel.prototype.destroyRowNodeBlockLoader = function () {
         if (this.rowNodeBlockLoader) {
@@ -300,7 +304,7 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         // page size needs to be 1 or greater. having it at 1 would be silly, as you would be hitting the
         // server for one page at a time. so the default if not specified is 100.
         if (!(params.blockSize >= 1)) {
-            params.blockSize = 100;
+            params.blockSize = serverSideBlock_1.ServerSideBlock.DefaultBlockSize;
         }
         // if user doesn't give initial rows to display, we assume zero
         if (!(params.initialRowCount >= 1)) {
@@ -315,7 +319,7 @@ var ServerSideRowModel = /** @class */ (function (_super) {
     };
     ServerSideRowModel.prototype.createNodeCache = function (rowNode) {
         var cache = new serverSideCache_1.ServerSideCache(this.cacheParams, rowNode);
-        this.context.wireBean(cache);
+        this.getContext().wireBean(cache);
         cache.addEventListener(ag_grid_community_1.RowNodeCache.EVENT_CACHE_UPDATED, this.onCacheUpdated.bind(this));
         rowNode.childrenCache = cache;
     };
@@ -357,23 +361,27 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         }
         return null;
     };
-    ServerSideRowModel.prototype.getPageFirstRow = function () {
-        return 0;
-    };
-    ServerSideRowModel.prototype.getPageLastRow = function () {
-        var lastRow;
-        if (this.cacheExists()) {
-            // NOTE: should not be casting here, the RowModel should use IServerSideRowModel interface?
-            var serverSideCache = this.rootNode.childrenCache;
-            lastRow = serverSideCache.getDisplayIndexEnd() - 1;
-        }
-        else {
-            lastRow = 0;
-        }
-        return lastRow;
-    };
     ServerSideRowModel.prototype.getRowCount = function () {
-        return this.getPageLastRow() + 1;
+        if (!this.cacheExists()) {
+            return 1;
+        }
+        var serverSideCache = this.rootNode.childrenCache;
+        var res = serverSideCache.getDisplayIndexEnd();
+        return res;
+    };
+    ServerSideRowModel.prototype.getTopLevelRowCount = function () {
+        if (!this.cacheExists()) {
+            return 1;
+        }
+        var serverSideCache = this.rootNode.childrenCache;
+        return serverSideCache.getVirtualRowCount();
+    };
+    ServerSideRowModel.prototype.getTopLevelRowDisplayedIndex = function (topLevelIndex) {
+        if (!this.cacheExists()) {
+            return topLevelIndex;
+        }
+        var serverSideCache = this.rootNode.childrenCache;
+        return serverSideCache.getTopLevelRowDisplayedIndex(topLevelIndex);
     };
     ServerSideRowModel.prototype.getRowBounds = function (index) {
         if (!this.cacheExists()) {
@@ -409,7 +417,7 @@ var ServerSideRowModel = /** @class */ (function (_super) {
     };
     ServerSideRowModel.prototype.forEachNode = function (callback) {
         if (this.cacheExists()) {
-            this.rootNode.childrenCache.forEachNodeDeep(callback, new ag_grid_community_1.NumberSequence());
+            this.rootNode.childrenCache.forEachNodeDeep(callback);
         }
     };
     ServerSideRowModel.prototype.executeOnCache = function (route, callback) {
@@ -425,13 +433,6 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         if (route === void 0) { route = []; }
         this.executeOnCache(route, function (cache) { return cache.purgeCache(); });
     };
-    ServerSideRowModel.prototype.removeFromCache = function (route, items) {
-        this.executeOnCache(route, function (cache) { return cache.removeFromCache(items); });
-        this.rowNodeBlockLoader.checkBlockToLoad();
-    };
-    ServerSideRowModel.prototype.addToCache = function (route, items, index) {
-        this.executeOnCache(route, function (cache) { return cache.addToCache(items, index); });
-    };
     ServerSideRowModel.prototype.getNodesInRangeForSelection = function (firstInRange, lastInRange) {
         if (ag_grid_community_1._.exists(firstInRange) && firstInRange.parent !== lastInRange.parent) {
             return [];
@@ -443,6 +444,9 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         this.forEachNode(function (rowNode) {
             if (rowNode.id === id) {
                 result = rowNode;
+            }
+            if (rowNode.detailNode && rowNode.detailNode.id === id) {
+                result = rowNode.detailNode;
             }
         });
         return result;
@@ -541,7 +545,7 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         }
         else {
             var detailNode = new ag_grid_community_1.RowNode();
-            this.context.wireBean(detailNode);
+            this.getContext().wireBean(detailNode);
             detailNode.detail = true;
             detailNode.selectable = false;
             detailNode.parent = masterNode;
@@ -551,11 +555,14 @@ var ServerSideRowModel = /** @class */ (function (_super) {
             detailNode.data = masterNode.data;
             detailNode.level = masterNode.level + 1;
             var defaultDetailRowHeight = 200;
-            var rowHeight = this.gridOptionsWrapper.getRowHeightForNode(detailNode);
+            var rowHeight = this.gridOptionsWrapper.getRowHeightForNode(detailNode).height;
             detailNode.rowHeight = rowHeight ? rowHeight : defaultDetailRowHeight;
             masterNode.detailNode = detailNode;
             return detailNode;
         }
+    };
+    ServerSideRowModel.prototype.isLoading = function () {
+        return this.rowNodeBlockLoader ? this.rowNodeBlockLoader.isLoading() : false;
     };
     __decorate([
         ag_grid_community_1.Autowired('gridOptionsWrapper'),
@@ -565,10 +572,6 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         ag_grid_community_1.Autowired('eventService'),
         __metadata("design:type", ag_grid_community_1.EventService)
     ], ServerSideRowModel.prototype, "eventService", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired('context'),
-        __metadata("design:type", ag_grid_community_1.Context)
-    ], ServerSideRowModel.prototype, "context", void 0);
     __decorate([
         ag_grid_community_1.Autowired('columnController'),
         __metadata("design:type", ag_grid_community_1.ColumnController)
@@ -590,17 +593,15 @@ var ServerSideRowModel = /** @class */ (function (_super) {
         __metadata("design:type", ag_grid_community_1.ColumnApi)
     ], ServerSideRowModel.prototype, "columnApi", void 0);
     __decorate([
+        ag_grid_community_1.Autowired('rowRenderer'),
+        __metadata("design:type", ag_grid_community_1.RowRenderer)
+    ], ServerSideRowModel.prototype, "rowRenderer", void 0);
+    __decorate([
         ag_grid_community_1.PostConstruct,
         __metadata("design:type", Function),
         __metadata("design:paramtypes", []),
         __metadata("design:returntype", void 0)
     ], ServerSideRowModel.prototype, "postConstruct", null);
-    __decorate([
-        ag_grid_community_1.PreDestroy,
-        __metadata("design:type", Function),
-        __metadata("design:paramtypes", []),
-        __metadata("design:returntype", void 0)
-    ], ServerSideRowModel.prototype, "destroy", null);
     __decorate([
         ag_grid_community_1.PreDestroy,
         __metadata("design:type", Function),

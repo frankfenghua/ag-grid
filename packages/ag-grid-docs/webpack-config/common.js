@@ -49,7 +49,7 @@ module.exports = {
                             sourceMap: true,
                             syntax: 'postcss-scss',
                             plugins: [autoprefixer({
-                                browsers: ["last 2 version"],
+                                overrideBrowserslist: ["last 2 version"],
                                 flexbox: true
                             })]
                         }
@@ -60,11 +60,7 @@ module.exports = {
             {
                 test: /\.(svg)$/,
                 use: [
-                    {loader: 'url-loader', options: {limit: 20000}},
-                    {
-                        loader: 'svg-colorize-loader',
-                        options: {color1: '#000000', color2: '#FFFFFF'}
-                    }
+                    {loader: 'url-loader', options: {limit: 20000}}
                 ]
             }
         ]

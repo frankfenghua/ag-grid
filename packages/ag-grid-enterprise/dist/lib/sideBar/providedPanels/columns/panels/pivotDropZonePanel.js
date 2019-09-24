@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -34,7 +34,7 @@ var PivotDropZonePanel = /** @class */ (function (_super) {
         _super.prototype.setBeans.call(this, {
             gridOptionsWrapper: this.gridOptionsWrapper,
             eventService: this.eventService,
-            context: this.context,
+            context: this.getContext(),
             loggerFactory: this.loggerFactory,
             dragAndDropService: this.dragAndDropService
         });
@@ -63,21 +63,21 @@ var PivotDropZonePanel = /** @class */ (function (_super) {
             // on the user property as well as pivotMode.
             switch (this.gridOptionsWrapper.getPivotPanelShow()) {
                 case 'always':
-                    this.setVisible(pivotMode);
+                    this.setDisplayed(pivotMode);
                     break;
                 case 'onlyWhenPivoting':
                     var pivotActive = this.columnController.isPivotActive();
-                    this.setVisible(pivotMode && pivotActive);
+                    this.setDisplayed(pivotMode && pivotActive);
                     break;
                 default:
                     // never show it
-                    this.setVisible(false);
+                    this.setDisplayed(false);
                     break;
             }
         }
         else {
             // in toolPanel, the pivot panel is always shown when pivot mode is on
-            this.setVisible(pivotMode);
+            this.setDisplayed(pivotMode);
         }
     };
     PivotDropZonePanel.prototype.isColumnDroppable = function (column) {
@@ -124,10 +124,6 @@ var PivotDropZonePanel = /** @class */ (function (_super) {
         main_1.Autowired('gridOptionsWrapper'),
         __metadata("design:type", main_1.GridOptionsWrapper)
     ], PivotDropZonePanel.prototype, "gridOptionsWrapper", void 0);
-    __decorate([
-        main_1.Autowired('context'),
-        __metadata("design:type", main_1.Context)
-    ], PivotDropZonePanel.prototype, "context", void 0);
     __decorate([
         main_1.Autowired('loggerFactory'),
         __metadata("design:type", main_1.LoggerFactory)

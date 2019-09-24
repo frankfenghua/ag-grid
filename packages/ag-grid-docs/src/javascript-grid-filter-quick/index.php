@@ -1,6 +1,6 @@
 <?php
 $pageTitle = "Quick Filter: Core Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Quick Filter. Quick Filter filters all columns simultaneously with a simple text search, just like how you filter your Gmail. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Core feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Quick Filter. Quick Filter filters all columns simultaneously with a simple text search, just like how you filter your Gmail. Version 20 is available for download now, take it for a free two month trial.";
 $pageKeyboards = "ag-Grid Quick Filter";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
@@ -42,7 +42,7 @@ colDef = {
     }
 }</snippet>
 
-<p>Params contains {value, node, data, column, colDef}.</p>
+<p>Params contains {value, node, data, column, colDef, context}.</p>
 
 <note>
     You only need to override the quick filter value if you have a problem. If you don't have a quick filter
@@ -123,9 +123,9 @@ colDef = {
 <h2>Server Side Data</h2>
 
 <p>
-    Quick Filters only make sense with client side data (i.e. when using the Client-side row model).
-    For the other row models (<a href="../javascript-grid-pagination/">pagination</a>,
-    <a href="../javascript-grid-virtual-paging/">infinite scrolling</a> etc) you would need to implement your own server side sorting to
+    Quick Filters only make sense with client side data (i.e. when using
+    the <a href="../javascript-grid-client-side-model/">Client-side row model</a>).
+    For the other row models you would need to implement your own server side sorting to
     replicate Quick Filter functionality.
 </p>
 

@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v20.2.0
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -32,7 +32,7 @@ var component_1 = require("../widgets/component");
 var componentAnnotations_1 = require("../widgets/componentAnnotations");
 var baseFilter_1 = require("./baseFilter");
 var context_1 = require("../context/context");
-var componentRecipes_1 = require("../components/framework/componentRecipes");
+var userComponentFactory_1 = require("../components/framework/userComponentFactory");
 var utils_1 = require("../utils");
 var DateFilter = /** @class */ (function (_super) {
     __extends(DateFilter, _super);
@@ -43,7 +43,7 @@ var DateFilter = /** @class */ (function (_super) {
         return {
             dateFrom: from,
             dateTo: this.getDateTo(),
-            type: this.filter,
+            type: this.selectedFilter,
             filterType: 'date'
         };
     };
@@ -61,12 +61,12 @@ var DateFilter = /** @class */ (function (_super) {
         if (type === baseFilter_1.FilterConditionType.MAIN) {
             this.setDateFrom_date(this.dateFrom, baseFilter_1.FilterConditionType.MAIN);
             this.setDateTo_date(this.dateTo, baseFilter_1.FilterConditionType.MAIN);
-            this.setFilterType(this.filterCondition, baseFilter_1.FilterConditionType.MAIN);
+            this.setFilterType(this.selectedFilter, baseFilter_1.FilterConditionType.MAIN);
         }
         else {
             this.setDateFrom_date(this.dateFromCondition, baseFilter_1.FilterConditionType.CONDITION);
             this.setDateTo_date(this.dateToCondition, baseFilter_1.FilterConditionType.CONDITION);
-            this.setFilterType(this.filterCondition, baseFilter_1.FilterConditionType.CONDITION);
+            this.setFilterType(this.selectedFilterCondition, baseFilter_1.FilterConditionType.CONDITION);
         }
     };
     DateFilter.prototype.createComponents = function (type) {
@@ -75,7 +75,7 @@ var DateFilter = /** @class */ (function (_super) {
             onDateChanged: function () { _this.onDateChanged(type); },
             filterParams: this.filterParams
         };
-        this.componentRecipes.newDateComponent(dateComponentParams).then(function (dateToComponent) {
+        this.userComponentFactory.newDateComponent(dateComponentParams).then(function (dateToComponent) {
             if (type === baseFilter_1.FilterConditionType.MAIN) {
                 _this.dateToComponent = dateToComponent;
             }
@@ -96,7 +96,7 @@ var DateFilter = /** @class */ (function (_super) {
                 }
             }
         });
-        this.componentRecipes.newDateComponent(dateComponentParams).then(function (dateComponent) {
+        this.userComponentFactory.newDateComponent(dateComponentParams).then(function (dateComponent) {
             if (type === baseFilter_1.FilterConditionType.MAIN) {
                 _this.dateFromComponent = dateComponent;
             }
@@ -131,20 +131,26 @@ var DateFilter = /** @class */ (function (_super) {
     };
     DateFilter.prototype.refreshFilterBodyUi = function (type) {
         var panel;
-        var filterTypeValue;
+        var filterType;
         if (type === baseFilter_1.FilterConditionType.MAIN) {
             panel = this.eDateToPanel;
-            filterTypeValue = this.filter;
+            filterType = this.selectedFilter;
         }
         else {
             panel = this.eDateToConditionPanel;
-            filterTypeValue = this.filterCondition;
+            filterType = this.selectedFilterCondition;
         }
-        if (!panel) {
-            return;
+        // show / hide in-range filter
+        if (panel) {
+            var visible = filterType === baseFilter_1.BaseFilter.IN_RANGE;
+            utils_1._.setVisible(panel, visible);
         }
-        var visible = filterTypeValue === baseFilter_1.BaseFilter.IN_RANGE;
-        utils_1._.setVisible(panel, visible);
+        // show / hide filter input, i.e. if custom filter has 'hideFilterInputField = true' or an empty filter
+        var filterInput = type === baseFilter_1.FilterConditionType.MAIN ? this.eDateFromPanel : this.eDateFromConditionPanel;
+        if (filterInput) {
+            var showFilterInput = !this.doesFilterHaveHiddenInput(filterType) && filterType !== baseFilter_1.BaseFilter.EMPTY;
+            utils_1._.setVisible(filterInput, showFilterInput);
+        }
     };
     DateFilter.prototype.comparator = function () {
         return this.filterParams.comparator ? this.filterParams.comparator : this.defaultComparator.bind(this);
@@ -163,7 +169,7 @@ var DateFilter = /** @class */ (function (_super) {
     DateFilter.prototype.serialize = function (type) {
         var dateToComponent = type === baseFilter_1.FilterConditionType.MAIN ? this.dateToComponent : this.dateToConditionComponent;
         var dateFromComponent = type === baseFilter_1.FilterConditionType.MAIN ? this.dateFromComponent : this.dateFromConditionComponent;
-        var filterType = type === baseFilter_1.FilterConditionType.MAIN ? this.filter : this.filterCondition;
+        var filterType = type === baseFilter_1.FilterConditionType.MAIN ? this.selectedFilter : this.selectedFilterCondition;
         return {
             dateTo: utils_1._.serializeDateToYyyyMmDd(dateToComponent.getDate(), "-"),
             dateFrom: utils_1._.serializeDateToYyyyMmDd(dateFromComponent.getDate(), "-"),
@@ -176,14 +182,14 @@ var DateFilter = /** @class */ (function (_super) {
             if (!this.dateFromComponent) {
                 return null;
             }
-            return this.filter !== baseFilter_1.BaseFilter.IN_RANGE ?
+            return this.selectedFilter !== baseFilter_1.BaseFilter.IN_RANGE ?
                 this.dateFromComponent.getDate() :
                 [this.dateFromComponent.getDate(), this.dateToComponent.getDate()];
         }
         if (!this.dateFromConditionComponent) {
             return null;
         }
-        return this.filterCondition !== baseFilter_1.BaseFilter.IN_RANGE ?
+        return this.selectedFilterCondition !== baseFilter_1.BaseFilter.IN_RANGE ?
             this.dateFromConditionComponent.getDate() :
             [this.dateFromConditionComponent.getDate(), this.dateToConditionComponent.getDate()];
     };
@@ -197,7 +203,7 @@ var DateFilter = /** @class */ (function (_super) {
     };
     // not used by ag-Grid, but exposed as part of the filter API for the client if they want it
     DateFilter.prototype.getFilterType = function () {
-        return this.filter;
+        return this.selectedFilter;
     };
     DateFilter.prototype.setDateFrom = function (date, type) {
         var parsedDate = utils_1._.parseYyyyMmDdToDate(date, "-");
@@ -239,13 +245,16 @@ var DateFilter = /** @class */ (function (_super) {
             this.dateToConditionComponent.setDate(this.dateToCondition);
         }
     };
-    DateFilter.prototype.resetState = function () {
-        this.setDateFrom(null, baseFilter_1.FilterConditionType.MAIN);
-        this.setDateTo(null, baseFilter_1.FilterConditionType.MAIN);
-        this.setFilterType(this.defaultFilter, baseFilter_1.FilterConditionType.MAIN);
+    DateFilter.prototype.resetState = function (resetConditionFilterOnly) {
+        if (resetConditionFilterOnly === void 0) { resetConditionFilterOnly = false; }
+        if (!resetConditionFilterOnly) {
+            this.setDateFrom(null, baseFilter_1.FilterConditionType.MAIN);
+            this.setDateTo(null, baseFilter_1.FilterConditionType.MAIN);
+            this.setFilterType(this.defaultFilter, baseFilter_1.FilterConditionType.MAIN);
+        }
+        this.setFilterType(this.defaultFilter, baseFilter_1.FilterConditionType.CONDITION);
         this.setDateFrom(null, baseFilter_1.FilterConditionType.CONDITION);
         this.setDateTo(null, baseFilter_1.FilterConditionType.CONDITION);
-        this.setFilterType(this.defaultFilter, baseFilter_1.FilterConditionType.MAIN);
     };
     DateFilter.prototype.parse = function (model, type) {
         this.setDateFrom(model.dateFrom, type);
@@ -262,9 +271,9 @@ var DateFilter = /** @class */ (function (_super) {
         return new Date(from.getFullYear(), from.getMonth(), from.getDate());
     };
     __decorate([
-        context_1.Autowired('componentRecipes'),
-        __metadata("design:type", componentRecipes_1.ComponentRecipes)
-    ], DateFilter.prototype, "componentRecipes", void 0);
+        context_1.Autowired('userComponentFactory'),
+        __metadata("design:type", userComponentFactory_1.UserComponentFactory)
+    ], DateFilter.prototype, "userComponentFactory", void 0);
     __decorate([
         componentAnnotations_1.QuerySelector('#filterDateFromPanel'),
         __metadata("design:type", HTMLElement)

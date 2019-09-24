@@ -1,114 +1,278 @@
 import { Shape } from "./shape";
-import { Path } from "../path";
-import {chainObjects} from "../../util/object";
+import { Path2D } from "../path2D";
+import { BBox } from "../bbox";
+
+export enum RectSizing {
+    Content,
+    Border
+}
 
 export class Rect extends Shape {
 
-    protected static defaults = chainObjects(Shape.defaults, {
-        fillStyle: 'red',
-        strokeStyle: 'black',
+    static className = 'Rect';
 
-        x: 0,
-        y: 0,
-        width: 10,
-        height: 10,
-        radius: 0
-    });
+    static create(x: number, y: number, width: number, height: number, radius = 0): Rect {
+        const rect = new Rect();
 
-    constructor() {
-        super();
+        rect.x = x;
+        rect.y = y;
+        rect.width = width;
+        rect.height = height;
+        rect.radius = radius;
 
-        // Override the base class defaults.
-        this.fillStyle = Rect.defaults.fillStyle;
-        this.strokeStyle = Rect.defaults.strokeStyle;
-        // Alternatively we can do:
-        // this.restoreOverriddenDefaults();
-        // This call can even happen in the base class constructor,
-        // so that we don't worry about forgetting calling it in subclasses.
-        // This will figure out the properties (above) to apply
-        // automatically, but makes construction more expensive.
-        // TODO: measure the performance impact.
+        return rect;
     }
 
-    protected path = new Path();
+    protected path = new Path2D();
 
-    _x: number = Rect.defaults.x;
+    private _dirtyPath = true;
+    set dirtyPath(value: boolean) {
+        if (this._dirtyPath !== value) {
+            this._dirtyPath = value;
+            if (value) {
+                this.dirty = true;
+            }
+        }
+    }
+    get dirtyPath(): boolean {
+        return this._dirtyPath;
+    }
+
+    private _x: number = 0;
     set x(value: number) {
-        this._x = value;
-        this.dirty = true;
+        if (this._x !== value) {
+            this._x = value;
+            this.dirtyPath = true;
+        }
     }
     get x(): number {
         return this._x;
     }
 
-    _y: number = Rect.defaults.y;
+    private _y: number = 0;
     set y(value: number) {
-        this._y = value;
-        this.dirty = true;
+        if (this._y !== value) {
+            this._y = value;
+            this.dirtyPath = true;
+        }
     }
     get y(): number {
         return this._y;
     }
 
-    _width: number = Rect.defaults.width;
+    private _width: number = 10;
     set width(value: number) {
-        this._width = value;
-        this.dirty = true;
+        if (this._width !== value) {
+            this._width = value;
+            this.dirtyPath = true;
+        }
     }
     get width(): number {
         return this._width;
     }
 
-    _height: number = Rect.defaults.height;
+    private _height: number = 10;
     set height(value: number) {
-        this._height = value;
-        this.dirty = true;
+        if (this._height !== value) {
+            this._height = value;
+            this.dirtyPath = true;
+        }
     }
     get height(): number {
         return this._height;
     }
 
-    _radius: number = Rect.defaults.radius;
+    private _radius: number = 0;
     set radius(value: number) {
-        this._radius = value;
-        this.dirty = true;
+        if (this._radius !== value) {
+            this._radius = value;
+            this.dirtyPath = true;
+        }
     }
     get radius(): number {
         return this._radius;
     }
 
-    updatePath() {
-        const path = this.path;
-        const radius = this.radius;
-
-        path.clear();
-
-        if (!radius) {
-            path.rect(this.x, this.y, this.width, this.height);
-        } else {
-            // TODO: rect radius, this will require implementing
-            //       another `arcTo` method in the `Path` class.
-            throw "TODO";
+    /**
+     * If `true`, the rect is aligned to the pixel grid for crisp looking lines.
+     * Animated rects may not look nice with this option enabled, for example
+     * when a rect is translated by a sub-pixel value on each frame.
+     */
+    private _crisp: boolean = false;
+    set crisp(value: boolean) {
+        if (this._crisp !== value) {
+            this._crisp = value;
+            this.dirtyPath = true;
         }
     }
-
-    isPointInPath(ctx: CanvasRenderingContext2D, x: number, y: number): boolean {
-        return false;
+    get crisp(): boolean {
+        return this._crisp;
     }
 
-    isPointInStroke(ctx: CanvasRenderingContext2D, x: number, y: number): boolean {
+    private effectiveStrokeWidth: number = Shape.defaultStyles.strokeWidth;
+    set strokeWidth(value: number) {
+        if (this._strokeWidth !== value) {
+            this._strokeWidth = value;
+            // Normally, when the `lineWidth` changes, we only need to repaint the rect
+            // without updating the path. If the `isCrisp` is set to `true` however,
+            // we need to update the path to make sure the new stroke aligns to
+            // the pixel grid. This is the reason we override the `lineWidth` setter
+            // and getter here.
+            if (this.crisp || this.sizing === RectSizing.Border) {
+                this.dirtyPath = true;
+            } else {
+                this.effectiveStrokeWidth = value;
+                this.dirty = true;
+            }
+        }
+    }
+    get strokeWidth(): number {
+        return this._strokeWidth;
+    }
+
+    private _sizing: RectSizing = RectSizing.Content;
+    set sizing(value: RectSizing) {
+        if (this._sizing !== value) {
+            this._sizing = value;
+            this.dirtyPath = true;
+        }
+    }
+    get sizing(): RectSizing {
+        return this._sizing;
+    }
+
+    updatePath() {
+        if (!this.dirtyPath) {
+            return;
+        }
+
+        const borderSizing = this.sizing === RectSizing.Border;
+
+        const path = this.path;
+        path.clear();
+
+        let x = this.x;
+        let y = this.y;
+        let width = this.width;
+        let height = this.height;
+        let strokeWidth: number;
+
+        if (borderSizing) {
+            const halfWidth = width / 2;
+            const halfHeight = height / 2;
+            strokeWidth = Math.min(this.strokeWidth, halfWidth, halfHeight);
+
+            x = Math.min(x + strokeWidth / 2, x + halfWidth);
+            y = Math.min(y + strokeWidth / 2, y + halfHeight);
+            width = Math.max(width - strokeWidth, 0);
+            height = Math.max(height - strokeWidth, 0);
+        } else {
+            strokeWidth = this.strokeWidth;
+        }
+
+        this.effectiveStrokeWidth = strokeWidth;
+
+        if (this.crisp && !borderSizing) {
+            const alignment = Math.floor(strokeWidth) % 2 / 2;
+            path.rect(
+                Math.floor(x) + alignment,
+                Math.floor(y) + alignment,
+                Math.floor(width) + Math.floor(x % 1 + width % 1),
+                Math.floor(height) + Math.floor(y % 1 + height % 1)
+            );
+        } else {
+            path.rect(x, y, width, height);
+        }
+
+        this.dirtyPath = false;
+    }
+
+    readonly getBBox = () => {
+        return new BBox(
+            this.x,
+            this.y,
+            this.width,
+            this.height
+        );
+    }
+
+    isPointInPath(x: number, y: number): boolean {
+        const point = this.transformPoint(x, y);
+        const bbox = this.getBBox();
+
+        return bbox.containsPoint(point.x, point.y);
+    }
+
+    isPointInStroke(x: number, y: number): boolean {
         return false;
     }
 
     render(ctx: CanvasRenderingContext2D): void {
-        if (this.scene) {
-            this.updatePath();
-            this.applyContextAttributes(ctx);
-            this.scene.appendPath(this.path);
-            ctx.fill();
-            ctx.stroke();
+        if (this.dirtyTransform) {
+            this.computeTransformMatrix();
         }
+        this.matrix.toContext(ctx);
+
+        this.updatePath();
+        this.scene!.appendPath(this.path);
+
+        this.fillStroke(ctx);
 
         this.dirty = false;
+    }
+
+    protected fillStroke(ctx: CanvasRenderingContext2D) {
+        if (!this.scene) {
+            return;
+        }
+
+        const pixelRatio = this.scene.canvas.pixelRatio || 1;
+
+        if (this.fill) {
+            ctx.fillStyle = this.fill;
+            ctx.globalAlpha = this.opacity * this.fillOpacity;
+
+            // The canvas context scaling (depends on the device's pixel ratio)
+            // has no effect on shadows, so we have to account for the pixel ratio
+            // manually here.
+            const fillShadow = this.fillShadow;
+            if (fillShadow && fillShadow.enabled) {
+                ctx.shadowColor = fillShadow.color;
+                ctx.shadowOffsetX = fillShadow.xOffset * pixelRatio;
+                ctx.shadowOffsetY = fillShadow.yOffset * pixelRatio;
+                ctx.shadowBlur = fillShadow.blur * pixelRatio;
+            }
+            ctx.fill();
+        }
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0)';
+
+        if (this.stroke && this.effectiveStrokeWidth) {
+            ctx.strokeStyle = this.stroke;
+            ctx.globalAlpha = this.opacity * this.strokeOpacity;
+
+            ctx.lineWidth = this.effectiveStrokeWidth;
+            if (this.lineDash) {
+                ctx.setLineDash(this.lineDash);
+            }
+            if (this.lineDashOffset) {
+                ctx.lineDashOffset = this.lineDashOffset;
+            }
+            if (this.lineCap) {
+                ctx.lineCap = this.lineCap;
+            }
+            if (this.lineJoin) {
+                ctx.lineJoin = this.lineJoin;
+            }
+
+            const strokeShadow = this.strokeShadow;
+            if (strokeShadow && strokeShadow.enabled) {
+                ctx.shadowColor = strokeShadow.color;
+                ctx.shadowOffsetX = strokeShadow.xOffset * pixelRatio;
+                ctx.shadowOffsetY = strokeShadow.yOffset * pixelRatio;
+                ctx.shadowBlur = strokeShadow.blur * pixelRatio;
+            }
+            ctx.stroke();
+        }
     }
 }

@@ -150,7 +150,7 @@ class ExampleRunner {
 
         // for now - once all examples have been converted/tested for vue, this can be removed and the vue entry added to
         // this.titles as a permanent addition
-        this.processVue = options.processVue;
+        this.processVue = options.processVue || options.processVue === undefined;
         if(this.processVue) {
             this.titles['vue'] = "Vue";
         } else {
@@ -439,7 +439,7 @@ docs.component("exampleRunner", {
 
         <div class="tab-contents" ng-if="$ctrl.ready">
             <div ng-show="$ctrl.selectedTab == 'result'" role="tabpanel" class="result">
-                <iframe ng-if="$ctrl.visible" ng-src="{{$ctrl.resultUrl}}" ng-style="$ctrl.iframeStyle" seamless="true"></iframe>
+                <iframe ng-if="$ctrl.visible" ng-src="{{$ctrl.resultUrl}}" ng-style="$ctrl.iframeStyle" scrolling="no" seamless="true"></iframe>
                 <div ng-show="!$ctrl.visible" class="iframe-placeholder" ng-style="$ctrl.iframeStyle">
                     <i class="fa fa-spinner fa-pulse fa-3x fa-fw"></i>
                 </div>

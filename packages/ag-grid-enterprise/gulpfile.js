@@ -24,7 +24,8 @@ gulp.task('webpack-noStyle', ['tsc'], webpackTask.bind(null, false, false));
 gulp.task('webpack-minify', ['tsc'], webpackTask.bind(null, true, true));
 gulp.task('webpack', ['tsc'], webpackTask.bind(null, false, true));
 
-gulp.task('tsc', ['tsc-src'], tscMainTask);
+gulp.task('tsc', ['tsc-src', 'tsc-modules'], tscMainTask);
+gulp.task('tsc-modules', tscModulesTask);
 gulp.task('tsc-no-clean', tscSrcTask);
 gulp.task('tsc-src', ['cleanDist', 'tslint'], tscSrcTask);
 gulp.task('tsc-main', ['cleanMain'], tscMainTask);
@@ -33,6 +34,7 @@ gulp.task('cleanDist', cleanDist);
 gulp.task('cleanMain', cleanMain);
 
 gulp.task('watch', ['tsc'], tscWatch);
+gulp.task('webpack-watch', ['webpack-noStyle'], webpackWatch);
 
 gulp.task("tslint", () =>
     gulp.src("src/**/*.ts")
@@ -48,6 +50,14 @@ function tscWatch() {
         './src/**/*'
     ],
     ['tsc']);
+}
+
+function webpackWatch() {
+    gulp.watch([
+        './node_modules/ag-grid-community/dist/lib/**/*',
+        './src/**/*'
+    ],
+    ['webpack-noStyle']);
 }
 
 function cleanDist() {
@@ -100,6 +110,23 @@ function tscMainTask() {
     ]);
 }
 
+function tscModulesTask() {
+    const tsProject = gulpTypescript.createProject('./tsconfig-main.json', {typescript: typescript});
+
+    const tsResult = gulp
+        .src('./src/modules/**/*.ts')
+        .pipe(tsProject());
+
+    return merge([
+        tsResult.dts
+            .pipe(replace("\"./", "\"./dist/lib/"))
+            .pipe(gulp.dest('./')),
+        tsResult.js
+            .pipe(replace("require(\"../", "require(\"./dist/lib/"))
+            .pipe(gulp.dest('./'))
+    ]);
+}
+
 function webpackTask(minify, styles) {
 
     const mainFile = styles ? './webpack-with-styles.js' : './webpack.js';
@@ -128,7 +155,7 @@ function webpackTask(minify, styles) {
                         use: ['style-loader', {
                             loader:'css-loader',
                             options: {
-                                minimze: !!minify
+                                minimize: !!minify
                             }
                         }]
                     }

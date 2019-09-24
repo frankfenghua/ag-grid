@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -28,13 +28,17 @@ var ComponentMetadataProvider = /** @class */ (function () {
             },
             detailCellRenderer: {
                 mandatoryMethodList: [],
-                optionalMethodList: []
+                optionalMethodList: ['refresh']
             },
             headerComponent: {
                 mandatoryMethodList: [],
                 optionalMethodList: []
             },
             headerGroupComponent: {
+                mandatoryMethodList: [],
+                optionalMethodList: []
+            },
+            loadingCellRenderer: {
                 mandatoryMethodList: [],
                 optionalMethodList: []
             },
@@ -70,7 +74,7 @@ var ComponentMetadataProvider = /** @class */ (function () {
             },
             fullWidthCellRenderer: {
                 mandatoryMethodList: [],
-                optionalMethodList: ['afterGuiAttached'],
+                optionalMethodList: ['refresh', 'afterGuiAttached'],
                 functionAdapter: this.agComponentUtils.adaptCellRendererFunction.bind(this.agComponentUtils)
             },
             pinnedRowCellRenderer: {
@@ -103,6 +107,10 @@ var ComponentMetadataProvider = /** @class */ (function () {
             toolPanel: {
                 mandatoryMethodList: [],
                 optionalMethodList: ['refresh', 'afterGuiAttached']
+            },
+            tooltipComponent: {
+                mandatoryMethodList: [],
+                optionalMethodList: []
             }
         };
     };

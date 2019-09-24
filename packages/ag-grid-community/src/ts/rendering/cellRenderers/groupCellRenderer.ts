@@ -2,36 +2,43 @@ import { GridOptionsWrapper } from "../../gridOptionsWrapper";
 import { ExpressionService } from "../../valueService/expressionService";
 import { EventService } from "../../eventService";
 import { Constants } from "../../constants";
-import { Autowired, Context } from "../../context/context";
+import { Autowired } from "../../context/context";
 import { Component } from "../../widgets/component";
 import { ICellRenderer, ICellRendererComp, ICellRendererParams } from "./iCellRenderer";
 import { RowNode } from "../../entities/rowNode";
-import { CellRendererService } from "../cellRendererService";
 import { ValueFormatterService } from "../valueFormatterService";
 import { CheckboxSelectionComponent } from "../checkboxSelectionComponent";
 import { ColumnController } from "../../columnController/columnController";
 import { Column } from "../../entities/column";
 import { RefSelector } from "../../widgets/componentAnnotations";
 import { MouseEventService } from "../../gridPanel/mouseEventService";
+import { ColDef } from "../../entities/colDef";
+import {
+    ComponentClassDef,
+    ComponentSource,
+    UserComponentFactory
+} from "../../components/framework/userComponentFactory";
 import { _, Promise } from "../../utils";
 
 export interface GroupCellRendererParams extends ICellRendererParams {
-    pinned:string;
-    padding:number;
-    suppressPadding:boolean;
-    suppressDoubleClickExpand:boolean;
-    footerValueGetter:any;
-    suppressCount:boolean;
-    fullWidth:boolean;
-    checkbox:any;
-    scope:any;
-    actualValue:string;
+    pinned: string;
+    suppressPadding: boolean;
+    suppressDoubleClickExpand: boolean;
+    suppressEnterExpand: boolean;
+    footerValueGetter: any;
+    suppressCount: boolean;
+    fullWidth: boolean;
+    checkbox: any;
+    scope: any;
+
+    /** @deprecated */
+    padding: number;
 }
 
-export class GroupCellRenderer extends Component implements ICellRenderer {
+export class GroupCellRenderer extends Component implements ICellRendererComp {
 
     private static TEMPLATE =
-        '<span>' +
+        '<span class="ag-cell-wrapper">' +
          '<span class="ag-group-expanded" ref="eExpanded"></span>' +
          '<span class="ag-group-contracted" ref="eContracted"></span>' +
          '<span class="ag-group-checkbox ag-invisible" ref="eCheckbox"></span>' +
@@ -42,11 +49,10 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('expressionService') private expressionService: ExpressionService;
     @Autowired('eventService') private eventService: EventService;
-    @Autowired('cellRendererService') private cellRendererService: CellRendererService;
     @Autowired('valueFormatterService') private valueFormatterService: ValueFormatterService;
-    @Autowired('context') private context: Context;
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('mouseEventService') private mouseEventService: MouseEventService;
+    @Autowired('userComponentFactory') private userComponentFactory: UserComponentFactory;
 
     @RefSelector('eExpanded') private eExpanded: HTMLElement;
     @RefSelector('eContracted') private eContracted: HTMLElement;
@@ -240,9 +246,9 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
 
         let rendererPromise:Promise<ICellRendererComp>;
         if (params.fullWidth == true) {
-            rendererPromise = this.cellRendererService.useFullWidthGroupRowInnerCellRenderer(this.eValue, params);
+            rendererPromise = this.useFullWidth(params);
         } else {
-            rendererPromise = this.cellRendererService.useInnerCellRenderer(this.params.colDef.cellRendererParams, columnToUse.getColDef(), this.eValue, params);
+            rendererPromise = this.useInnerRenderer(this.params.colDef.cellRendererParams, columnToUse.getColDef(), params);
         }
 
         // retain a reference to the created renderer - we'll use this later for cleanup (in destroy)
@@ -251,6 +257,74 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
                 this.innerCellRenderer = value;
             });
         }
+    }
+
+    private useInnerRenderer(
+        groupCellRendererParams: GroupCellRendererParams,
+        groupedColumnDef: ColDef, // the column this group row is for, eg 'Country'
+        params: any
+    ): Promise<ICellRendererComp> {
+        // when grouping, the normal case is we use the cell renderer of the grouped column. eg if grouping by country
+        // and then rating, we will use the country cell renderer for each country group row and likewise the rating
+        // cell renderer for each rating group row.
+        //
+        // however if the user has innerCellRenderer defined, this gets preference and we don't use cell renderers
+        // of the grouped columns.
+        //
+        // so we check and use in the following order:
+        //
+        // 1) thisColDef.cellRendererParams.innerRenderer of the column showing the groups (eg auto group column)
+        // 2) groupedColDef.cellRenderer of the grouped column
+        // 3) groupedColDef.cellRendererParams.innerRenderer
+
+        let cellRendererPromise: Promise<ICellRendererComp> = null;
+        // we check if cell renderer provided for the group cell renderer, eg colDef.cellRendererParams.innerRenderer
+        const groupInnerRendererClass: ComponentClassDef<any, any> = this.userComponentFactory
+            .lookupComponentClassDef(groupCellRendererParams, "innerRenderer");
+
+        if (groupInnerRendererClass && groupInnerRendererClass.component != null
+            && groupInnerRendererClass.source != ComponentSource.DEFAULT) {
+            // use the renderer defined in cellRendererParams.innerRenderer
+            cellRendererPromise = this.userComponentFactory.newInnerCellRenderer(groupCellRendererParams, params);
+        } else {
+            // otherwise see if we can use the cellRenderer of the column we are grouping by
+            const groupColumnRendererClass: ComponentClassDef<any, any> = this.userComponentFactory
+                .lookupComponentClassDef(groupedColumnDef, "cellRenderer");
+            if (groupColumnRendererClass && groupColumnRendererClass.source != ComponentSource.DEFAULT) {
+                // Only if the original column is using a specific renderer, it it is a using a DEFAULT one ignore it
+                cellRendererPromise = this.userComponentFactory.newCellRenderer(groupedColumnDef, params);
+            } else if (groupColumnRendererClass && groupColumnRendererClass.source == ComponentSource.DEFAULT
+                && (_.get(groupedColumnDef, 'cellRendererParams.innerRenderer', null))) {
+                // EDGE CASE - THIS COMES FROM A COLUMN WHICH HAS BEEN GROUPED DYNAMICALLY, THAT HAS AS RENDERER 'group'
+                // AND HAS A INNER CELL RENDERER
+                cellRendererPromise = this.userComponentFactory.newInnerCellRenderer(groupedColumnDef.cellRendererParams, params);
+            } else {
+                // This forces the retrieval of the default plain cellRenderer that just renders the values.
+                cellRendererPromise = this.userComponentFactory.newCellRenderer({}, params);
+            }
+        }
+        if (cellRendererPromise != null) {
+            cellRendererPromise.then(rendererToUse => {
+                if (rendererToUse == null) {
+                    this.eValue.innerText = params.valueFormatted != null ? params.valueFormatted : params.value;
+                    return;
+                }
+                _.bindCellRendererToHtmlElement(cellRendererPromise, this.eValue);
+            });
+        } else {
+            this.eValue.innerText = params.valueFormatted != null ? params.valueFormatted : params.value;
+        }
+        return cellRendererPromise;
+    }
+
+    private useFullWidth(params: any): Promise<ICellRendererComp> {
+        const cellRendererPromise: Promise<ICellRendererComp> = this.userComponentFactory.newFullWidthGroupRowInnerCellRenderer (params);
+        if (cellRendererPromise != null) {
+            _.bindCellRendererToHtmlElement(cellRendererPromise, this.eValue);
+        } else {
+            this.eValue.innerText = params.valueFormatted != null ? params.valueFormatted : params.value;
+        }
+        return cellRendererPromise;
     }
 
     private addChildCount(): void {
@@ -272,7 +346,7 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
 
     private createLeafCell(): void {
         if (_.exists(this.params.value)) {
-            this.eValue.innerHTML = this.params.valueFormatted ? this.params.valueFormatted : this.params.value;
+            this.eValue.innerText = this.params.valueFormatted ? this.params.valueFormatted : this.params.value;
         }
     }
 
@@ -296,7 +370,7 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
                 && !rowNode.detail;
         if (checkboxNeeded) {
             const cbSelectionComponent = new CheckboxSelectionComponent();
-            this.context.wireBean(cbSelectionComponent);
+            this.getContext().wireBean(cbSelectionComponent);
             cbSelectionComponent.init({rowNode: rowNode, column: this.params.column});
             this.eCheckbox.appendChild(cbSelectionComponent.getGui());
             this.addDestroyFunc(() => cbSelectionComponent.destroy());
@@ -340,11 +414,13 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
     }
 
     private onKeyDown(event: KeyboardEvent): void {
-        if (_.isKeyPressed(event, Constants.KEY_ENTER)) {
-            const cellEditable = this.params.column.isCellEditable(this.params.node);
-            if (cellEditable) {
-                return;
-            }
+        const enterKeyPressed = _.isKeyPressed(event, Constants.KEY_ENTER);
+        if (enterKeyPressed) {
+            if (this.params.suppressEnterExpand) { return; }
+
+            const cellEditable = this.params.column && this.params.column.isCellEditable(this.params.node);
+            if (cellEditable) { return; }
+
             event.preventDefault();
             this.onExpandOrContract();
         }
@@ -363,9 +439,15 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
             this.draggedFromHideOpenParents = true;
         } else {
             const rowGroupColumn = rowNode.rowGroupColumn;
-            // if the displayGroup column for this col matches the rowGroupColumn we grouped by for this node,
-            // then nothing was dragged down
-            this.draggedFromHideOpenParents = !column.isRowGroupDisplayed(rowGroupColumn.getId());
+            if (rowGroupColumn) {
+                // if the displayGroup column for this col matches the rowGroupColumn we grouped by for this node,
+                // then nothing was dragged down
+                this.draggedFromHideOpenParents = !column.isRowGroupDisplayed(rowGroupColumn.getId());
+            } else {
+                // the only way we can end up here (no column, but a group) is if we are at the root node,
+                // which only happens when 'groupIncludeTotalFooter' is true. here, we are never dragging
+                this.draggedFromHideOpenParents = false;
+            }
         }
 
         if (this.draggedFromHideOpenParents) {
@@ -435,12 +517,12 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
             // if expandable, show one based on expand state.
             // if we were dragged down, means our parent is always expanded
             const expanded = this.draggedFromHideOpenParents ? true : rowNode.expanded;
-            _.setVisible(this.eContracted, !expanded);
-            _.setVisible(this.eExpanded, expanded);
+            _.setDisplayed(this.eContracted, !expanded);
+            _.setDisplayed(this.eExpanded, expanded);
         } else {
             // it not expandable, show neither
-            _.setVisible(this.eExpanded, false);
-            _.setVisible(this.eContracted, false);
+            _.setDisplayed(this.eExpanded, false);
+            _.setDisplayed(this.eContracted, false);
         }
 
         const displayedGroup = this.displayedGroup;
@@ -448,6 +530,7 @@ export class GroupCellRenderer extends Component implements ICellRenderer {
         const pivotModeAndLeafGroup = this.columnController.isPivotMode() && displayedGroup.leafGroup;
         const notExpandable = !displayedGroup.isExpandable();
         const addLeafIndentClass = displayedGroup.footer || notExpandable || pivotModeAndLeafGroup;
+        this.addOrRemoveCssClass('ag-row-group', !addLeafIndentClass);
         this.addOrRemoveCssClass('ag-row-group-leaf-indent', addLeafIndentClass);
     }
 

@@ -79,7 +79,6 @@ export class RowContainerComponent {
         this.eContainer.style.height = `${height}px`;
         if (this.eWrapper) {
              this.eWrapper.style.height = `${height}px`;
-             this.eWrapper.style.minHeight = '100%';
         }
     }
 
@@ -144,7 +143,7 @@ export class RowContainerComponent {
             this.visible = visible;
             this.lastMadeVisibleTime = new Date().getTime();
 
-            _.setVisible(eGui, visible);
+            _.setDisplayed(eGui, visible);
             // if we are showing the viewport, then the scroll is always zero,
             // so we need to align with the other sections (ie if this is full
             // width container, and first time showing a full width row, we need to

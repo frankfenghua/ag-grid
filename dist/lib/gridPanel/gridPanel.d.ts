@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { RowContainerComponent } from "../rendering/rowContainerComponent";
@@ -15,7 +15,6 @@ export declare class GridPanel extends Component {
     private rowRenderer;
     private pinnedRowModel;
     private eventService;
-    private context;
     private animationFrameService;
     private navigationService;
     private autoHeightCalculator;
@@ -32,7 +31,6 @@ export declare class GridPanel extends Component {
     private $scope;
     private scrollVisibleService;
     private valueService;
-    private componentRecipes;
     private dragAndDropService;
     private heightScaler;
     private enterprise;
@@ -65,11 +63,12 @@ export declare class GridPanel extends Component {
     private eBottomViewport;
     private eBottomFullWidthContainer;
     headerRootComp: HeaderRootComp;
+    private overlayWrapper;
     private rowContainerComponents;
     private eAllCellContainers;
-    private eOverlay;
     private scrollLeft;
     private scrollTop;
+    private nextScrollTop;
     private lastHorizontalScrollElement;
     private readonly resetLastHorizontalScrollElementDebounce;
     private bodyHeight;
@@ -77,7 +76,6 @@ export declare class GridPanel extends Component {
     private scrollWidth;
     private pinningRight;
     private pinningLeft;
-    private overlayWrapper;
     private printLayout;
     constructor();
     getVScrollPosition(): {
@@ -88,7 +86,6 @@ export declare class GridPanel extends Component {
         left: number;
         right: number;
     };
-    destroy(): void;
     private onRowDataChanged;
     private showOrHideOverlay;
     private onNewColumnsLoaded;
@@ -96,7 +93,7 @@ export declare class GridPanel extends Component {
     private onDomLayoutChanged;
     private onCenterViewportResized;
     setColumnMovingCss(moving: boolean): void;
-    private setupOverlay;
+    setCellTextSelection(selectable?: boolean): void;
     private addRowDragListener;
     private addStopEditingWhenGridLosesFocus;
     private addAngularApplyCheck;
@@ -109,13 +106,13 @@ export declare class GridPanel extends Component {
     getBodyClientRect(): ClientRect;
     private getRowForEvent;
     private processKeyboardEvent;
+    private doClipboardOperations;
     scrollToTop(): void;
     private processMouseEvent;
     private mockContextMenuForIPad;
     private handleContextMenuMouseEvent;
     private onContextMenu;
     private preventDefaultOnContextMenu;
-    private addShortcutKeyListeners;
     private onCtrlAndA;
     private onCtrlAndC;
     private onCtrlAndV;
@@ -129,6 +126,7 @@ export declare class GridPanel extends Component {
     private updateScrollVisibleServiceImpl;
     private setHorizontalScrollVisible;
     private setVerticalScrollPaddingVisible;
+    updateRowCount(): void;
     ensureColumnVisible(key: any): void;
     showLoadingOverlay(): void;
     showNoRowsOverlay(): void;
@@ -142,6 +140,7 @@ export declare class GridPanel extends Component {
     private setupRowAnimationCssClass;
     private suppressScrollOnFloatingRow;
     getRowContainers(): RowContainerComponents;
+    getFloatingTopBottom(): HTMLElement[];
     onDisplayedColumnsChanged(): void;
     private onDisplayedColumnsWidthChanged;
     private setWidthsOfContainers;
@@ -159,6 +158,7 @@ export declare class GridPanel extends Component {
     scrollVertically(pixels: number): number;
     private addScrollListener;
     private onVerticalScroll;
+    executeFrame(): boolean;
     private isControllingScroll;
     private onFakeHorizontalScroll;
     private onCenterViewportScroll;

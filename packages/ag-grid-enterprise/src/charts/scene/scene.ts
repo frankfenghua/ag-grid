@@ -1,74 +1,74 @@
-import {HdpiCanvas} from "../canvas/hdpiCanvas";
-import {Node} from "./node";
-import {Path} from "./path";
-import {Shape} from "./shape/shape";
+import { HdpiCanvas } from "../canvas/hdpiCanvas";
+import { Node } from "./node";
+import { Path2D } from "./path2D";
+
+export type SceneOptions = {
+    width?: number,
+    height?: number,
+    document?: Document
+};
 
 export class Scene {
-    constructor(parent: HTMLElement, width = 800, height = 600) {
-        this.hdpiCanvas = new HdpiCanvas(this._width = width, this._height = height);
-        const canvas = this.hdpiCanvas.canvas;
-        this.ctx = canvas.getContext('2d')!;
-        parent.appendChild(canvas);
-        this.setupListeners(canvas);
+
+    private static id = 1;
+    readonly id: string = this.createId();
+    private createId(): string {
+        return (this.constructor as any).name + '-' + (Scene.id++);
     }
 
-    private readonly hdpiCanvas: HdpiCanvas;
+    readonly canvas: HdpiCanvas;
     private readonly ctx: CanvasRenderingContext2D;
 
-    private setupListeners(canvas: HTMLCanvasElement) {
-        canvas.addEventListener('mousemove', this.onMouseMove);
+    constructor(options: SceneOptions = {}) {
+        this.canvas = new HdpiCanvas({
+            width: options.width || 300,
+            height: options.height || 150,
+            document: options.document || window.document
+        });
+        this.ctx = this.canvas.context;
     }
 
-    private onMouseMove = (e: MouseEvent) => {
-        const pixelRatio = this.hdpiCanvas.pixelRatio;
-        const x = e.offsetX * pixelRatio;
-        const y = e.offsetY * pixelRatio;
+    set parent(value: HTMLElement | undefined) {
+        this.canvas.parent = value;
+    }
+    get parent(): HTMLElement | undefined {
+        return this.canvas.parent;
+    }
 
-        const node = this.root;
+    download(fileName?: string) {
+        this.canvas.download(fileName);
+    }
 
-        if (node) {
-            const children = node.children;
-            const n = children.length;
-            for (let i = 0; i < n; i++) {
-                const child = children[i];
-                if (child instanceof Shape) {
-                    if (child.isPointInPath(this.ctx, x, y)) {
-                        child.fillStyle = 'yellow';
-                    }
-                    else {
-                        child.fillStyle = 'red';
-                    }
-
-                    if (child.isPointInStroke(this.ctx, x, y)) {
-                        child.strokeStyle = 'lime';
-                    }
-                    else {
-                        child.strokeStyle = 'black';
-                    }
-                }
-            }
-        }
-    };
-
-    _width: number;
+    set width(value: number) {
+        this.size = [value, this.height];
+    }
     get width(): number {
-        return this._width;
+        return this.canvas.width;
     }
 
-    _height: number;
+    set height(value: number) {
+        this.size = [this.width, value];
+    }
     get height(): number {
-        return this._height;
+        return this.canvas.height;
     }
 
     set size(value: [number, number]) {
-        this.hdpiCanvas.resize(...value);
-        [this._width, this._height] = value;
+        const [width, height] = value;
+        if (this.width !== width || this.height !== height) {
+            this.canvas.resize(width, height);
+            this.dirty = true;
+        }
+    }
+    get size(): [number, number] {
+        return [this.width, this.height];
     }
 
-    _dirty = false;
+    private _dirty = false;
+    private animationFrameId = 0;
     set dirty(dirty: boolean) {
         if (dirty && !this._dirty) {
-            requestAnimationFrame(this.render);
+            this.animationFrameId = requestAnimationFrame(this.render);
         }
         this._dirty = dirty;
     }
@@ -76,19 +76,41 @@ export class Scene {
         return this._dirty;
     }
 
-    _root?: Node;
-    set root(node: Node | undefined) {
-        this._root = node;
-        if (node) {
-            node.scene = this;
+    cancelRender() {
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = 0;
+            this._dirty = false;
         }
+    }
+
+    _root: Node | null = null;
+    set root(node: Node | null) {
+        if (node === this._root) {
+            return;
+        }
+
+        if (this._root) {
+            this._root._setScene(undefined);
+        }
+
+        this._root = node;
+
+        if (node) {
+            // If `node` is the root node of another scene ...
+            if (node.parent === null && node.scene && node.scene !== this) {
+                node.scene.root = null;
+            }
+            node._setScene(this);
+        }
+
         this.dirty = true;
     }
-    get root(): Node | undefined {
+    get root(): Node | null {
         return this._root;
     }
 
-    appendPath(path: Path) {
+    appendPath(path: Path2D) {
         const ctx = this.ctx;
         const commands = path.commands;
         const params = path.params;
@@ -118,11 +140,44 @@ export class Scene {
         }
     }
 
-    render = () => {
-        this.ctx.clearRect(0, 0, this.width, this.height);
-        if (this.root) {
-            this.root.render(this.ctx);
+    private _frameIndex = 0;
+    get frameIndex(): number {
+        return this._frameIndex;
+    }
+
+    private _renderFrameIndex = false;
+    set renderFrameIndex(value: boolean) {
+        if (this._renderFrameIndex !== value) {
+            this._renderFrameIndex = value;
+            this.dirty = true;
         }
+    }
+    get renderFrameIndex(): boolean {
+        return this._renderFrameIndex;
+    }
+
+    readonly render = () => {
+        const ctx = this.ctx;
+
+        // start with a blank canvas, clear previous drawing
+        ctx.clearRect(0, 0, this.width, this.height);
+
+        if (this.root) {
+            ctx.save();
+            if (this.root.visible) {
+                this.root.render(ctx);
+            }
+            ctx.restore();
+        }
+
+        this._frameIndex++;
+        if (this.renderFrameIndex) {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, 40, 15);
+            ctx.fillStyle = 'black';
+            ctx.fillText(this.frameIndex.toString(), 0, 10);
+        }
+
         this.dirty = false;
-    };
+    }
 }

@@ -12,21 +12,24 @@ import { ColumnAnimationService } from "./columnAnimationService";
 import { IRangeController } from "../interfaces/iRangeController";
 import { FocusedCellController } from "../focusedCellController";
 import { IContextMenuFactory } from "../interfaces/iContextMenuFactory";
-import { CellEditorFactory } from "./cellEditorFactory";
 import { CellRendererFactory } from "./cellRendererFactory";
 import { PopupService } from "../widgets/popupService";
-import { CellRendererService } from "./cellRendererService";
 import { ValueFormatterService } from "./valueFormatterService";
 import { StylingService } from "../styling/stylingService";
 import { ColumnHoverService } from "./columnHoverService";
 import { GridPanel } from "../gridPanel/gridPanel";
 import { PaginationProxy } from "../rowModels/paginationProxy";
 import { AnimationFrameService } from "../misc/animationFrameService";
-import { ComponentResolver } from "../components/framework/componentResolver";
+import { UserComponentFactory } from "../components/framework/userComponentFactory";
 import { DragAndDropService } from "../dragAndDrop/dragAndDropService";
 import { SortController } from "../sortController";
 import { FilterManager } from "../filter/filterManager";
-import { HeightScaler } from "./heightScaler";
+import { MaxDivHeightScaler } from "./maxDivHeightScaler";
+import { TooltipManager } from "../widgets/tooltipManager";
+import { IFrameworkOverrides } from "../interfaces/iFrameworkOverrides";
+import { DetailRowCompCache } from "./detailRowCompCache";
+import {CellPositionUtils} from "../entities/cellPosition";
+import {RowPositionUtils} from "../entities/rowPosition";
 
 /** Using the IoC has a slight performance consideration, which is no problem most of the
  * time, unless we are trashing objects - which is the case when scrolling and rowComp
@@ -52,20 +55,23 @@ export class Beans {
     @Optional('rangeController') public rangeController: IRangeController;
     @Autowired('focusedCellController') public focusedCellController: FocusedCellController;
     @Optional('contextMenuFactory') public contextMenuFactory: IContextMenuFactory;
-    @Autowired('cellEditorFactory') public cellEditorFactory: CellEditorFactory;
     @Autowired('cellRendererFactory') public cellRendererFactory: CellRendererFactory;
     @Autowired('popupService') public popupService: PopupService;
-    @Autowired('cellRendererService') public cellRendererService: CellRendererService;
     @Autowired('valueFormatterService') public valueFormatterService: ValueFormatterService;
     @Autowired('stylingService') public stylingService: StylingService;
     @Autowired('columnHoverService') public columnHoverService: ColumnHoverService;
     @Autowired('enterprise') public enterprise: boolean;
-    @Autowired('componentResolver') public componentResolver: ComponentResolver;
+    @Autowired('userComponentFactory') public userComponentFactory: UserComponentFactory;
     @Autowired('animationFrameService') public taskQueue: AnimationFrameService;
     @Autowired('dragAndDropService') public dragAndDropService: DragAndDropService;
     @Autowired('sortController') public sortController: SortController;
     @Autowired('filterManager') public filterManager: FilterManager;
-    @Autowired('heightScaler') public heightScaler: HeightScaler;
+    @Autowired('maxDivHeightScaler') public maxDivHeightScaler: MaxDivHeightScaler;
+    @Autowired('tooltipManager') public tooltipManager: TooltipManager;
+    @Autowired('frameworkOverrides') public frameworkOverrides: IFrameworkOverrides;
+    @Autowired('detailRowCompCache') public detailRowCompCache: DetailRowCompCache;
+    @Autowired('cellPositionUtils') public cellPositionUtils: CellPositionUtils;
+    @Autowired('rowPositionUtils') public rowPositionUtils: RowPositionUtils;
 
     public doingMasterDetail: boolean;
 

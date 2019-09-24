@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -49,7 +49,7 @@ var ServerSideBlock = /** @class */ (function (_super) {
         }
         this.createNodeIdPrefix();
         _super.prototype.init.call(this, {
-            context: this.context,
+            context: this.getContext(),
             rowRenderer: this.rowRenderer
         });
     };
@@ -139,7 +139,7 @@ var ServerSideBlock = /** @class */ (function (_super) {
             // rowNodes by id
             var idToUse = this.createIdForIndex(index);
             rowNode.setDataAndId(data, idToUse);
-            rowNode.setRowHeight(this.gridOptionsWrapper.getRowHeightForNode(rowNode));
+            rowNode.setRowHeight(this.gridOptionsWrapper.getRowHeightForNode(rowNode).height);
             if (this.usingTreeData) {
                 var getServerSideGroupKey = this.gridOptionsWrapper.getServerSideGroupKeyFunc();
                 if (ag_grid_community_1._.exists(getServerSideGroupKey) && getServerSideGroupKey) {
@@ -299,7 +299,7 @@ var ServerSideBlock = /** @class */ (function (_super) {
                 // then check if current row contains a detail row with pixel in range
                 var expandedMasterRow = rowNode.master && rowNode.expanded;
                 if (expandedMasterRow && rowNode.detailNode.isPixelInRange(pixel)) {
-                    return rowNode.rowIndex;
+                    return rowNode.detailNode.rowIndex;
                 }
                 // then check if it's a group row with a child cache with pixel in range
                 if (rowNode.group && rowNode.expanded && ag_grid_community_1._.exists(rowNode.childrenCache)) {
@@ -412,10 +412,7 @@ var ServerSideBlock = /** @class */ (function (_super) {
     ServerSideBlock.prototype.getGroupField = function () {
         return this.groupField;
     };
-    __decorate([
-        ag_grid_community_1.Autowired('context'),
-        __metadata("design:type", ag_grid_community_1.Context)
-    ], ServerSideBlock.prototype, "context", void 0);
+    ServerSideBlock.DefaultBlockSize = 100;
     __decorate([
         ag_grid_community_1.Autowired('rowRenderer'),
         __metadata("design:type", ag_grid_community_1.RowRenderer)

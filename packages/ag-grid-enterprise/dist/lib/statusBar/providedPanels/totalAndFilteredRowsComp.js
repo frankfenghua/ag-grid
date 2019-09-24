@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -28,53 +28,58 @@ var nameValueComp_1 = require("./nameValueComp");
 var TotalAndFilteredRowsComp = /** @class */ (function (_super) {
     __extends(TotalAndFilteredRowsComp, _super);
     function TotalAndFilteredRowsComp() {
-        return _super.call(this, 'rowAndFilteredCount', 'Rows') || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
     TotalAndFilteredRowsComp.prototype.postConstruct = function () {
-        _super.prototype.postConstruct.call(this);
-        // this component is only really useful with client side rowmodel
+        // this component is only really useful with client side row model
         if (this.gridApi.getModel().getType() !== 'clientSide') {
             console.warn("ag-Grid: agTotalAndFilteredRowCountComponent should only be used with the client side row model.");
             return;
         }
+        this.setLabel('totalAndFilteredRows', 'Rows');
         this.addCssClass('ag-status-panel');
         this.addCssClass('ag-status-panel-total-and-filtered-row-count');
-        this.setVisible(true);
-        var listener = this.onDataChanged.bind(this);
-        this.eventService.addEventListener(ag_grid_community_1.Events.EVENT_MODEL_UPDATED, listener);
+        this.setDisplayed(true);
+        this.addDestroyableEventListener(this.eventService, ag_grid_community_1.Events.EVENT_MODEL_UPDATED, this.onDataChanged.bind(this));
     };
     TotalAndFilteredRowsComp.prototype.onDataChanged = function () {
-        var filteredRowCount = this.getFilteredRowCountValue();
-        var displayValue = this.getTotalRowCountValue();
-        if (filteredRowCount !== displayValue) {
-            displayValue = filteredRowCount + " of " + displayValue;
+        var rowCount = this.getFilteredRowCountValue();
+        var totalRowCount = this.getTotalRowCount();
+        if (rowCount === totalRowCount) {
+            this.setValue(rowCount);
         }
-        this.setValue(displayValue);
-    };
-    TotalAndFilteredRowsComp.prototype.getTotalRowCountValue = function () {
-        var totalRowCount = 0;
-        this.gridApi.forEachNode(function (node) { return totalRowCount += 1; });
-        return totalRowCount;
+        else {
+            var localeTextFunc = this.gridOptionsWrapper.getLocaleTextFunc();
+            this.setValue(rowCount + " " + localeTextFunc('of', 'of') + " " + totalRowCount);
+        }
     };
     TotalAndFilteredRowsComp.prototype.getFilteredRowCountValue = function () {
         var filteredRowCount = 0;
         this.gridApi.forEachNodeAfterFilter(function (node) {
             if (!node.group) {
-                filteredRowCount += 1;
+                filteredRowCount++;
             }
         });
         return filteredRowCount;
     };
-    TotalAndFilteredRowsComp.prototype.init = function () {
+    TotalAndFilteredRowsComp.prototype.getTotalRowCount = function () {
+        var totalRowCount = 0;
+        this.gridApi.forEachNode(function (node) {
+            if (!node.group) {
+                totalRowCount++;
+            }
+        });
+        return totalRowCount;
     };
-    __decorate([
-        ag_grid_community_1.Autowired('eventService'),
-        __metadata("design:type", ag_grid_community_1.EventService)
-    ], TotalAndFilteredRowsComp.prototype, "eventService", void 0);
+    TotalAndFilteredRowsComp.prototype.init = function () { };
     __decorate([
         ag_grid_community_1.Autowired('gridApi'),
         __metadata("design:type", ag_grid_community_1.GridApi)
     ], TotalAndFilteredRowsComp.prototype, "gridApi", void 0);
+    __decorate([
+        ag_grid_community_1.Autowired('eventService'),
+        __metadata("design:type", ag_grid_community_1.EventService)
+    ], TotalAndFilteredRowsComp.prototype, "eventService", void 0);
     __decorate([
         ag_grid_community_1.PostConstruct,
         __metadata("design:type", Function),

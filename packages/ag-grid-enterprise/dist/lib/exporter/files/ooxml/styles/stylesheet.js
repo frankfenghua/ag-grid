@@ -1,6 +1,7 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var ag_grid_community_1 = require("ag-grid-community");
 var numberFormats_1 = require("./numberFormats");
 var fonts_1 = require("./fonts");
 var fills_1 = require("./fills");
@@ -11,14 +12,24 @@ var cellStyles_1 = require("./cellStyles");
 var numberFormat_1 = require("./numberFormat");
 var font_1 = require("./font");
 var border_1 = require("./border");
-var registeredNumberFmts = [];
-var registeredFonts = [{ name: 'Calibri', size: 14, colorTheme: '1', family: 2, scheme: 'minor' }];
-var registeredFills = [{ patternType: 'none', }, { patternType: 'gray125' }];
-var registeredBorders = [{ left: undefined, right: undefined, top: undefined, bottom: undefined, diagonal: undefined }];
-var registeredCellStyleXfs = [{ borderId: 0, fillId: 0, fontId: 0, numFmtId: 0 }];
-var registeredCellXfs = [{ borderId: 0, fillId: 0, fontId: 0, numFmtId: 0, xfId: 0 }];
-var registeredCellStyles = [{ builtinId: 0, name: 'normal', xfId: 0 }];
-var stylesMap = { base: 0 };
+var stylesMap;
+var registeredNumberFmts;
+var registeredFonts;
+var registeredFills;
+var registeredBorders;
+var registeredCellStyleXfs;
+var registeredCellXfs;
+var registeredCellStyles;
+var resetStylesheetValues = function () {
+    stylesMap = { base: 0 };
+    registeredNumberFmts = [];
+    registeredFonts = [{ name: 'Calibri', size: 14, colorTheme: '1', family: 2, scheme: 'minor' }];
+    registeredFills = [{ patternType: 'none', }, { patternType: 'gray125' }];
+    registeredBorders = [{ left: undefined, right: undefined, top: undefined, bottom: undefined, diagonal: undefined }];
+    registeredCellStyleXfs = [{ borderId: 0, fillId: 0, fontId: 0, numFmtId: 0 }];
+    registeredCellXfs = [{ borderId: 0, fillId: 0, fontId: 0, numFmtId: 0, xfId: 0 }];
+    registeredCellStyles = [{ builtinId: 0, name: 'normal', xfId: 0 }];
+};
 var convertLegacyPattern = function (name) {
     var colorMap = {
         None: 'none',
@@ -59,19 +70,15 @@ var registerFill = function (fill) {
     var convertedPattern = convertLegacyPattern(fill.pattern);
     var convertedFillColor = exports.convertLegacyColor(fill.color);
     var convertedPatternColor = exports.convertLegacyColor(fill.patternColor);
-    var reg = registeredFills.filter(function (currentFill) {
-        if (currentFill.patternType != convertedPattern) {
-            return false;
-        }
-        if (currentFill.fgRgb != convertedFillColor) {
-            return false;
-        }
-        if (currentFill.bgRgb != convertedPatternColor) {
+    var pos = ag_grid_community_1._.findIndex(registeredFills, function (currentFill) {
+        var patternType = currentFill.patternType, fgRgb = currentFill.fgRgb, bgRgb = currentFill.bgRgb;
+        if (patternType != convertedPattern ||
+            fgRgb != convertedFillColor ||
+            bgRgb != convertedPatternColor) {
             return false;
         }
         return true;
     });
-    var pos = reg.length ? registeredFills.indexOf(reg[0]) : -1;
     if (pos === -1) {
         pos = registeredFills.length;
         registeredFills.push({ patternType: convertedPattern, fgRgb: convertedFillColor, bgRgb: convertedPatternColor });
@@ -79,18 +86,17 @@ var registerFill = function (fill) {
     return pos;
 };
 var registerNumberFmt = function (format) {
+    format = ag_grid_community_1._.utf8_encode(format);
     if (numberFormat_1.numberFormatMap[format]) {
         return numberFormat_1.numberFormatMap[format];
     }
-    var reg = registeredNumberFmts.filter(function (currentFmt) {
-        if (currentFmt.formatCode !== format) {
-            return false;
-        }
-    });
-    var pos = reg.length ? reg[0].numFmtId : -1;
+    var pos = ag_grid_community_1._.findIndex(registeredNumberFmts, function (currentFormat) { return currentFormat.formatCode === format; });
     if (pos === -1) {
         pos = registeredNumberFmts.length + 164;
         registeredNumberFmts.push({ formatCode: format, numFmtId: pos });
+    }
+    else {
+        pos = registeredNumberFmts[pos].numFmtId;
     }
     return pos;
 };
@@ -114,7 +120,7 @@ var registerBorders = function (borders) {
         topStyle = border_1.convertLegacyBorder(borderTop.lineStyle, borderTop.weight);
         topColor = exports.convertLegacyColor(borderTop.color);
     }
-    var reg = registeredBorders.filter(function (currentBorder) {
+    var pos = ag_grid_community_1._.findIndex(registeredBorders, function (currentBorder) {
         var left = currentBorder.left, right = currentBorder.right, top = currentBorder.top, bottom = currentBorder.bottom;
         if (!left && (leftStyle || leftColor)) {
             return false;
@@ -146,7 +152,6 @@ var registerBorders = function (borders) {
         }
         return true;
     });
-    var pos = reg.length ? registeredBorders.indexOf(reg[0]) : -1;
     if (pos === -1) {
         pos = registeredBorders.length;
         registeredBorders.push({
@@ -172,46 +177,28 @@ var registerBorders = function (borders) {
 };
 var registerFont = function (font) {
     var name = font.fontName, color = font.color, size = font.size, bold = font.bold, italic = font.italic, outline = font.outline, shadow = font.shadow, strikeThrough = font.strikeThrough, underline = font.underline, family = font.family;
+    var utf8Name = name ? ag_grid_community_1._.utf8_encode(name) : name;
     var convertedColor = exports.convertLegacyColor(color);
     var familyId = font_1.getFamilyId(family);
-    var reg = registeredFonts.filter(function (currentFont) {
-        if (currentFont.name != name) {
-            return false;
-        }
-        if (currentFont.color != convertedColor) {
-            return false;
-        }
-        if (currentFont.size != size) {
-            return false;
-        }
-        if (currentFont.bold != bold) {
-            return false;
-        }
-        if (currentFont.italic != italic) {
-            return false;
-        }
-        if (currentFont.outline != outline) {
-            return false;
-        }
-        if (currentFont.shadow != shadow) {
-            return false;
-        }
-        if (currentFont.strike != strikeThrough) {
-            return false;
-        }
-        if (currentFont.underline != underline) {
-            return false;
-        }
-        if (currentFont.family != familyId) {
+    var pos = ag_grid_community_1._.findIndex(registeredFonts, function (currentFont) {
+        if (currentFont.name != utf8Name ||
+            currentFont.color != convertedColor ||
+            currentFont.size != size ||
+            currentFont.bold != bold ||
+            currentFont.italic != italic ||
+            currentFont.outline != outline ||
+            currentFont.shadow != shadow ||
+            currentFont.strike != strikeThrough ||
+            currentFont.underline != underline ||
+            currentFont.family != familyId) {
             return false;
         }
         return true;
     });
-    var pos = reg.length ? registeredFonts.indexOf(reg[0]) : -1;
     if (pos === -1) {
         pos = registeredFonts.length;
         registeredFonts.push({
-            name: name,
+            name: utf8Name,
             color: convertedColor,
             size: size,
             bold: bold,
@@ -259,6 +246,14 @@ var registerStyle = function (config) {
 };
 var stylesheetFactory = {
     getTemplate: function () {
+        var numberFormats = numberFormats_1.default.getTemplate(registeredNumberFmts);
+        var fonts = fonts_1.default.getTemplate(registeredFonts);
+        var fills = fills_1.default.getTemplate(registeredFills);
+        var borders = borders_1.default.getTemplate(registeredBorders);
+        var cellStylesXfs = cellStyleXfs_1.default.getTemplate(registeredCellStyleXfs);
+        var cellXfs = cellXfs_1.default.getTemplate(registeredCellXfs);
+        var cellStyles = cellStyles_1.default.getTemplate(registeredCellStyles);
+        resetStylesheetValues();
         return {
             name: 'styleSheet',
             properties: {
@@ -267,13 +262,13 @@ var stylesheetFactory = {
                 }
             },
             children: [
-                numberFormats_1.default.getTemplate(registeredNumberFmts),
-                fonts_1.default.getTemplate(registeredFonts),
-                fills_1.default.getTemplate(registeredFills),
-                borders_1.default.getTemplate(registeredBorders),
-                cellStyleXfs_1.default.getTemplate(registeredCellStyleXfs),
-                cellXfs_1.default.getTemplate(registeredCellXfs),
-                cellStyles_1.default.getTemplate(registeredCellStyles),
+                numberFormats,
+                fonts,
+                fills,
+                borders,
+                cellStylesXfs,
+                cellXfs,
+                cellStyles,
                 {
                     name: 'tableStyles',
                     properties: {
@@ -292,6 +287,7 @@ exports.getStyleId = function (name) {
     return stylesMap[name] || 0;
 };
 exports.registerStyles = function (styles) {
+    resetStylesheetValues();
     styles.forEach(registerStyle);
 };
 exports.default = stylesheetFactory;

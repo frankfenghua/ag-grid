@@ -14,7 +14,9 @@ include '../documentation-main/documentation_header.php';
        simplify state management.
     </p>
 
-    <p>
+<note>Be sure to refer to the <a href="../react-more-details/react-15#react-redux-hoc">React/Redux More Details</a> section
+    for more details around configuration.</note>
+<p>
         We will use the concrete example of a file view component to demonstrate how to move local component state to
         a Redux store. Updates to the files state will be retrieved from the Redux store, while UI events to add and
         delete files will be dispatched to the Redux store for processing.
@@ -232,7 +234,12 @@ const mapDispatchToProps = (dispatch) => ({
 });
 
 // connect our component to the redux store
-export default connect(mapStateToProps, mapDispatchToProps)(FileView);
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+    null,
+    { forwardRef: true } // must be supplied for react/redux when using GridOptions.reactNext
+)(FileView);
 </snippet>
     <p>
         In the code above we pass two functions to <code>connect</code> to map the required state (mapStateToProps) and
@@ -418,5 +425,22 @@ getContextMenuItems = (params) => {
         Next up in <a href="../react-redux-integration-pt2/">Redux Integration Part 2</a> we take things further and
         implement a feature rich File Browser which builds upon this File View example.
     </p>
+    <div class="card" style="background-color: aliceblue">
+  <div class="card-body">
+<h2 id="angular-grid-resources" style="margin-top: 10px"> 
+    React Grid Resources
+</h2>
+<br/>
+<ul>
+    <li>
+        Get started with React Grid in 5 minutes in our <strong><a href="../react-getting-started/" target="_blank">guide</a></strong>.
+    </li>
+    <br/>
+    <li>
+        Browse our <strong><a href="../best-react-data-grid/" target="_blank">React Grid</a></strong> page to discover all major benefits in using ag-Grid React. 
+    </li>
+</ul>
+</div>
+</div>
 
 <?php include '../documentation-main/documentation_footer.php'; ?>

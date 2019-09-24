@@ -20,8 +20,8 @@ var gridOptions = {
 
 function navigateToNextCell(params) {
 
-    var previousCell = params.previousCellDef;
-    var suggestedNextCell = params.nextCellDef;
+    var previousCell = params.previousCellPosition;
+    var suggestedNextCell = params.nextCellPosition;
 
     var KEY_UP = 38;
     var KEY_DOWN = 40;
@@ -30,7 +30,7 @@ function navigateToNextCell(params) {
 
     switch (params.key) {
         case KEY_DOWN:
-            previousCell = params.previousCellDef;
+            previousCell = params.previousCellPosition;
             // set selected cell on current cell + 1
             gridOptions.api.forEachNode( (node) => {
                 if (previousCell.rowIndex + 1 === node.rowIndex) {
@@ -39,7 +39,7 @@ function navigateToNextCell(params) {
             });
             return suggestedNextCell;
         case KEY_UP:
-            previousCell = params.previousCellDef;
+            previousCell = params.previousCellPosition;
             // set selected cell on current cell - 1
             gridOptions.api.forEachNode( (node) => {
                 if (previousCell.rowIndex - 1 === node.rowIndex) {
@@ -51,7 +51,7 @@ function navigateToNextCell(params) {
         case KEY_RIGHT:
             return suggestedNextCell;
         default:
-            throw "this will never happen, navigation is always on of the 4 keys above";
+            throw "this will never happen, navigation is always one of the 4 keys above";
     }
 }
 

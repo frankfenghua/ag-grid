@@ -1,13 +1,12 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { IStatusPanelComp } from 'ag-grid-community';
 import { NameValueComp } from "./nameValueComp";
 export declare class TotalAndFilteredRowsComp extends NameValueComp implements IStatusPanelComp {
-    private eventService;
     private gridApi;
-    constructor();
+    private eventService;
     protected postConstruct(): void;
     private onDataChanged;
-    private getTotalRowCountValue;
     private getFilteredRowCountValue;
+    private getTotalRowCount;
     init(): void;
 }

@@ -3,7 +3,7 @@ $pageTitle = "Web Component Datagrid | Packed with features and performance";
 $pageDescription = "A feature rich data grid designed for Enterprise applications. Easily integrate with Web Components to deliver filtering, grouping, aggregation, pivoting and much more. Try our Community version now or take a free 2 month trial of Enterprise Version.";
 $pageKeyboards = "Web Component Grid";
 $pageGroup = "basics";
-include '../getting-started/header.php';
+include '../documentation-main/documentation_header.php';
 ?>
 
 <div>
@@ -108,7 +108,7 @@ include '../getting-started/header.php';
             <td style="padding: 10px;"><img src="../images/github.png"/></td>
             <td>
                 <b>Github</b><br/>
-                Download from <a href="https://github.com/ag-grid/ag-grid/tree/master/packages/ag-grid">Github</a>
+                Download from <a href="https://github.com/ag-grid/ag-grid/tree/master/packages/ag-grid-community">Github</a>
             </td>
         </tr>
     </table>
@@ -311,4 +311,4 @@ include '../getting-started/header.php';
 
 </div>
 
-<?php include '../getting-started/footer.php'; ?>
+<?php include '../documentation-main/documentation_footer.php'; ?>

@@ -125,11 +125,11 @@ include '../documentation-main/documentation_header.php';
                 where groups don't actually appear in the selection normally.</td>
         </tr>
         <tr>
-            <th>getRangeSelections()</th>
-            <td>Returns the list of selected ranges.</td>
+            <th>getCellRanges()</th>
+            <td>Returns the list of selected cell ranges.</td>
         </tr>
         <tr>
-            <th>addRangeSelection(rangeSelection)</th>
+            <th>addCellRange(params)</th>
             <td>Adds to the selected range.</td>
         </tr>
         <tr>
@@ -342,6 +342,10 @@ include '../documentation-main/documentation_header.php';
             <td>Collapse all groups.</td>
         </tr>
         <tr>
+            <th>setRowNodeExpanded(rowNode, expanded)</th>
+            <td>Expand or collapse a specific row node.</td>
+        </tr>
+        <tr>
             <th>onGroupExpandedOrCollapsed()</th>
             <td>
                 If after getting the model, you expand or collapse a group, call this method to inform the grid. It will
@@ -478,7 +482,14 @@ include '../documentation-main/documentation_header.php';
 <table class="table reference">
     <tr>
         <th>getStatusBarComponent(key)</th>
-        <td>Returns the status bar component instance for key provided</td>.
+        <td>Returns the status bar component instance for key provided.</td>
+    </tr>
+</table>
+<h2>Charts</h2>
+<table class="table reference">
+    <tr>
+        <th>chartRange(params)</th>
+        <td>Used to programmatically create charts from a range. See <a href="../javascript-grid-charts-chart-range-api/#charting-range-api">Chart Range API</a>.</td>
     </tr>
 </table>
 <h2>Miscellaneous</h2>
@@ -571,6 +582,12 @@ include '../documentation-main/documentation_header.php';
             </td>
         </tr>
         <tr>
+            <th>setEnableCellTextSelection()</th>
+            <td>
+                Sets the enableCellTextSelection property.
+            </td>
+        </tr>
+        <tr>
             <th>setGridAutoHeight(value)</th>
             <td>
                 Sets the gridAutoHeight property.
@@ -579,9 +596,18 @@ include '../documentation-main/documentation_header.php';
         <tr>
             <th>isAnimationFrameQueueEmpty()</th>
             <td>
-                Returns true if the grid has animation frames to execute.
+                Returns true when there are no more animation frames left to process.
             </td>
         </tr>
+        <tr>
+            <th>purgeServerSideCache(route)</th>
+            <td>
+                Purges the server-Side cache. If you pass no parameters, then the top level cache is purged. To purge a
+                child cache, then pass in the string of keys to get to the child cache. For more details see:
+                <a href="../javascript-grid-server-side-model-grouping/#purging-groups">Purging Groups</a>.
+            </td>
+        </tr>
+
     </table>
 
 <?php include '../documentation-main/documentation_footer.php';?>

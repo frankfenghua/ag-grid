@@ -1,10 +1,10 @@
-import { Component } from "../../widgets/component";
-import { ICellEditorComp, ICellEditorParams } from "./iCellEditor";
+import { PopupComponent } from "../../widgets/popupComponent";
+import { ICellEditorComp, ICellEditorParams } from "../../interfaces/iCellEditor";
 import { Autowired } from "../../context/context";
 import { GridOptionsWrapper } from "../../gridOptionsWrapper";
 import { _ } from "../../utils";
 
-export class PopupEditorWrapper extends Component implements ICellEditorComp {
+export class PopupEditorWrapper extends PopupComponent implements ICellEditorComp {
 
     private cellEditor: ICellEditorComp;
     private params: any;
@@ -20,7 +20,9 @@ export class PopupEditorWrapper extends Component implements ICellEditorComp {
     }
 
     private onKeyDown(event: KeyboardEvent): void {
-        this.params.onKeyDown(event);
+        if (!_.isUserSuppressingKeyboardEvent(this.gridOptionsWrapper, event, this.params.node, this.params.column, true)) {
+            this.params.onKeyDown(event);
+        }
     }
 
     public getGui(): HTMLElement {
@@ -37,7 +39,6 @@ export class PopupEditorWrapper extends Component implements ICellEditorComp {
 
     public init(params: ICellEditorParams): void {
         this.params = params;
-
         this.gridOptionsWrapper.setDomData(this.getGui(), PopupEditorWrapper.DOM_KEY_POPUP_EDITOR_WRAPPER, true);
 
         this.addDestroyFunc(() => {
@@ -66,10 +67,6 @@ export class PopupEditorWrapper extends Component implements ICellEditorComp {
 
     public getValue(): any {
         return this.cellEditor.getValue();
-    }
-
-    public isPopup(): boolean {
-        return true;
     }
 
     public isCancelBeforeStart(): boolean {

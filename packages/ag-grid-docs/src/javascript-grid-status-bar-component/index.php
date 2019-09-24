@@ -6,7 +6,7 @@ $pageGroup = "components";
 include '../documentation-main/documentation_header.php';
 ?>
 
-<h1>Status Bar Panels (Components)</h1>
+<h1 class="heading-enterprise">Status Bar Panels (Components)</h1>
 
 <p>
     Status Bar Panels allow you to add your own components to the grid's Status Bar. Use this when the provided
@@ -85,6 +85,8 @@ var gridOptions = {
 
 <?= example('Status Bar Panel', 'custom-component', 'generated', array("enterprise" => 1, 'processVue' => true)) ?>
 
+<h2>Initialisation of Status Bar Components</h2>
+<p>Please refer to the documentation <a href="../javascript-grid-status-bar/#initialisation-of-status-bar-components">here.</a></p>
 
 <h2 id="accessing-status-bar-comp-instances">Accessing Status Bar Panel Instances</h2>
 

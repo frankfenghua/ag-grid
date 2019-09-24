@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { ColumnGroupChild } from "./columnGroupChild";
@@ -8,6 +8,7 @@ import { RowNode } from "./rowNode";
 import { IEventEmitter } from "../interfaces/iEventEmitter";
 import { ColumnEventType } from "../events";
 import { ColumnGroup } from "./columnGroup";
+import { OriginalColumnGroup } from "./originalColumnGroup";
 export declare class Column implements ColumnGroupChild, OriginalColumnGroupChild, IEventEmitter {
     static EVENT_MOVING_CHANGED: string;
     static EVENT_LEFT_CHANGED: string;
@@ -28,12 +29,11 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     static SORT_DESC: string;
     private gridOptionsWrapper;
     private columnUtils;
-    private frameworkFactory;
     private columnApi;
     private gridApi;
-    private readonly colDef;
     private readonly colId;
-    private readonly userProvidedColDef;
+    private colDef;
+    private userProvidedColDef;
     private actualWidth;
     private visible;
     private pinned;
@@ -44,9 +44,6 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     private sortedAt;
     private moving;
     private menuVisible;
-    private lockPosition;
-    private lockPinned;
-    private lockVisible;
     private lastLeftPinned;
     private firstRightPinned;
     private minWidth;
@@ -60,13 +57,14 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     private aggregationActive;
     private readonly primary;
     private parent;
+    private originalParent;
     constructor(colDef: ColDef, userProvidedColDef: ColDef | null, colId: String, primary: boolean);
+    setColDef(colDef: ColDef, userProvidedColDef: ColDef | null): void;
     getUserProvidedColDef(): ColDef;
-    isLockPosition(): boolean;
-    isLockVisible(): boolean;
-    isLockPinned(): boolean;
     setParent(parent: ColumnGroup): void;
     getParent(): ColumnGroup;
+    setOriginalParent(originalParent: OriginalColumnGroup | null): void;
+    getOriginalParent(): OriginalColumnGroup | null;
     initialise(): void;
     isEmptyGroup(): boolean;
     isRowGroupDisplayed(colId: string): boolean;
@@ -82,6 +80,7 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     isSuppressNavigable(rowNode: RowNode): boolean;
     isCellEditable(rowNode: RowNode): boolean;
     isRowDrag(rowNode: RowNode): boolean;
+    isDndSource(rowNode: RowNode): boolean;
     isCellCheckboxSelection(rowNode: RowNode): boolean;
     isSuppressPaste(rowNode: RowNode): boolean;
     isResizable(): boolean;
@@ -106,7 +105,7 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     getRight(): number;
     setLeft(left: number | null, source?: ColumnEventType): void;
     isFilterActive(): boolean;
-    setFilterActive(active: boolean, source?: ColumnEventType): void;
+    setFilterActive(active: boolean, source?: ColumnEventType, additionalEventAttributes?: any): void;
     setPinned(pinned: string | boolean | null | undefined): void;
     setFirstRightPinned(firstRightPinned: boolean, source?: ColumnEventType): void;
     setLastLeftPinned(lastLeftPinned: boolean, source?: ColumnEventType): void;
@@ -119,7 +118,7 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     setVisible(visible: boolean, source?: ColumnEventType): void;
     isVisible(): boolean;
     getColDef(): ColDef;
-    getColumnGroupShow(): string;
+    getColumnGroupShow(): string | undefined;
     getColId(): string;
     getId(): string;
     getDefinition(): AbstractColDef;
@@ -144,4 +143,7 @@ export declare class Column implements ColumnGroupChild, OriginalColumnGroupChil
     isAllowValue(): boolean;
     isAllowRowGroup(): boolean;
     getMenuTabs(defaultValues: string[]): string[];
+    isLockPosition(): boolean;
+    isLockVisible(): boolean;
+    isLockPinned(): boolean;
 }

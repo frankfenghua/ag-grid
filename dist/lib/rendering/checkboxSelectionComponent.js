@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -40,7 +40,7 @@ var utils_1 = require("../utils");
 var CheckboxSelectionComponent = /** @class */ (function (_super) {
     __extends(CheckboxSelectionComponent, _super);
     function CheckboxSelectionComponent() {
-        return _super.call(this, "<span class=\"ag-selection-checkbox\"/>") || this;
+        return _super.call(this, "<span class=\"ag-selection-checkbox\" unselectable=\"on\"/>") || this;
     }
     CheckboxSelectionComponent.prototype.createAndAddIcons = function () {
         this.eCheckedIcon = utils_1._.createIconNoSpan('checkboxChecked', this.gridOptionsWrapper, this.column);
@@ -61,9 +61,9 @@ var CheckboxSelectionComponent = /** @class */ (function (_super) {
     };
     CheckboxSelectionComponent.prototype.onSelectionChanged = function () {
         var state = this.rowNode.isSelected();
-        utils_1._.setVisible(this.eCheckedIcon, state === true);
-        utils_1._.setVisible(this.eUncheckedIcon, state === false);
-        utils_1._.setVisible(this.eIndeterminateIcon, typeof state !== 'boolean');
+        utils_1._.setDisplayed(this.eCheckedIcon, state === true);
+        utils_1._.setDisplayed(this.eUncheckedIcon, state === false);
+        utils_1._.setDisplayed(this.eIndeterminateIcon, typeof state !== 'boolean');
     };
     CheckboxSelectionComponent.prototype.onCheckedClicked = function () {
         var groupSelectsFiltered = this.gridOptionsWrapper.isGroupSelectsFiltered();
@@ -114,7 +114,7 @@ var CheckboxSelectionComponent = /** @class */ (function (_super) {
             selectable = this.column.isCellCheckboxSelection(this.rowNode);
         }
         // show checkbox if both conditions are true
-        this.setVisible(selectable);
+        this.setDisplayed(selectable);
     };
     CheckboxSelectionComponent.prototype.checkboxCallbackExists = function () {
         // column will be missing if groupUseEntireRow=true

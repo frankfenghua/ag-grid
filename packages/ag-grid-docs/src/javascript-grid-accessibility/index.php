@@ -1,6 +1,6 @@
 <?php
 $pageTitle = "Accessibility: A Core Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich datagrid available in Free or Enterprise versions. The grid has ARIA roles inside the cells for Accessibility to enable navigation with screen readers. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Core feature of ag-Grid supporting Angular, React, Javascript and more. The grid has ARIA roles inside the cells for Accessibility to enable navigation with screen readers.";
 $pageKeyboards = "ag-Grid Accessibility";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
@@ -103,6 +103,7 @@ include '../documentation-main/documentation_header.php';
 
         <ul class="content">
             <li><b>role="grid"</b> - marks the enclosing element of the grid</li>
+            <li><b>role="rowgroup"</b> - element that serve as container for the table header rows and grid rows</li>
             <li><b>role="row"</b> - a row of column headers or grid cells</li>
             <li><b>role="columnheader"</b> - element containing a column header</li>
             <li><b>role="gridcell"</b> - element containing a grid cell </li>

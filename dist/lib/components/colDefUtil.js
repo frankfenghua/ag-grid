@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -21,6 +21,7 @@ var ColDefUtil = /** @class */ (function () {
         'sort',
         'field',
         'type',
+        'tooltipComponent',
         'tooltipField',
         'headerTooltip',
         'cellClass',
@@ -31,7 +32,8 @@ var ColDefUtil = /** @class */ (function () {
         'aggFunc',
         'cellRenderer',
         'cellEditor',
-        'pinned'
+        'pinned',
+        'chartDataType'
     ];
     ColDefUtil.OBJECT_PROPERTIES = [
         'headerGroupComponent',
@@ -52,6 +54,9 @@ var ColDefUtil = /** @class */ (function () {
         'floatingFilterComponent',
         'floatingFilterComponentParams',
         'floatingFilterComponentFramework',
+        'tooltipComponent',
+        'tooltipComponentParams',
+        'tooltipComponentFramework',
         'refData'
     ];
     ColDefUtil.ARRAY_PROPERTIES = [
@@ -101,11 +106,14 @@ var ColDefUtil = /** @class */ (function () {
         'suppressNavigable',
         'enableCellChangeFlash',
         'rowDrag',
+        'dndSource',
         'autoHeight',
         'sortable',
-        'resizable'
+        'resizable',
+        'singleClickEdit'
     ];
     ColDefUtil.FUNCTION_PROPERTIES = [
+        'dndSourceOnRowDrag',
         'valueGetter',
         'valueSetter',
         'filterValueGetter',
@@ -129,6 +137,9 @@ var ColDefUtil = /** @class */ (function () {
         'onCellDoubleClicked',
         'onCellContextMenu',
         'tooltip',
+        'tooltipValueGetter',
+        'tooltipComponent',
+        'tooltipComponentFramework',
         'cellRendererSelector',
         'cellEditorSelector'
     ];
@@ -139,7 +150,7 @@ var ColDefUtil = /** @class */ (function () {
         .concat(ColDefUtil.FUNCTION_PROPERTIES)
         .concat(ColDefUtil.BOOLEAN_PROPERTIES);
     // used when doing property checks - this causes noise when using frameworks which can add their own fw specific
-    // properties to coldefs, gridOptions etc
+    // properties to colDefs, gridOptions etc
     ColDefUtil.FRAMEWORK_PROPERTIES = ['__ob__', '__metadata__', 'mappedColumnProperties', 'hasChildColumns',
         'toColDef', 'createColDefFromGridColumn'];
     return ColDefUtil;

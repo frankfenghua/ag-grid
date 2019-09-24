@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Context } from "../context/context";
@@ -15,21 +15,24 @@ import { ColumnAnimationService } from "./columnAnimationService";
 import { IRangeController } from "../interfaces/iRangeController";
 import { FocusedCellController } from "../focusedCellController";
 import { IContextMenuFactory } from "../interfaces/iContextMenuFactory";
-import { CellEditorFactory } from "./cellEditorFactory";
 import { CellRendererFactory } from "./cellRendererFactory";
 import { PopupService } from "../widgets/popupService";
-import { CellRendererService } from "./cellRendererService";
 import { ValueFormatterService } from "./valueFormatterService";
 import { StylingService } from "../styling/stylingService";
 import { ColumnHoverService } from "./columnHoverService";
 import { GridPanel } from "../gridPanel/gridPanel";
 import { PaginationProxy } from "../rowModels/paginationProxy";
 import { AnimationFrameService } from "../misc/animationFrameService";
-import { ComponentResolver } from "../components/framework/componentResolver";
+import { UserComponentFactory } from "../components/framework/userComponentFactory";
 import { DragAndDropService } from "../dragAndDrop/dragAndDropService";
 import { SortController } from "../sortController";
 import { FilterManager } from "../filter/filterManager";
-import { HeightScaler } from "./heightScaler";
+import { MaxDivHeightScaler } from "./maxDivHeightScaler";
+import { TooltipManager } from "../widgets/tooltipManager";
+import { IFrameworkOverrides } from "../interfaces/iFrameworkOverrides";
+import { DetailRowCompCache } from "./detailRowCompCache";
+import { CellPositionUtils } from "../entities/cellPosition";
+import { RowPositionUtils } from "../entities/rowPosition";
 /** Using the IoC has a slight performance consideration, which is no problem most of the
  * time, unless we are trashing objects - which is the case when scrolling and rowComp
  * and cellComp. So for performance reasons, RowComp and CellComp do not get autowired
@@ -52,20 +55,23 @@ export declare class Beans {
     rangeController: IRangeController;
     focusedCellController: FocusedCellController;
     contextMenuFactory: IContextMenuFactory;
-    cellEditorFactory: CellEditorFactory;
     cellRendererFactory: CellRendererFactory;
     popupService: PopupService;
-    cellRendererService: CellRendererService;
     valueFormatterService: ValueFormatterService;
     stylingService: StylingService;
     columnHoverService: ColumnHoverService;
     enterprise: boolean;
-    componentResolver: ComponentResolver;
+    userComponentFactory: UserComponentFactory;
     taskQueue: AnimationFrameService;
     dragAndDropService: DragAndDropService;
     sortController: SortController;
     filterManager: FilterManager;
-    heightScaler: HeightScaler;
+    maxDivHeightScaler: MaxDivHeightScaler;
+    tooltipManager: TooltipManager;
+    frameworkOverrides: IFrameworkOverrides;
+    detailRowCompCache: DetailRowCompCache;
+    cellPositionUtils: CellPositionUtils;
+    rowPositionUtils: RowPositionUtils;
     doingMasterDetail: boolean;
     gridPanel: GridPanel;
     registerGridComp(gridPanel: GridPanel): void;

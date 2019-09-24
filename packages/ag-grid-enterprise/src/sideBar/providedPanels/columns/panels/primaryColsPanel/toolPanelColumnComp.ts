@@ -8,7 +8,6 @@ import {
     ColumnRowGroupChangeRequestEvent,
     ColumnValueChangeRequestEvent,
     Component,
-    Context,
     CssClassApplier,
     DragAndDropService,
     DragSource,
@@ -27,22 +26,20 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
 
     private static TEMPLATE =
         `<div class="ag-column-tool-panel-column">
-            <ag-checkbox ref="cbSelect" class="ag-column-select-checkbox" (change)="onCheckboxChanged"></ag-checkbox>
-            <span class="ag-column-drag" ref="eDragHandle"></span>
-            <span class="ag-column-tool-panel-column-label" ref="eLabel" (click)="onLabelClicked"></span>
+            <ag-checkbox ref="cbSelect" class="ag-column-select-checkbox"></ag-checkbox>
+            <span class="ag-column-tool-panel-column-label" ref="eLabel"></span>
         </div>`;
 
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('eventService') private eventService: EventService;
     @Autowired('dragAndDropService') private dragAndDropService: DragAndDropService;
-    @Autowired('context') private context: Context;
     @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('gridApi') private gridApi: GridApi;
 
     @RefSelector('eLabel') private eLabel: HTMLElement;
     @RefSelector('cbSelect') private cbSelect: AgCheckbox;
-    @RefSelector('eDragHandle') private eDragHandle: HTMLElement;
+    private eDragHandle: HTMLElement;
 
     private column: Column;
     private columnDept: number;
@@ -66,6 +63,9 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
     public init(): void {
 
         this.setTemplate(ToolPanelColumnComp.TEMPLATE);
+        this.eDragHandle = _.createIconNoSpan('columnDrag', this.gridOptionsWrapper);
+        _.addCssClass(this.eDragHandle, 'ag-column-drag');
+        this.cbSelect.getGui().insertAdjacentElement('afterend', this.eDragHandle);
 
         this.displayName = this.columnController.getDisplayNameForColumn(this.column, 'toolPanel');
         const displayNameSanitised: any = _.escape(this.displayName);
@@ -88,7 +88,8 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
 
         this.addDestroyableEventListener(this.gridOptionsWrapper, 'functionsReadOnly', this.onColumnStateChanged.bind(this));
 
-        this.instantiate(this.context);
+        this.addDestroyableEventListener(this.cbSelect, AgCheckbox.EVENT_CHANGED, this.onCheckboxChanged.bind(this));
+        this.addDestroyableEventListener(this.eLabel, 'click', this.onLabelClicked.bind(this));
 
         this.onColumnStateChanged();
 
@@ -96,7 +97,11 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
     }
 
     private onLabelClicked(): void {
-        const nextState = !this.cbSelect.isSelected();
+        if (this.gridOptionsWrapper.isFunctionsReadOnly()) {
+            return;
+        }
+
+        const nextState = !this.cbSelect.getValue();
         this.onChangeCommon(nextState);
     }
 
@@ -106,7 +111,7 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
 
     private onChangeCommon(nextState: boolean): void {
         // ignore lock visible columns
-        if (this.column.isLockVisible()) {
+        if (this.column.getColDef().lockVisible) {
             return;
         }
 
@@ -246,7 +251,7 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
 
     private setupDragging(): void {
         if (!this.allowDragging) {
-            _.setVisible(this.eDragHandle, false);
+            _.setDisplayed(this.eDragHandle, false);
             return;
         }
 
@@ -275,19 +280,20 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
         if (isPivotMode) {
             // if reducing, checkbox means column is one of pivot, value or group
             const anyFunctionActive = this.column.isAnyFunctionActive();
-            this.cbSelect.setSelected(anyFunctionActive);
+            this.cbSelect.setValue(anyFunctionActive);
             if (this.selectionCallback) {
                 this.selectionCallback(this.isSelected());
             }
         } else {
             // if not reducing, the checkbox tells us if column is visible or not
-            this.cbSelect.setSelected(this.column.isVisible());
+            this.cbSelect.setValue(this.column.isVisible());
             if (this.selectionCallback) {
                 this.selectionCallback(this.isSelected());
             }
         }
 
         let checkboxReadOnly: boolean;
+
         if (isPivotMode) {
             // when in pivot mode, the item should be read only if:
             //  a) gui is not allowed make any changes
@@ -297,7 +303,7 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
             checkboxReadOnly = functionsReadOnly || noFunctionsAllowed;
         } else {
             // when in normal mode, the checkbox is read only if visibility is locked
-            checkboxReadOnly = this.column.isLockVisible();
+            checkboxReadOnly = !!this.column.getColDef().lockVisible;
         }
 
         this.cbSelect.setReadOnly(checkboxReadOnly);
@@ -313,7 +319,7 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
     }
 
     public onSelectAllChanged(value: boolean): void {
-        if (value !== this.cbSelect.isSelected()) {
+        if (value !== this.cbSelect.getValue()) {
             if (!this.cbSelect.isReadOnly()) {
                 this.cbSelect.toggle();
             }
@@ -321,7 +327,7 @@ export class ToolPanelColumnComp extends Component implements BaseColumnItem {
     }
 
     public isSelected(): boolean {
-        return this.cbSelect.isSelected();
+        return this.cbSelect.getValue();
     }
 
     public isSelectable(): boolean {

@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -63,7 +63,9 @@ var DragService = /** @class */ (function () {
         var eDocument = this.gridOptionsWrapper.getDocument();
         var eBody = eDocument.querySelector('body');
         if (utils_1._.exists(eBody)) {
-            utils_1._.addOrRemoveCssClass(eBody, 'ag-body-no-select', noSelect);
+            // when we drag the mouse in ag-Grid, this class gets added / removed from the body, so that
+            // the mouse isn't selecting text when dragging.
+            utils_1._.addOrRemoveCssClass(eBody, 'ag-unselectable', noSelect);
         }
     };
     DragService.prototype.addDragSource = function (params, includeTouch) {
@@ -131,9 +133,9 @@ var DragService = /** @class */ (function () {
         }
         this.currentDragParams = params;
         this.dragging = false;
-        this.mouseEventLastTime = mouseEvent;
         this.mouseStartEvent = mouseEvent;
         var eDocument = this.gridOptionsWrapper.getDocument();
+        this.setNoSelectToBody(true);
         // we temporally add these listeners, for the duration of the drag, they
         // are removed in mouseup handling.
         eDocument.addEventListener('mousemove', this.onMouseMoveListener);
@@ -177,7 +179,6 @@ var DragService = /** @class */ (function () {
             };
             this.eventService.dispatchEvent(event_1);
             this.currentDragParams.onDragStart(startEvent);
-            this.setNoSelectToBody(true);
         }
         this.currentDragParams.onDragging(currentEvent);
     };
@@ -235,7 +236,6 @@ var DragService = /** @class */ (function () {
         }
         this.setNoSelectToBody(false);
         this.mouseStartEvent = null;
-        this.mouseEventLastTime = null;
         this.touchStart = null;
         this.touchLastTime = null;
         this.currentDragParams = null;

@@ -1,21 +1,34 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
+import { HdpiCanvas } from "../canvas/hdpiCanvas";
 import { Node } from "./node";
-import { Path } from "./path";
+import { Path2D } from "./path2D";
+export declare type SceneOptions = {
+    width?: number;
+    height?: number;
+    document?: Document;
+};
 export declare class Scene {
-    constructor(parent: HTMLElement, width?: number, height?: number);
-    private readonly hdpiCanvas;
+    private static id;
+    readonly id: string;
+    private createId;
+    readonly canvas: HdpiCanvas;
     private readonly ctx;
-    private setupListeners;
-    private onMouseMove;
-    _width: number;
-    readonly width: number;
-    _height: number;
-    readonly height: number;
+    constructor(options?: SceneOptions);
+    parent: HTMLElement | undefined;
+    download(fileName?: string): void;
+    width: number;
+    height: number;
     size: [number, number];
-    _dirty: boolean;
+    private _dirty;
+    private animationFrameId;
     dirty: boolean;
-    _root?: Node;
-    root: Node | undefined;
-    appendPath(path: Path): void;
-    render: () => void;
+    cancelRender(): void;
+    _root: Node | null;
+    root: Node | null;
+    appendPath(path: Path2D): void;
+    private _frameIndex;
+    readonly frameIndex: number;
+    private _renderFrameIndex;
+    renderFrameIndex: boolean;
+    readonly render: () => void;
 }

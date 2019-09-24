@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -18,7 +18,17 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __metadata = (this && this.__metadata) || function (k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+var context_1 = require("../context/context");
 var beanStub_1 = require("../context/beanStub");
 var utils_1 = require("../utils");
 var compIdSequence = new utils_1.NumberSequence();
@@ -28,6 +38,9 @@ var Component = /** @class */ (function (_super) {
         var _this = _super.call(this) || this;
         _this.childComponents = [];
         _this.annotatedEventListeners = [];
+        // if false, then CSS class "ag-hidden" is applied, which sets "display: none"
+        _this.displayed = true;
+        // if false, then CSS class "ag-invisible" is applied, which sets "visibility: hidden"
         _this.visible = true;
         // unique id for this row component. this is used for getting a reference to the HTML dom.
         // we cannot use the RowNode id as this is not unique (due to animation, old rows can be lying
@@ -41,110 +54,36 @@ var Component = /** @class */ (function (_super) {
     Component.prototype.getCompId = function () {
         return this.compId;
     };
-    Component.prototype.instantiate = function (context) {
-        this.instantiateRecurse(this.getGui(), context);
-    };
-    Component.prototype.instantiateRecurse = function (parentNode, context) {
+    // for registered components only, eg creates AgCheckbox instance from ag-checkbox HTML tag
+    Component.prototype.createChildComponentsFromTags = function (parentNode) {
         var _this = this;
         // we MUST take a copy of the list first, as the 'swapComponentForNode' adds comments into the DOM
         // which messes up the traversal order of the children.
         var childNodeList = utils_1._.copyNodeList(parentNode.childNodes);
         childNodeList.forEach(function (childNode) {
-            var childComp = context.createComponent(childNode, function (childComp) {
-                var attrList = _this.getAttrLists(childNode);
-                _this.copyAttributesFromNode(attrList, childComp.getGui());
-                _this.createChildAttributes(attrList, childComp);
-                _this.addEventListenersToComponent(attrList, childComp);
+            var childComp = _this.getContext().createComponentFromElement(childNode, function (childComp) {
+                // copy over all attributes, including css classes, so any attributes user put on the tag
+                // wll be carried across
+                _this.copyAttributesFromNode(childNode, childComp.getGui());
             });
             if (childComp) {
+                if (childComp.addItems && childNode.children.length) {
+                    _this.createChildComponentsFromTags(childNode);
+                    // converting from HTMLCollection to Array
+                    var items = Array.prototype.slice.call(childNode.children);
+                    childComp.addItems(items);
+                }
+                // replace the tag (eg ag-checkbox) with the proper HTMLElement (eg 'div') in the dom
                 _this.swapComponentForNode(childComp, parentNode, childNode);
             }
-            else {
-                if (childNode.childNodes) {
-                    _this.instantiateRecurse(childNode, context);
-                }
-                if (childNode instanceof HTMLElement) {
-                    var attrList = _this.getAttrLists(childNode);
-                    _this.addEventListenersToElement(attrList, childNode);
-                }
+            else if (childNode.childNodes) {
+                _this.createChildComponentsFromTags(childNode);
             }
         });
     };
-    Component.prototype.getAttrLists = function (child) {
-        var res = {
-            bindings: [],
-            events: [],
-            normal: []
-        };
-        utils_1._.iterateNamedNodeMap(child.attributes, function (name, value) {
-            var firstCharacter = name.substr(0, 1);
-            if (firstCharacter === '(') {
-                var eventName = name.replace('(', '').replace(')', '');
-                res.events.push({
-                    name: eventName,
-                    value: value
-                });
-            }
-            else if (firstCharacter === '[') {
-                var bindingName = name.replace('[', '').replace(']', '');
-                res.bindings.push({
-                    name: bindingName,
-                    value: value
-                });
-            }
-            else {
-                res.normal.push({
-                    name: name,
-                    value: value
-                });
-            }
-        });
-        return res;
-    };
-    Component.prototype.addEventListenersToElement = function (attrLists, element) {
-        var _this = this;
-        this.addEventListenerCommon(attrLists, function (eventName, listener) {
-            _this.addDestroyableEventListener(element, eventName, listener);
-        });
-    };
-    Component.prototype.addEventListenersToComponent = function (attrLists, component) {
-        var _this = this;
-        this.addEventListenerCommon(attrLists, function (eventName, listener) {
-            _this.addDestroyableEventListener(component, eventName, listener);
-        });
-    };
-    Component.prototype.addEventListenerCommon = function (attrLists, callback) {
-        var _this = this;
-        var methodAliases = this.getAgComponentMetaData('methods');
-        attrLists.events.forEach(function (nameValue) {
-            var methodName = nameValue.value;
-            var methodAlias = utils_1._.find(methodAliases, 'alias', methodName);
-            var methodNameToUse = utils_1._.exists(methodAlias) ? methodAlias.methodName : methodName;
-            var listener = _this[methodNameToUse];
-            if (typeof listener !== 'function') {
-                console.warn('ag-Grid: count not find callback ' + methodName);
-                return;
-            }
-            var eventCamelCase = utils_1._.hyphenToCamelCase(nameValue.name);
-            callback(eventCamelCase, listener.bind(_this));
-        });
-    };
-    Component.prototype.createChildAttributes = function (attrLists, child) {
-        var _this = this;
-        var childAttributes = {};
-        attrLists.normal.forEach(function (nameValue) {
-            var nameCamelCase = utils_1._.hyphenToCamelCase(nameValue.name);
-            childAttributes[nameCamelCase] = nameValue.value;
-        });
-        attrLists.bindings.forEach(function (nameValue) {
-            var nameCamelCase = utils_1._.hyphenToCamelCase(nameValue.name);
-            childAttributes[nameCamelCase] = _this[nameValue.value];
-        });
-        child.props = childAttributes;
-    };
-    Component.prototype.copyAttributesFromNode = function (attrLists, childNode) {
-        attrLists.normal.forEach(function (nameValue) {
-            childNode.setAttribute(nameValue.name, nameValue.value);
+    Component.prototype.copyAttributesFromNode = function (source, dest) {
+        utils_1._.iterateNamedNodeMap(source.attributes, function (name, value) {
+            dest.setAttribute(name, value);
         });
     };
     Component.prototype.swapComponentForNode = function (newComponent, parentNode, childNode) {
@@ -179,6 +118,19 @@ var Component = /** @class */ (function (_super) {
         this.eGui.__agComponent = this;
         this.addAnnotatedEventListeners();
         this.wireQuerySelectors();
+        // context will not be available when user sets template in constructor
+        var contextIsAvailable = !!this.getContext();
+        if (contextIsAvailable) {
+            this.createChildComponentsFromTags(this.getGui());
+        }
+    };
+    Component.prototype.createChildComponentsPreConstruct = function () {
+        // ui exists if user sets template in constructor. when this happens, we have to wait for the context
+        // to be autoWired first before we can create child components.
+        var uiExists = !!this.getGui();
+        if (uiExists) {
+            this.createChildComponentsFromTags(this.getGui());
+        }
     };
     Component.prototype.wireQuerySelectors = function () {
         var _this = this;
@@ -239,6 +191,16 @@ var Component = /** @class */ (function (_super) {
         while (thisProto != null) {
             var metaData = thisProto.__agComponentMetaData;
             var currentProtoName = (thisProto.constructor).name;
+            // IE does not support Function.prototype.name, so we need to extract
+            // the name using a RegEx
+            // from: https://matt.scharley.me/2012/03/monkey-patch-name-ie.html
+            if (currentProtoName === undefined) {
+                var funcNameRegex = /function\s([^(]{1,})\(/;
+                var results = funcNameRegex.exec(thisProto.constructor.toString());
+                if (results && results.length > 1) {
+                    currentProtoName = results[1].trim();
+                }
+            }
             if (metaData && metaData[currentProtoName] && metaData[currentProtoName][key]) {
                 res = res.concat(metaData[currentProtoName][key]);
             }
@@ -248,10 +210,7 @@ var Component = /** @class */ (function (_super) {
     };
     Component.prototype.removeAnnotatedEventListeners = function () {
         var _this = this;
-        if (!this.annotatedEventListeners) {
-            return;
-        }
-        if (!this.eGui) {
+        if (!this.annotatedEventListeners || !this.eGui) {
             return;
         }
         this.annotatedEventListeners.forEach(function (eventListener) {
@@ -261,6 +220,12 @@ var Component = /** @class */ (function (_super) {
     };
     Component.prototype.getGui = function () {
         return this.eGui;
+    };
+    Component.prototype.setParentComponent = function (component) {
+        this.parentComponent = component;
+    };
+    Component.prototype.getParentComponent = function () {
+        return this.parentComponent;
     };
     // this method is for older code, that wants to provide the gui element,
     // it is not intended for this to be in ag-Stack
@@ -289,28 +254,49 @@ var Component = /** @class */ (function (_super) {
             this.addDestroyFunc(feature.destroy.bind(feature));
         }
     };
-    Component.prototype.isVisible = function () {
-        return this.visible;
+    Component.prototype.isDisplayed = function () {
+        return this.displayed;
     };
-    Component.prototype.setVisible = function (visible, visibilityMode) {
-        var isDisplay = visibilityMode !== 'visibility';
+    Component.prototype.setVisible = function (visible) {
         if (visible !== this.visible) {
             this.visible = visible;
-            utils_1._.addOrRemoveCssClass(this.eGui, isDisplay ? 'ag-hidden' : 'ag-invisible', !visible);
+            utils_1._.setVisible(this.eGui, visible);
+        }
+    };
+    Component.prototype.setDisplayed = function (displayed) {
+        if (displayed !== this.displayed) {
+            this.displayed = displayed;
+            utils_1._.setDisplayed(this.eGui, displayed);
             var event_1 = {
-                type: Component.EVENT_VISIBLE_CHANGED,
-                visible: this.visible
+                type: Component.EVENT_DISPLAYED_CHANGED,
+                visible: this.displayed
             };
             this.dispatchEvent(event_1);
         }
     };
+    /*    public setVisible(visible: boolean, visibilityMode?: 'display' | 'visibility'): void {
+            const isDisplay = visibilityMode !== 'visibility';
+            if (visible !== this.visible) {
+                this.visible = visible;
+    
+                // ag-hidden: display: none     -> setDisplayed();
+                // ag-invisible: visibility: hidden     => setVisible();
+    
+                _.addOrRemoveCssClass(this.eGui, isDisplay ? 'ag-hidden' : 'ag-invisible', !visible);
+                const event: VisibleChangedEvent = {
+                    type: Component.EVENT_VISIBLE_CHANGED,
+                    visible: this.visible
+                };
+                this.dispatchEvent(event);
+            }
+        }*/
     Component.prototype.addOrRemoveCssClass = function (className, addOrRemove) {
         utils_1._.addOrRemoveCssClass(this.eGui, className, addOrRemove);
     };
     Component.prototype.destroy = function () {
         _super.prototype.destroy.call(this);
         this.childComponents.forEach(function (childComponent) {
-            if (childComponent) {
+            if (childComponent && childComponent.destroy) {
                 childComponent.destroy();
             }
         });
@@ -330,17 +316,18 @@ var Component = /** @class */ (function (_super) {
     };
     Component.prototype.getAttribute = function (key) {
         var eGui = this.getGui();
-        if (eGui) {
-            return eGui.getAttribute(key);
-        }
-        else {
-            return null;
-        }
+        return eGui ? eGui.getAttribute(key) : null;
     };
     Component.prototype.getRefElement = function (refName) {
         return this.queryForHtmlElement('[ref="' + refName + '"]');
     };
-    Component.EVENT_VISIBLE_CHANGED = 'visibleChanged';
+    Component.EVENT_DISPLAYED_CHANGED = 'displayedChanged';
+    __decorate([
+        context_1.PreConstruct,
+        __metadata("design:type", Function),
+        __metadata("design:paramtypes", []),
+        __metadata("design:returntype", void 0)
+    ], Component.prototype, "createChildComponentsPreConstruct", null);
     return Component;
 }(beanStub_1.BeanStub));
 exports.Component = Component;

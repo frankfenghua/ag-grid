@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -25,12 +25,9 @@ var valueService_1 = require("./valueService/valueService");
 var eventService_1 = require("./eventService");
 var constants_1 = require("./constants");
 var context_1 = require("./context/context");
-var gridCore_1 = require("./gridCore");
 var sortController_1 = require("./sortController");
 var focusedCellController_1 = require("./focusedCellController");
-var gridCell_1 = require("./entities/gridCell");
 var cellRendererFactory_1 = require("./rendering/cellRendererFactory");
-var cellEditorFactory_1 = require("./rendering/cellEditorFactory");
 var paginationProxy_1 = require("./rowModels/paginationProxy");
 var immutableService_1 = require("./rowModels/clientSide/immutableService");
 var valueCache_1 = require("./valueService/valueCache");
@@ -41,19 +38,12 @@ var utils_1 = require("./utils");
 var GridApi = /** @class */ (function () {
     function GridApi() {
         this.detailGridInfoMap = {};
-        /*
-        Taking these out, as we want to reconsider how we register components
-    
-        public addCellRenderer(key: string, cellRenderer: {new(): ICellRenderer} | ICellRendererFunc): void {
-            this.cellRendererFactory.addCellRenderer(key, cellRenderer);
-        }
-    
-        public addCellEditor(key: string, cellEditor: {new(): ICellEditor}): void {
-            this.cellEditorFactory.addCellEditor(key, cellEditor);
-        }*/
     }
     GridApi.prototype.registerGridComp = function (gridPanel) {
         this.gridPanel = gridPanel;
+    };
+    GridApi.prototype.registerGridCore = function (gridCore) {
+        this.gridCore = gridCore;
     };
     GridApi.prototype.registerHeaderRootComp = function (headerRootComp) {
         this.headerRootComp = headerRootComp;
@@ -112,7 +102,7 @@ var GridApi = /** @class */ (function () {
         }
         this.excelCreator.exportDataAsExcel(params);
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.setEnterpriseDatasource = function (datasource) {
         console.warn("ag-grid: since version 18.x, api.setEnterpriseDatasource() should be replaced with api.setServerSideDatasource()");
         this.setServerSideDatasource(datasource);
@@ -163,32 +153,32 @@ var GridApi = /** @class */ (function () {
             console.warn('cannot call setRowData unless using normal row model');
         }
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.setFloatingTopRowData = function (rows) {
         console.warn('ag-Grid: since v12, api.setFloatingTopRowData() is now api.setPinnedTopRowData()');
         this.setPinnedTopRowData(rows);
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.setFloatingBottomRowData = function (rows) {
         console.warn('ag-Grid: since v12, api.setFloatingBottomRowData() is now api.setPinnedBottomRowData()');
         this.setPinnedBottomRowData(rows);
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.getFloatingTopRowCount = function () {
         console.warn('ag-Grid: since v12, api.getFloatingTopRowCount() is now api.getPinnedTopRowCount()');
         return this.getPinnedTopRowCount();
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.getFloatingBottomRowCount = function () {
         console.warn('ag-Grid: since v12, api.getFloatingBottomRowCount() is now api.getPinnedBottomRowCount()');
         return this.getPinnedBottomRowCount();
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.getFloatingTopRow = function (index) {
         console.warn('ag-Grid: since v12, api.getFloatingTopRow() is now api.getPinnedTopRow()');
         return this.getPinnedTopRow(index);
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.getFloatingBottomRow = function (index) {
         console.warn('ag-Grid: since v12, api.getFloatingBottomRow() is now api.getPinnedBottomRow()');
         return this.getPinnedBottomRow(index);
@@ -228,9 +218,7 @@ var GridApi = /** @class */ (function () {
         this.gridOptionsWrapper.setProperty('alwaysShowVerticalScroll', show);
     };
     GridApi.prototype.refreshToolPanel = function () {
-        if (this.sideBarComp) {
-            this.sideBarComp.refresh();
-        }
+        this.gridCore.refreshSideBar();
     };
     GridApi.prototype.refreshCells = function (params) {
         if (params === void 0) { params = {}; }
@@ -292,26 +280,26 @@ var GridApi = /** @class */ (function () {
             console.log('average reflow = ' + (totalReflow / iterationCount) + 'ms');
         }
     };
-    // *** deprecated
+    /** @deprecated */
     GridApi.prototype.refreshView = function () {
         console.warn('ag-Grid: since v11.1, refreshView() is deprecated, please call refreshCells() or redrawRows() instead');
         this.redrawRows();
     };
-    // *** deprecated
+    //** @deprecated */
     GridApi.prototype.refreshRows = function (rowNodes) {
         console.warn('since ag-Grid v11.1, refreshRows() is deprecated, please use refreshCells({rowNodes: rows}) or redrawRows({rowNodes: rows}) instead');
         this.refreshCells({ rowNodes: rowNodes });
     };
-    // *** deprecated
+    /** @deprecated */
     GridApi.prototype.rowDataChanged = function (rows) {
         console.warn('ag-Grid: rowDataChanged is deprecated, either call refreshView() to refresh everything, or call rowNode.setRowData(newData) to set value on a particular node');
         this.redrawRows();
     };
-    // *** deprecated
+    /** @deprecated */
     GridApi.prototype.softRefreshView = function () {
         console.error('ag-Grid: since v16, softRefreshView() is no longer supported. Please check the documentation on how to refresh.');
     };
-    // *** deprecated
+    /** @deprecated */
     GridApi.prototype.refreshGroupRows = function () {
         console.warn('ag-Grid: since v11.1, refreshGroupRows() is no longer supported, call refreshCells() instead. ' +
             'Because refreshCells() now does dirty checking, it will only refresh cells that have changed, so it should ' +
@@ -329,7 +317,7 @@ var GridApi = /** @class */ (function () {
         return this.filterManager.isAnyFilterPresent();
     };
     GridApi.prototype.isAdvancedFilterPresent = function () {
-        console.log('ag-Grid: isAdvancedFilterPresent() is deprecated, please use isColumnFilterPresent()');
+        console.warn('ag-Grid: isAdvancedFilterPresent() is deprecated, please use isColumnFilterPresent()');
         return this.isColumnFilterPresent();
     };
     GridApi.prototype.isColumnFilterPresent = function () {
@@ -341,6 +329,11 @@ var GridApi = /** @class */ (function () {
     GridApi.prototype.getModel = function () {
         return this.rowModel;
     };
+    GridApi.prototype.setRowNodeExpanded = function (rowNode, expanded) {
+        if (rowNode) {
+            rowNode.setExpanded(expanded);
+        }
+    };
     GridApi.prototype.onGroupExpandedOrCollapsed = function (deprecated_refreshFromIndex) {
         if (utils_1._.missing(this.clientSideRowModel)) {
             console.warn('ag-Grid: cannot call onGroupExpandedOrCollapsed unless using normal row model');
@@ -348,7 +341,7 @@ var GridApi = /** @class */ (function () {
         if (utils_1._.exists(deprecated_refreshFromIndex)) {
             console.warn('ag-Grid: api.onGroupExpandedOrCollapsed - refreshFromIndex parameter is no longer used, the grid will refresh all rows');
         }
-        // we don't really want the user calling this if one one rowNode was expanded, instead they should be
+        // we don't really want the user calling this if only one rowNode was expanded, instead they should be
         // calling rowNode.setExpanded(boolean) - this way we do a 'keepRenderedRows=false' so that the whole
         // grid gets refreshed again - otherwise the row with the rowNodes that were changed won't get updated,
         // and thus the expand icon in the group cell won't get 'opened' or 'closed'.
@@ -615,9 +608,8 @@ var GridApi = /** @class */ (function () {
     GridApi.prototype.setDomLayout = function (domLayout) {
         this.gridOptionsWrapper.setProperty(gridOptionsWrapper_1.GridOptionsWrapper.PROP_DOM_LAYOUT, domLayout);
     };
-    GridApi.prototype.getPreferredWidth = function () {
-        console.warn('ag-Grid: Since v19, getPreferredWidth() is deprecated. For printing, please check the print documentation, you no longer need to use getPreferredWidth()');
-        return this.gridCore.getPreferredWidth();
+    GridApi.prototype.setEnableCellTextSelection = function (selectable) {
+        this.gridPanel.setCellTextSelection(selectable);
     };
     GridApi.prototype.setGroupHeaderHeight = function (headerHeight) {
         this.gridOptionsWrapper.setProperty(gridOptionsWrapper_1.GridOptionsWrapper.PROP_GROUP_HEADER_HEIGHT, headerHeight);
@@ -717,12 +709,19 @@ var GridApi = /** @class */ (function () {
         this.eventService.dispatchEvent(event);
     };
     GridApi.prototype.destroy = function () {
+        // destroy the UI first (as they use the services)
+        this.gridCore.destroy();
+        // destroy the services
         this.context.destroy();
     };
     GridApi.prototype.resetQuickFilter = function () {
         this.rowModel.forEachNode(function (node) { return node.quickFilterAggregateText = null; });
     };
     GridApi.prototype.getRangeSelections = function () {
+        console.warn("ag-Grid: in v20.1.x, api.getRangeSelections() is gone, please use getCellRanges() instead.\n        We had to change how cell selections works a small bit to allow charting to integrate. The return type of\n        getCellRanges() is a bit different, please check the ag-Grid documentation.");
+        return null;
+    };
+    GridApi.prototype.getCellRanges = function () {
         if (this.rangeController) {
             return this.rangeController.getCellRanges();
         }
@@ -734,17 +733,29 @@ var GridApi = /** @class */ (function () {
     GridApi.prototype.camelCaseToHumanReadable = function (camelCase) {
         return utils_1._.camelCaseToHumanText(camelCase);
     };
-    GridApi.prototype.addRangeSelection = function (rangeSelection) {
+    GridApi.prototype.addRangeSelection = function (deprecatedNoLongerUsed) {
+        console.warn('ag-Grid: As of version 21.x, range selection changed slightly to allow charting integration. Please call api.addCellRange() instead of api.addRangeSelection()');
+    };
+    GridApi.prototype.addCellRange = function (params) {
         if (!this.rangeController) {
             console.warn('ag-Grid: cell range selection is only available in ag-Grid Enterprise');
         }
-        this.rangeController.addRange(rangeSelection);
+        this.rangeController.addCellRange(params);
     };
     GridApi.prototype.clearRangeSelection = function () {
         if (!this.rangeController) {
             console.warn('ag-Grid: cell range selection is only available in ag-Grid Enterprise');
         }
-        this.rangeController.clearSelection();
+        this.rangeController.removeAllCellRanges();
+    };
+    GridApi.prototype.chartRange = function (params) {
+        if (!this.context.isModuleRegistered("chartsModule" /* ChartsModule */)) {
+            utils_1._.doOnce(function () {
+                console.warn('ag-grid: Cannot chart range - the Charts Module has not been included.');
+            }, 'ChartsModuleCheck');
+            return;
+        }
+        return this.chartService.chartCellRange(params);
     };
     GridApi.prototype.copySelectedRowsToClipboard = function (includeHeader, columnKeys) {
         if (!this.clipboardService) {
@@ -765,11 +776,13 @@ var GridApi = /** @class */ (function () {
         this.clipboardService.copyRangeDown();
     };
     GridApi.prototype.showColumnMenuAfterButtonClick = function (colKey, buttonElement) {
-        var column = this.columnController.getPrimaryColumn(colKey);
+        // use grid column so works with pivot mode
+        var column = this.columnController.getGridColumn(colKey);
         this.menuFactory.showMenuAfterButtonClick(column, buttonElement);
     };
     GridApi.prototype.showColumnMenuAfterMouseClick = function (colKey, mouseEvent) {
-        var column = this.columnController.getPrimaryColumn(colKey);
+        // use grid column so works with pivot mode
+        var column = this.columnController.getGridColumn(colKey);
         this.menuFactory.showMenuAfterMouseEvent(column, mouseEvent);
     };
     GridApi.prototype.hidePopupMenu = function () {
@@ -810,17 +823,16 @@ var GridApi = /** @class */ (function () {
             console.warn("ag-Grid: no column found for " + params.colKey);
             return;
         }
-        var gridCellDef = {
+        var cellPosition = {
             rowIndex: params.rowIndex,
-            floating: params.rowPinned,
+            rowPinned: params.rowPinned,
             column: column
         };
-        var gridCell = new gridCell_1.GridCell(gridCellDef);
         var notPinned = utils_1._.missing(params.rowPinned);
         if (notPinned) {
             this.gridPanel.ensureIndexVisible(params.rowIndex);
         }
-        this.rowRenderer.startEditingCell(gridCell, params.keyPress, params.charPress);
+        this.rowRenderer.startEditingCell(cellPosition, params.keyPress, params.charPress);
     };
     GridApi.prototype.addAggFunc = function (key, aggFunc) {
         if (this.aggFuncService) {
@@ -848,8 +860,7 @@ var GridApi = /** @class */ (function () {
         else {
             console.error('ag-Grid: updateRowData() only works with ClientSideRowModel and InfiniteRowModel.');
         }
-        // need to force updating of full width rows - note this wouldn't be necessary the full width cell comp listened
-        // to the data change event on the row node and refreshed itself.
+        // refresh all the full width rows
         this.rowRenderer.refreshFullWidthRows();
         // do change detection for all present cells
         if (!this.gridOptionsWrapper.isSuppressChangeDetection()) {
@@ -912,7 +923,7 @@ var GridApi = /** @class */ (function () {
             console.warn("ag-Grid: api.purgeInfiniteCache is only available when rowModelType='infinite'.");
         }
     };
-    // DEPRECATED
+    /** @deprecated */
     GridApi.prototype.purgeEnterpriseCache = function (route) {
         console.warn("ag-grid: since version 18.x, api.purgeEnterpriseCache() should be replaced with api.purgeServerSideCache()");
         this.purgeServerSideCache(route);
@@ -925,21 +936,6 @@ var GridApi = /** @class */ (function () {
             console.warn("ag-Grid: api.purgeServerSideCache is only available when rowModelType='enterprise'.");
         }
     };
-    // public removeFromEnterpriseCache(route: string[], items: any[]): void {
-    //     if (this.serverSideRowModel) {
-    //         this.serverSideRowModel.removeFromCache(route, items);
-    //     } else {
-    //         console.warn(`ag-Grid: api.removeFromEnterpriseCache is only available when rowModelType='enterprise'.`);
-    //     }
-    // }
-    //
-    // public addToEnterpriseCache(route: string[], items: any[], index: number): void {
-    //     if (this.serverSideRowModel) {
-    //         this.serverSideRowModel.addToCache(route, items, index);
-    //     } else {
-    //         console.warn(`ag-Grid: api.addToEnterpriseCache is only available when rowModelType='enterprise'.`);
-    //     }
-    // }
     GridApi.prototype.getVirtualRowCount = function () {
         console.warn('ag-Grid: getVirtualRowCount() is now called getInfiniteRowCount(), please call getInfiniteRowCount() instead');
         return this.getInfiniteRowCount();
@@ -1030,7 +1026,7 @@ var GridApi = /** @class */ (function () {
         return this.paginationProxy.getTotalPages();
     };
     GridApi.prototype.paginationGetRowCount = function () {
-        return this.paginationProxy.getTotalRowCount();
+        return this.paginationProxy.getMasterRowCount();
     };
     GridApi.prototype.paginationGoToNextPage = function () {
         this.paginationProxy.goToNextPage();
@@ -1059,10 +1055,6 @@ var GridApi = /** @class */ (function () {
         context_1.Optional('excelCreator'),
         __metadata("design:type", Object)
     ], GridApi.prototype, "excelCreator", void 0);
-    __decorate([
-        context_1.Autowired('gridCore'),
-        __metadata("design:type", gridCore_1.GridCore)
-    ], GridApi.prototype, "gridCore", void 0);
     __decorate([
         context_1.Autowired('rowRenderer'),
         __metadata("design:type", rowRenderer_1.RowRenderer)
@@ -1144,10 +1136,6 @@ var GridApi = /** @class */ (function () {
         __metadata("design:type", cellRendererFactory_1.CellRendererFactory)
     ], GridApi.prototype, "cellRendererFactory", void 0);
     __decorate([
-        context_1.Autowired('cellEditorFactory'),
-        __metadata("design:type", cellEditorFactory_1.CellEditorFactory)
-    ], GridApi.prototype, "cellEditorFactory", void 0);
-    __decorate([
         context_1.Autowired('valueCache'),
         __metadata("design:type", valueCache_1.ValueCache)
     ], GridApi.prototype, "valueCache", void 0);
@@ -1163,6 +1151,10 @@ var GridApi = /** @class */ (function () {
         context_1.Optional('statusBarService'),
         __metadata("design:type", Object)
     ], GridApi.prototype, "statusBarService", void 0);
+    __decorate([
+        context_1.Optional('chartService'),
+        __metadata("design:type", Object)
+    ], GridApi.prototype, "chartService", void 0);
     __decorate([
         context_1.PostConstruct,
         __metadata("design:type", Function),

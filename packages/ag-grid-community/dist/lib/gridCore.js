@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -49,17 +49,22 @@ var utils_1 = require("./utils");
 var GridCore = /** @class */ (function (_super) {
     __extends(GridCore, _super);
     function GridCore() {
-        return _super.call(this) || this;
+        return _super !== null && _super.apply(this, arguments) || this;
     }
-    GridCore_1 = GridCore;
     GridCore.prototype.init = function () {
         var _this = this;
         this.logger = this.loggerFactory.create('GridCore');
-        var template = this.enterprise ? GridCore_1.TEMPLATE_ENTERPRISE : GridCore_1.TEMPLATE_NORMAL;
+        var template = this.enterprise ? GridCore.TEMPLATE_ENTERPRISE : GridCore.TEMPLATE_NORMAL;
         this.setTemplate(template);
-        this.instantiate(this.context);
+        // register with services that need grid core
+        [
+            this.gridApi,
+            this.filterManager,
+            this.rowRenderer,
+            this.popupService
+        ].forEach(function (service) { return service.registerGridCore(_this); });
         if (this.enterprise) {
-            this.sideBarComp.registerGridComp(this.gridPanel);
+            this.clipboardService.registerGridCore(this);
         }
         this.gridOptionsWrapper.addLayoutElement(this.getGui());
         // see what the grid options are for default of toolbar
@@ -76,10 +81,17 @@ var GridCore = /** @class */ (function (_super) {
         // important to set rtl before doLayout, as setting the RTL class impacts the scroll position,
         // which doLayout indirectly depends on
         this.addRtlSupport();
-        this.finished = false;
-        this.addDestroyFunc(function () { return _this.finished = true; });
         this.logger.log('ready');
         this.gridOptionsWrapper.addLayoutElement(this.eRootWrapperBody);
+        var gridPanelEl = this.gridPanel.getGui();
+        this.addDestroyableEventListener(gridPanelEl, 'focusin', function () {
+            utils_1._.addCssClass(gridPanelEl, 'ag-has-focus');
+        });
+        this.addDestroyableEventListener(gridPanelEl, 'focusout', function (e) {
+            if (!gridPanelEl.contains(e.relatedTarget)) {
+                utils_1._.removeCssClass(gridPanelEl, 'ag-has-focus');
+            }
+        });
         var unsubscribeFromResize = this.resizeObserverService.observeResize(this.eGridDiv, this.onGridSizeChanged.bind(this));
         this.addDestroyFunc(function () { return unsubscribeFromResize(); });
     };
@@ -93,14 +105,6 @@ var GridCore = /** @class */ (function (_super) {
         };
         this.eventService.dispatchEvent(event);
     };
-    // this was deprecated in v19, we can drop in v20
-    GridCore.prototype.getPreferredWidth = function () {
-        var widthForCols = this.columnController.getBodyContainerWidth()
-            + this.columnController.getPinnedLeftContainerWidth()
-            + this.columnController.getPinnedRightContainerWidth();
-        var widthForToolpanel = this.sideBarComp ? this.sideBarComp.getPreferredWidth() : 0;
-        return widthForCols + widthForToolpanel;
-    };
     GridCore.prototype.addRtlSupport = function () {
         var cssClass = this.gridOptionsWrapper.isEnableRtl() ? 'ag-rtl' : 'ag-ltr';
         utils_1._.addCssClass(this.getGui(), cssClass);
@@ -112,7 +116,7 @@ var GridCore = /** @class */ (function (_super) {
         if (!this.sideBarComp) {
             return false;
         }
-        return this.sideBarComp.isVisible();
+        return this.sideBarComp.isDisplayed();
     };
     GridCore.prototype.setSideBarVisible = function (show) {
         if (!this.sideBarComp) {
@@ -121,7 +125,7 @@ var GridCore = /** @class */ (function (_super) {
             }
             return;
         }
-        this.sideBarComp.setVisible(show);
+        this.sideBarComp.setDisplayed(show);
     };
     GridCore.prototype.closeToolPanel = function () {
         if (!this.sideBarComp) {
@@ -132,6 +136,11 @@ var GridCore = /** @class */ (function (_super) {
     };
     GridCore.prototype.getSideBar = function () {
         return this.gridOptions.sideBar;
+    };
+    GridCore.prototype.refreshSideBar = function () {
+        if (this.sideBarComp) {
+            this.sideBarComp.refresh();
+        }
     };
     GridCore.prototype.setSideBar = function (def) {
         this.eRootWrapperBody.removeChild(this.sideBarComp.getGui());
@@ -155,7 +164,6 @@ var GridCore = /** @class */ (function (_super) {
     GridCore.prototype.isToolPanelShowing = function () {
         return this.sideBarComp.isToolPanelShowing();
     };
-    // need to override, as parent class isn't marked with PreDestroy
     GridCore.prototype.destroy = function () {
         _super.prototype.destroy.call(this);
         this.logger.log('Grid DOM removed');
@@ -167,7 +175,7 @@ var GridCore = /** @class */ (function (_super) {
             throw new Error('Cannot use ensureNodeVisible when doing virtual paging, as we cannot check rows that are not in memory');
         }
         // look for the node index we want to display
-        var rowCount = this.rowModel.getPageLastRow() + 1;
+        var rowCount = this.rowModel.getRowCount();
         var comparatorIsAFunction = typeof comparator === 'function';
         var indexToSelect = -1;
         // go through all the nodes, find the one we want to show
@@ -191,9 +199,8 @@ var GridCore = /** @class */ (function (_super) {
             this.gridPanel.ensureIndexVisible(indexToSelect, position);
         }
     };
-    var GridCore_1;
     GridCore.TEMPLATE_NORMAL = "<div class=\"ag-root-wrapper\">\n            <div class=\"ag-root-wrapper-body\" ref=\"rootWrapperBody\">\n                <ag-grid-comp ref=\"gridPanel\"></ag-grid-comp>\n            </div>\n            <ag-pagination></ag-pagination>\n        </div>";
-    GridCore.TEMPLATE_ENTERPRISE = "<div class=\"ag-root-wrapper\">\n            <ag-grid-header-drop-zones></ag-grid-header-drop-zones>\n            <div ref=\"rootWrapperBody\" class=\"ag-root-wrapper-body\">\n                <ag-grid-comp ref=\"gridPanel\"></ag-grid-comp>\n                <ag-side-bar ref=\"sideBar\"></ag-side-bar>\n            </div>\n            <ag-status-bar ref=\"statusBar\"></ag-status-bar>\n            <ag-pagination></ag-pagination>\n        </div>";
+    GridCore.TEMPLATE_ENTERPRISE = "<div class=\"ag-root-wrapper\">\n            <ag-grid-header-drop-zones></ag-grid-header-drop-zones>\n            <div ref=\"rootWrapperBody\" class=\"ag-root-wrapper-body\">\n                <ag-grid-comp ref=\"gridPanel\"></ag-grid-comp>\n                <ag-side-bar ref=\"sideBar\"></ag-side-bar>\n            </div>\n            <ag-status-bar ref=\"statusBar\"></ag-status-bar>\n            <ag-pagination></ag-pagination>\n            <ag-watermark></ag-watermark>\n        </div>";
     __decorate([
         context_1.Autowired('enterprise'),
         __metadata("design:type", Boolean)
@@ -210,10 +217,6 @@ var GridCore = /** @class */ (function (_super) {
         context_1.Autowired('rowModel'),
         __metadata("design:type", Object)
     ], GridCore.prototype, "rowModel", void 0);
-    __decorate([
-        context_1.Autowired('frameworkFactory'),
-        __metadata("design:type", Object)
-    ], GridCore.prototype, "frameworkFactory", void 0);
     __decorate([
         context_1.Autowired('resizeObserverService'),
         __metadata("design:type", resizeObserverService_1.ResizeObserverService)
@@ -255,10 +258,6 @@ var GridCore = /** @class */ (function (_super) {
         __metadata("design:type", focusedCellController_1.FocusedCellController)
     ], GridCore.prototype, "focusedCellController", void 0);
     __decorate([
-        context_1.Autowired('context'),
-        __metadata("design:type", context_1.Context)
-    ], GridCore.prototype, "context", void 0);
-    __decorate([
         context_1.Autowired('loggerFactory'),
         __metadata("design:type", logger_1.LoggerFactory)
     ], GridCore.prototype, "loggerFactory", void 0);
@@ -271,13 +270,9 @@ var GridCore = /** @class */ (function (_super) {
         __metadata("design:type", gridApi_1.GridApi)
     ], GridCore.prototype, "gridApi", void 0);
     __decorate([
-        context_1.Optional('rowGroupCompFactory'),
+        context_1.Optional('clipboardService'),
         __metadata("design:type", Object)
-    ], GridCore.prototype, "rowGroupCompFactory", void 0);
-    __decorate([
-        context_1.Optional('pivotCompFactory'),
-        __metadata("design:type", Object)
-    ], GridCore.prototype, "pivotCompFactory", void 0);
+    ], GridCore.prototype, "clipboardService", void 0);
     __decorate([
         componentAnnotations_1.RefSelector('gridPanel'),
         __metadata("design:type", gridPanel_1.GridPanel)
@@ -296,16 +291,6 @@ var GridCore = /** @class */ (function (_super) {
         __metadata("design:paramtypes", []),
         __metadata("design:returntype", void 0)
     ], GridCore.prototype, "init", null);
-    __decorate([
-        context_1.PreDestroy,
-        __metadata("design:type", Function),
-        __metadata("design:paramtypes", []),
-        __metadata("design:returntype", void 0)
-    ], GridCore.prototype, "destroy", null);
-    GridCore = GridCore_1 = __decorate([
-        context_1.Bean('gridCore'),
-        __metadata("design:paramtypes", [])
-    ], GridCore);
     return GridCore;
 }(component_1.Component));
 exports.GridCore = GridCore;

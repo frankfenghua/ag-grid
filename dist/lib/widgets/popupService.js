@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -17,7 +17,6 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var constants_1 = require("../constants");
 var context_1 = require("../context/context");
-var gridCore_1 = require("../gridCore");
 var gridOptionsWrapper_1 = require("../gridOptionsWrapper");
 var environment_1 = require("../environment");
 var eventService_1 = require("../eventService");
@@ -25,20 +24,20 @@ var events_1 = require("../events");
 var utils_1 = require("../utils");
 var PopupService = /** @class */ (function () {
     function PopupService() {
-        this.activePopupElements = [];
+        this.popupList = [];
     }
+    PopupService.prototype.registerGridCore = function (gridCore) {
+        this.gridCore = gridCore;
+    };
     PopupService.prototype.getDocument = function () {
         return this.gridOptionsWrapper.getDocument();
     };
     PopupService.prototype.getPopupParent = function () {
         var ePopupParent = this.gridOptionsWrapper.getPopupParent();
         if (ePopupParent) {
-            // user provided popup parent, may not have the right theme applied
             return ePopupParent;
         }
-        else {
-            return this.gridCore.getRootGui();
-        }
+        return this.gridCore.getRootGui();
     };
     PopupService.prototype.positionPopupForMenu = function (params) {
         var sourceRect = params.eventSource.getBoundingClientRect();
@@ -92,10 +91,13 @@ var PopupService = /** @class */ (function () {
     };
     PopupService.prototype.positionPopupUnderMouseEvent = function (params) {
         var _a = this.calculatePointerAlign(params.mouseEvent), x = _a.x, y = _a.y;
+        var ePopup = params.ePopup, nudgeX = params.nudgeX, nudgeY = params.nudgeY;
         this.positionPopup({
-            ePopup: params.ePopup,
+            ePopup: ePopup,
             x: x,
             y: y,
+            nudgeX: nudgeX,
+            nudgeY: nudgeY,
             keepWithinBounds: true
         });
         this.callPostProcessPopup(params.ePopup, null, params.mouseEvent, params.type, params.column, params.rowNode);
@@ -114,6 +116,7 @@ var PopupService = /** @class */ (function () {
         var sourceRect = params.eventSource.getBoundingClientRect();
         var eDocument = this.getDocument();
         var popupParent = this.getPopupParent();
+        var alignSide = params.alignSide || 'left';
         var parentRect;
         if (popupParent === eDocument.body) {
             parentRect = eDocument.documentElement.getBoundingClientRect();
@@ -121,31 +124,21 @@ var PopupService = /** @class */ (function () {
         else {
             parentRect = popupParent.getBoundingClientRect();
         }
+        var x = sourceRect.left - parentRect.left;
+        if (alignSide === 'right') {
+            x -= (params.ePopup.offsetWidth - sourceRect.width);
+        }
         this.positionPopup({
             ePopup: params.ePopup,
             minWidth: params.minWidth,
             minHeight: params.minHeight,
             nudgeX: params.nudgeX,
             nudgeY: params.nudgeY,
-            x: sourceRect.left - parentRect.left,
+            x: x,
             y: sourceRect.top - parentRect.top + sourceRect.height,
             keepWithinBounds: params.keepWithinBounds
         });
         this.callPostProcessPopup(params.ePopup, params.eventSource, null, params.type, params.column, params.rowNode);
-    };
-    PopupService.prototype.callPostProcessPopup = function (ePopup, eventSource, mouseEvent, type, column, rowNode) {
-        var callback = this.gridOptionsWrapper.getPostProcessPopupFunc();
-        if (callback) {
-            var params = {
-                column: column,
-                rowNode: rowNode,
-                ePopup: ePopup,
-                type: type,
-                eventSource: eventSource,
-                mouseEvent: mouseEvent
-            };
-            callback(params);
-        }
     };
     PopupService.prototype.positionPopupOverComponent = function (params) {
         var sourceRect = params.eventSource.getBoundingClientRect();
@@ -168,6 +161,20 @@ var PopupService = /** @class */ (function () {
             keepWithinBounds: params.keepWithinBounds
         });
         this.callPostProcessPopup(params.ePopup, params.eventSource, null, params.type, params.column, params.rowNode);
+    };
+    PopupService.prototype.callPostProcessPopup = function (ePopup, eventSource, mouseEvent, type, column, rowNode) {
+        var callback = this.gridOptionsWrapper.getPostProcessPopupFunc();
+        if (callback) {
+            var params = {
+                column: column,
+                rowNode: rowNode,
+                ePopup: ePopup,
+                type: type,
+                eventSource: eventSource,
+                mouseEvent: mouseEvent
+            };
+            callback(params);
+        }
     };
     PopupService.prototype.positionPopup = function (params) {
         var x = params.x;
@@ -218,15 +225,16 @@ var PopupService = /** @class */ (function () {
         var documentRect = eDocument.documentElement.getBoundingClientRect();
         var isBody = popupParent === eDocument.body;
         var defaultPadding = 3;
+        var ePopup = params.ePopup;
         var minWidth = Math.min(200, parentRect.width);
         var diff = 0;
         if (params.minWidth && params.minWidth < minWidth) {
             minWidth = params.minWidth;
         }
-        else if (params.ePopup.clientWidth > 0) {
-            minWidth = params.ePopup.clientWidth;
-            params.ePopup.style.minWidth = minWidth + "px";
-            diff = utils_1._.getAbsoluteWidth(params.ePopup) - minWidth;
+        else if (ePopup.offsetWidth > 0) {
+            minWidth = ePopup.offsetWidth;
+            ePopup.style.minWidth = minWidth + "px";
+            diff = utils_1._.getAbsoluteWidth(ePopup) - minWidth;
         }
         var widthOfParent = isBody ? (utils_1._.getAbsoluteWidth(docElement) + docElement.scrollLeft) : parentRect.width;
         if (isBody) {
@@ -235,39 +243,51 @@ var PopupService = /** @class */ (function () {
         var maxX = widthOfParent - minWidth - diff - defaultPadding;
         return Math.min(Math.max(x, 0), Math.abs(maxX));
     };
-    //adds an element to a div, but also listens to background checking for clicks,
-    //so that when the background is clicked, the child is removed again, giving
-    //a model look to popups.
+    // adds an element to a div, but also listens to background checking for clicks,
+    // so that when the background is clicked, the child is removed again, giving
+    // a model look to popups.
     PopupService.prototype.addAsModalPopup = function (eChild, closeOnEsc, closedCallback, click) {
         return this.addPopup(true, eChild, closeOnEsc, closedCallback, click);
     };
-    PopupService.prototype.addPopup = function (modal, eChild, closeOnEsc, closedCallback, click) {
+    PopupService.prototype.addPopup = function (modal, eChild, closeOnEsc, closedCallback, click, alwaysOnTop) {
         var _this = this;
         var eDocument = this.gridOptionsWrapper.getDocument();
         if (!eDocument) {
             console.warn('ag-grid: could not find the document, document is empty');
-            return function () {
-            };
+            return function () { };
         }
-        eChild.style.top = '0px';
-        eChild.style.left = '0px';
-        var popupAlreadyShown = utils_1._.isVisible(eChild);
-        if (popupAlreadyShown) {
-            return function () {
-            };
+        var pos = utils_1._.findIndex(this.popupList, function (popup) { return popup.element === eChild; });
+        if (pos !== -1) {
+            var popup = this.popupList[pos];
+            return popup.hideFunc;
         }
         var ePopupParent = this.getPopupParent();
+        // for angular specifically, but shouldn't cause an issue with js or other fw's
+        // https://github.com/angular/angular/issues/8563
+        ePopupParent.appendChild(eChild);
+        eChild.style.top = '0px';
+        eChild.style.left = '0px';
         // add env CSS class to child, in case user provided a popup parent, which means
         // theme class may be missing
         var eWrapper = document.createElement('div');
-        utils_1._.addCssClass(eWrapper, this.environment.getTheme());
+        var theme = this.environment.getTheme().theme;
+        if (theme) {
+            utils_1._.addCssClass(eWrapper, theme);
+        }
+        utils_1._.addCssClass(eWrapper, 'ag-popup');
+        utils_1._.addCssClass(eChild, this.gridOptionsWrapper.isEnableRtl() ? 'ag-rtl' : 'ag-ltr');
         eWrapper.appendChild(eChild);
         ePopupParent.appendChild(eWrapper);
-        this.activePopupElements.push(eChild);
+        if (alwaysOnTop) {
+            this.setAlwaysOnTop(eWrapper, true);
+        }
+        else {
+            this.bringPopupToFront(eWrapper);
+        }
         var popupHidden = false;
         var hidePopupOnKeyboardEvent = function (event) {
             var key = event.which || event.keyCode;
-            if (key === constants_1.Constants.KEY_ESCAPE) {
+            if (key === constants_1.Constants.KEY_ESCAPE && eWrapper.contains(document.activeElement)) {
                 hidePopup(null);
             }
         };
@@ -278,31 +298,28 @@ var PopupService = /** @class */ (function () {
             hidePopup(null, event);
         };
         var hidePopup = function (mouseEvent, touchEvent) {
+            if (
             // we don't hide popup if the event was on the child, or any
             // children of this child
-            if (_this.isEventFromCurrentPopup(mouseEvent, touchEvent, eChild)) {
-                return;
-            }
-            // if the event to close is actually the open event, then ignore it
-            if (_this.isEventSameChainAsOriginalEvent(click, mouseEvent, touchEvent)) {
-                return;
-            }
-            // this method should only be called once. the client can have different
-            // paths, each one wanting to close, so this method may be called multiple times.
-            if (popupHidden) {
+            _this.isEventFromCurrentPopup(mouseEvent, touchEvent, eChild) ||
+                // if the event to close is actually the open event, then ignore it
+                _this.isEventSameChainAsOriginalEvent(click, mouseEvent, touchEvent) ||
+                // this method should only be called once. the client can have different
+                // paths, each one wanting to close, so this method may be called multiple times.
+                popupHidden) {
                 return;
             }
             popupHidden = true;
             ePopupParent.removeChild(eWrapper);
-            utils_1._.removeFromArray(_this.activePopupElements, eChild);
             eDocument.removeEventListener('keydown', hidePopupOnKeyboardEvent);
-            eDocument.removeEventListener('click', hidePopupOnMouseEvent);
+            eDocument.removeEventListener('mousedown', hidePopupOnMouseEvent);
             eDocument.removeEventListener('touchstart', hidePopupOnTouchEvent);
             eDocument.removeEventListener('contextmenu', hidePopupOnMouseEvent);
             _this.eventService.removeEventListener(events_1.Events.EVENT_DRAG_STARTED, hidePopupOnMouseEvent);
             if (closedCallback) {
                 closedCallback();
             }
+            _this.popupList = _this.popupList.filter(function (popup) { return popup.element !== eChild; });
         };
         // if we add these listeners now, then the current mouse
         // click will be included, which we don't want
@@ -311,36 +328,43 @@ var PopupService = /** @class */ (function () {
                 eDocument.addEventListener('keydown', hidePopupOnKeyboardEvent);
             }
             if (modal) {
-                eDocument.addEventListener('click', hidePopupOnMouseEvent);
+                eDocument.addEventListener('mousedown', hidePopupOnMouseEvent);
                 _this.eventService.addEventListener(events_1.Events.EVENT_DRAG_STARTED, hidePopupOnMouseEvent);
                 eDocument.addEventListener('touchstart', hidePopupOnTouchEvent);
                 eDocument.addEventListener('contextmenu', hidePopupOnMouseEvent);
             }
         }, 0);
+        this.popupList.push({
+            element: eChild,
+            hideFunc: hidePopup
+        });
         return hidePopup;
     };
     PopupService.prototype.isEventFromCurrentPopup = function (mouseEvent, touchEvent, eChild) {
         var event = mouseEvent ? mouseEvent : touchEvent;
-        if (event) {
-            var indexOfThisChild = this.activePopupElements.indexOf(eChild);
-            for (var i = indexOfThisChild; i < this.activePopupElements.length; i++) {
-                var element = this.activePopupElements[i];
-                if (utils_1._.isElementInEventPath(element, event)) {
-                    return true;
-                }
-            }
-            // if the user did not write their own Custom Element to be rendered as popup
-            // and this component has additional popup element, they should have the
-            // `ag-custom-component-popup` class to be detected as part of the Custom Component
-            var el = event.target;
-            while (el && el != document.body) {
-                if (el.classList.contains('ag-custom-component-popup')) {
-                    return true;
-                }
-                el = el.parentElement;
+        if (!event) {
+            return false;
+        }
+        var indexOfThisChild = utils_1._.findIndex(this.popupList, function (popup) { return popup.element === eChild; });
+        if (indexOfThisChild === -1) {
+            return false;
+        }
+        for (var i = indexOfThisChild; i < this.popupList.length; i++) {
+            var popup = this.popupList[i];
+            if (utils_1._.isElementInEventPath(popup.element, event)) {
+                return true;
             }
         }
-        return false;
+        // if the user did not write their own Custom Element to be rendered as popup
+        // and this component has additional popup element, they should have the
+        // `ag-custom-component-popup` class to be detected as part of the Custom Component
+        var el = event.target;
+        while (el && el != document.body) {
+            if (el.classList.contains('ag-custom-component-popup') || el.parentElement === null) {
+                return true;
+            }
+            el = el.parentElement;
+        }
     };
     // in some browsers, the context menu event can be fired before the click event, which means
     // the context menu event could open the popup, but then the click event closes it straight away.
@@ -371,10 +395,55 @@ var PopupService = /** @class */ (function () {
         }
         return false;
     };
-    __decorate([
-        context_1.Autowired('gridCore'),
-        __metadata("design:type", gridCore_1.GridCore)
-    ], PopupService.prototype, "gridCore", void 0);
+    PopupService.prototype.getWrapper = function (ePopup) {
+        while (!utils_1._.containsClass(ePopup, 'ag-popup') && ePopup.parentElement) {
+            ePopup = ePopup.parentElement;
+        }
+        return utils_1._.containsClass(ePopup, 'ag-popup') ? ePopup : null;
+    };
+    PopupService.prototype.setAlwaysOnTop = function (ePopup, alwaysOnTop) {
+        var eWrapper = this.getWrapper(ePopup);
+        if (!eWrapper) {
+            return;
+        }
+        utils_1._.addOrRemoveCssClass(eWrapper, 'ag-always-on-top', !!alwaysOnTop);
+        if (alwaysOnTop) {
+            this.bringPopupToFront(eWrapper);
+        }
+    };
+    PopupService.prototype.bringPopupToFront = function (ePopup) {
+        var parent = this.getPopupParent();
+        var popupList = Array.prototype.slice.call(parent.querySelectorAll('.ag-popup'));
+        var popupLen = popupList.length;
+        var alwaysOnTopList = Array.prototype.slice.call(parent.querySelectorAll('.ag-popup.ag-always-on-top'));
+        var onTopLength = alwaysOnTopList.length;
+        var eWrapper = this.getWrapper(ePopup);
+        if (!eWrapper || popupLen <= 1 || !parent.contains(ePopup)) {
+            return;
+        }
+        var pos = popupList.indexOf(eWrapper);
+        if (onTopLength) {
+            var isPopupAlwaysOnTop = utils_1._.containsClass(eWrapper, 'ag-always-on-top');
+            if (isPopupAlwaysOnTop) {
+                if (pos !== popupLen - 1) {
+                    utils_1._.last(alwaysOnTopList).insertAdjacentElement('afterend', eWrapper);
+                }
+            }
+            else if (pos !== popupLen - onTopLength - 1) {
+                alwaysOnTopList[0].insertAdjacentElement('beforebegin', eWrapper);
+            }
+        }
+        else if (pos !== popupLen - 1) {
+            utils_1._.last(popupList).insertAdjacentElement('afterend', eWrapper);
+        }
+        var params = {
+            type: 'popupToFront',
+            api: this.gridOptionsWrapper.getApi(),
+            columnApi: this.gridOptionsWrapper.getColumnApi(),
+            eWrapper: eWrapper
+        };
+        this.eventService.dispatchEvent(params);
+    };
     __decorate([
         context_1.Autowired('gridOptionsWrapper'),
         __metadata("design:type", gridOptionsWrapper_1.GridOptionsWrapper)

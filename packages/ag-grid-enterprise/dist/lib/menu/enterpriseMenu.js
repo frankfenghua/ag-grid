@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -52,6 +52,12 @@ var EnterpriseMenuFactory = /** @class */ (function () {
     };
     EnterpriseMenuFactory.prototype.showMenuAfterButtonClick = function (column, eventSource, defaultTab, restrictToTabs) {
         var _this = this;
+        var multiplier = -1;
+        var alignSide = 'left';
+        if (this.gridOptionsWrapper.isEnableRtl()) {
+            multiplier = 1;
+            alignSide = 'right';
+        }
         this.showMenu(column, function (menu) {
             var minDims = menu.getMinDimensions();
             _this.popupService.positionPopupUnderComponent({
@@ -59,10 +65,11 @@ var EnterpriseMenuFactory = /** @class */ (function () {
                 type: 'columnMenu',
                 eventSource: eventSource,
                 ePopup: menu.getGui(),
-                nudgeX: -9,
-                nudgeY: -26,
+                nudgeX: 9 * multiplier,
+                nudgeY: -23,
                 minWidth: minDims.width,
                 minHeight: minDims.height,
+                alignSide: alignSide,
                 keepWithinBounds: true
             });
             if (defaultTab) {
@@ -142,22 +149,23 @@ var EnterpriseMenu = /** @class */ (function (_super) {
     };
     EnterpriseMenu.prototype.init = function () {
         var _this = this;
-        var items = this.column.getMenuTabs(this.restrictTo ? this.restrictTo : EnterpriseMenu.TABS_DEFAULT)
-            .filter(function (menuTabName) {
-            return _this.isValidMenuTabItem(menuTabName);
-        })
-            .filter(function (menuTabName) {
-            return _this.isNotSuppressed(menuTabName);
-        })
-            .map(function (menuTabName) {
-            return _this.createTab(menuTabName);
-        });
+        var tabs = this.getTabsToCreate()
+            .map(function (menuTabName) { return _this.createTab(menuTabName); });
         this.tabbedLayout = new ag_grid_community_1.TabbedLayout({
-            items: items,
+            items: tabs,
             cssClass: 'ag-menu',
             onActiveItemClicked: this.onHidePopup.bind(this),
             onItemClicked: this.onTabItemClicked.bind(this)
         });
+    };
+    EnterpriseMenu.prototype.getTabsToCreate = function () {
+        var _this = this;
+        if (this.restrictTo) {
+            return this.restrictTo;
+        }
+        return this.column.getMenuTabs(EnterpriseMenu.TABS_DEFAULT)
+            .filter(function (tabName) { return _this.isValidMenuTabItem(tabName); })
+            .filter(function (tabName) { return _this.isNotSuppressed(tabName); });
     };
     EnterpriseMenu.prototype.isValidMenuTabItem = function (menuTabName) {
         var isValid = true;
@@ -250,7 +258,7 @@ var EnterpriseMenu = /** @class */ (function (_super) {
     };
     EnterpriseMenu.prototype.getDefaultMenuOptions = function () {
         var result = [];
-        var allowPinning = !this.column.isLockPinned();
+        var allowPinning = !this.column.getColDef().lockPinned;
         var rowGroupCount = this.columnController.getRowGroupColumns().length;
         var doingGrouping = rowGroupCount > 0;
         var groupedByThisColumn = this.columnController.getRowGroupColumns().indexOf(this.column) >= 0;
@@ -308,7 +316,7 @@ var EnterpriseMenu = /** @class */ (function (_super) {
     };
     EnterpriseMenu.prototype.createMainPanel = function () {
         this.mainMenuList = new menuList_1.MenuList();
-        this.context.wireBean(this.mainMenuList);
+        this.getContext().wireBean(this.mainMenuList);
         var menuItems = this.getMenuItems();
         var menuItemsMapped = this.menuItemMapper.mapWithStockItems(menuItems, this.column);
         this.mainMenuList.addMenuItems(menuItemsMapped);
@@ -358,7 +366,7 @@ var EnterpriseMenu = /** @class */ (function (_super) {
             suppressSideButtons: false,
             api: this.gridApi
         });
-        this.context.wireBean(this.columnSelectPanel);
+        this.getContext().wireBean(this.columnSelectPanel);
         eWrapperDiv.appendChild(this.columnSelectPanel.getGui());
         this.tabItemColumns = {
             title: ag_grid_community_1._.createIconNoSpan('columns', this.gridOptionsWrapper, this.column),
@@ -402,10 +410,6 @@ var EnterpriseMenu = /** @class */ (function (_super) {
         ag_grid_community_1.Autowired('filterManager'),
         __metadata("design:type", ag_grid_community_1.FilterManager)
     ], EnterpriseMenu.prototype, "filterManager", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired('context'),
-        __metadata("design:type", ag_grid_community_1.Context)
-    ], EnterpriseMenu.prototype, "context", void 0);
     __decorate([
         ag_grid_community_1.Autowired('gridApi'),
         __metadata("design:type", ag_grid_community_1.GridApi)

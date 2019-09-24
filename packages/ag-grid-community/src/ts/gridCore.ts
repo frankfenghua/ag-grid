@@ -8,12 +8,11 @@ import { EventService } from "./eventService";
 import { GridPanel } from "./gridPanel/gridPanel";
 import { Logger, LoggerFactory } from "./logger";
 import { PopupService } from "./widgets/popupService";
-import { Autowired, Bean, Context, Optional, PostConstruct, PreDestroy } from "./context/context";
+import { Autowired, Optional, PostConstruct } from "./context/context";
 import { IRowModel } from "./interfaces/iRowModel";
 import { FocusedCellController } from "./focusedCellController";
 import { Component } from "./widgets/component";
-import { ICompFactory } from "./interfaces/iCompFactory";
-import { IFrameworkFactory } from "./interfaces/iFrameworkFactory";
+import { IClipboardService } from "./interfaces/iClipboardService";
 import { GridApi } from "./gridApi";
 import { ISideBar } from "./interfaces/ISideBar";
 import { RefSelector } from "./widgets/componentAnnotations";
@@ -22,7 +21,6 @@ import { ResizeObserverService } from "./misc/resizeObserverService";
 import { SideBarDef, SideBarDefParser } from "./entities/sideBar";
 import { _ } from "./utils";
 
-@Bean('gridCore')
 export class GridCore extends Component {
 
     private static TEMPLATE_NORMAL =
@@ -42,13 +40,13 @@ export class GridCore extends Component {
             </div>
             <ag-status-bar ref="statusBar"></ag-status-bar>
             <ag-pagination></ag-pagination>
+            <ag-watermark></ag-watermark>
         </div>`;
 
     @Autowired('enterprise') private enterprise: boolean;
     @Autowired('gridOptions') private gridOptions: GridOptions;
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
     @Autowired('rowModel') private rowModel: IRowModel;
-    @Autowired('frameworkFactory') private frameworkFactory: IFrameworkFactory;
     @Autowired('resizeObserverService') private resizeObserverService: ResizeObserverService;
 
     @Autowired('columnController') private columnController: ColumnController;
@@ -61,27 +59,20 @@ export class GridCore extends Component {
     @Autowired('quickFilterOnScope') private quickFilterOnScope: string;
     @Autowired('popupService') private popupService: PopupService;
     @Autowired('focusedCellController') private focusedCellController: FocusedCellController;
-    @Autowired('context') private context: Context;
     @Autowired('loggerFactory') loggerFactory: LoggerFactory;
 
     @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('gridApi') private gridApi: GridApi;
 
-    @Optional('rowGroupCompFactory') private rowGroupCompFactory: ICompFactory;
-    @Optional('pivotCompFactory') private pivotCompFactory: ICompFactory;
+    @Optional('clipboardService') private clipboardService: IClipboardService;
 
     @RefSelector('gridPanel') private gridPanel: GridPanel;
     @RefSelector('sideBar') private sideBarComp: ISideBar & Component;
     @RefSelector('rootWrapperBody') private eRootWrapperBody: HTMLElement;
 
-    private finished: boolean;
     private doingVirtualPaging: boolean;
 
     private logger: Logger;
-
-    constructor() {
-        super();
-    }
 
     @PostConstruct
     public init(): void {
@@ -90,10 +81,17 @@ export class GridCore extends Component {
 
         const template = this.enterprise ? GridCore.TEMPLATE_ENTERPRISE : GridCore.TEMPLATE_NORMAL;
         this.setTemplate(template);
-        this.instantiate(this.context);
+
+        // register with services that need grid core
+        [
+            this.gridApi,
+            this.filterManager,
+            this.rowRenderer,
+            this.popupService
+        ].forEach(service => service.registerGridCore(this));
 
         if (this.enterprise) {
-            this.sideBarComp.registerGridComp(this.gridPanel);
+            this.clipboardService.registerGridCore(this);
         }
 
         this.gridOptionsWrapper.addLayoutElement(this.getGui());
@@ -116,12 +114,20 @@ export class GridCore extends Component {
         // which doLayout indirectly depends on
         this.addRtlSupport();
 
-        this.finished = false;
-        this.addDestroyFunc(() => this.finished = true);
-
         this.logger.log('ready');
 
         this.gridOptionsWrapper.addLayoutElement(this.eRootWrapperBody);
+        const gridPanelEl = this.gridPanel.getGui();
+
+        this.addDestroyableEventListener(gridPanelEl, 'focusin', () => {
+            _.addCssClass(gridPanelEl, 'ag-has-focus');
+        });
+
+        this.addDestroyableEventListener(gridPanelEl, 'focusout', (e: FocusEvent) => {
+            if (!gridPanelEl.contains(e.relatedTarget as HTMLElement)) {
+                _.removeCssClass(gridPanelEl, 'ag-has-focus');
+            }
+        });
 
         const unsubscribeFromResize = this.resizeObserverService.observeResize(
             this.eGridDiv, this.onGridSizeChanged.bind(this));
@@ -139,15 +145,6 @@ export class GridCore extends Component {
         this.eventService.dispatchEvent(event);
     }
 
-    // this was deprecated in v19, we can drop in v20
-    public getPreferredWidth(): number {
-        const widthForCols = this.columnController.getBodyContainerWidth()
-            + this.columnController.getPinnedLeftContainerWidth()
-            + this.columnController.getPinnedRightContainerWidth();
-        const widthForToolpanel = this.sideBarComp ? this.sideBarComp.getPreferredWidth() : 0;
-        return widthForCols + widthForToolpanel;
-    }
-
     private addRtlSupport(): void {
         const cssClass = this.gridOptionsWrapper.isEnableRtl() ? 'ag-rtl' : 'ag-ltr';
         _.addCssClass(this.getGui(), cssClass);
@@ -162,7 +159,7 @@ export class GridCore extends Component {
             return false;
         }
 
-        return this.sideBarComp.isVisible();
+        return this.sideBarComp.isDisplayed();
     }
 
     public setSideBarVisible(show:boolean) {
@@ -173,7 +170,7 @@ export class GridCore extends Component {
             return;
         }
 
-        this.sideBarComp.setVisible(show);
+        this.sideBarComp.setDisplayed(show);
     }
 
     public closeToolPanel() {
@@ -187,6 +184,12 @@ export class GridCore extends Component {
 
     public getSideBar(): SideBarDef {
         return this.gridOptions.sideBar as SideBarDef;
+    }
+
+    public refreshSideBar() {
+        if (this.sideBarComp) {
+            this.sideBarComp.refresh();
+        }
     }
 
     public setSideBar(def: SideBarDef | string | boolean): void {
@@ -217,8 +220,6 @@ export class GridCore extends Component {
         return this.sideBarComp.isToolPanelShowing();
     }
 
-    // need to override, as parent class isn't marked with PreDestroy
-    @PreDestroy
     public destroy() {
         super.destroy();
         this.logger.log('Grid DOM removed');
@@ -230,7 +231,7 @@ export class GridCore extends Component {
             throw new Error('Cannot use ensureNodeVisible when doing virtual paging, as we cannot check rows that are not in memory');
         }
         // look for the node index we want to display
-        const rowCount = this.rowModel.getPageLastRow() + 1;
+        const rowCount = this.rowModel.getRowCount();
         const comparatorIsAFunction = typeof comparator === 'function';
         let indexToSelect = -1;
         // go through all the nodes, find the one we want to show

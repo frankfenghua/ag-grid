@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -30,7 +30,7 @@ var DisplayedGroupCreator = /** @class */ (function () {
     sortedVisibleColumns, 
     // the tree of columns, as provided by the users, used to know what groups columns roll up into
     balancedColumnTree, 
-    // create's unique id's for the group
+    // creates unique id's for the group
     groupInstanceIdCreator, 
     // whether it's left, right or center col
     pinned, 
@@ -72,7 +72,7 @@ var DisplayedGroupCreator = /** @class */ (function () {
                 result.push(currentColumn);
             }
             else {
-                var leafGroup = currentRealPath[currentRealPath.length - 1];
+                var leafGroup = utils_1._.last(currentRealPath);
                 leafGroup.addChild(currentColumn);
             }
             previousRealPath = currentRealPath;

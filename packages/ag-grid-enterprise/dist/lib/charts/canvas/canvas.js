@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // This is the property we set on an HTMLCanvasElement to let us know we've applied
@@ -89,14 +89,3 @@ function resizeCanvas(canvas, width, height) {
     canvas.getContext('2d').resetTransform();
 }
 exports.resizeCanvas = resizeCanvas;
-/**
- * Returns the position offset to apply to align vertical and horizontal
- * lines to the pixel grid for crisp look.
- * @param value Typically line width is assumed. Fractional values won't be aligned.
- * @param bias If alignment is necessary, which side to prefer.
- */
-function pixelSnap(value, bias) {
-    if (bias === void 0) { bias = 1; }
-    return value % 1 === 0 ? bias * value % 2 / 2 : value;
-}
-exports.pixelSnap = pixelSnap;

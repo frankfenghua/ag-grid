@@ -7,81 +7,46 @@ include '../documentation-main/documentation_header.php';
 ?>
 
     <h1>
-        Reference
+        Grid Interface
     </h1>
 
     <p class="lead">
-        This section explains how to configure the the grid's properties, events, callbacks and API.
+        Your application interacts with the grid through the grid's interface. The grid's interface
+        is defined as all the public facing parts of the grids that your application interacts with.
+        This section list all the grid's methods, properties, events e.t.c. for interacting with
+        the grid.
     </p>
 
-<div class="docs-homepage-section-preview">
-    <div>
-    <h2>Grid Properties</h2>
+
     <p>
-
-                    Most features of the grid are set using grid properties. Eg turn on row animation by setting
-                    <code>animateRows = true</code>.
-
-    </p>
-    <p> <a href="../javascript-grid-properties/">Go to Grid Properties</a> </p>
-    </div>
-</div>
-
-<div class="docs-homepage-section-preview">
-    <div>
-    <h2>Grid API</h2>
-    <p> Interacting with the grid at run time is done through the grid API. Eg to get all the selected rows, call <code>api.getSelectedRows()</code>.
-                </p>
-        <p> <a href="../javascript-grid-api/">Go to Grid API</a> </p>
-    </div>
-</div>
-
-<div class="docs-homepage-section-preview">
-    <div>
-    <h2>Grid Events</h2>
-    <p>
-        Your application can listen for certain events within the grid to act on them.
-        Eg <code>sortChanged</code> gets fired when the grid is sorted, <code>rowSelected</code>
-        gets fired when a row is selected.
+        The grid interface is the combination of the following items:
     </p>
 
-    <p> <a href="../javascript-grid-events/">Go to Grid Events</a> </p>
-    </div>
-</div>
+    <ul>
+        <li>
+            <a href="../javascript-grid-properties/">Grid Properties</a>: Properties that set configuration into
+            the grid e.g. <code>pagination=true</code>.
+        </li>
+        <li>
+            <a href="../javascript-grid-api/">Grid API</a>: Methods to interact with the grid after it's created
+            e.g. <code>api.getSelectedRows()</code>.
+        </li>
+        <li>
+            <a href="../javascript-grid-events/">Events</a>: The grid fires events to information applications
+            of grid state changes, e.g. <code>rowSelected</code>.
+        </li>
+        <li>
+            <a href="../javascript-grid-callbacks/">Grid Callbacks</a>: If the grid requires information from
+            your application it is done through a grid callback e.g. <code>getRowHeight()</code>.
+        </li>
+        <li>
+            <a href="../javascript-grid-row-node/">Row Node</a>:
+            Each row in the grid is represented by a Row Node object, which in turn has a reference to the piece of
+            row data provided by the application. The Row Node wraps the row data item. The Row Node has attributes,
+            methods and events for interacting with the specific row e.g. <code>rowNode.setSelected(true)</code>.
+        </li>
+    </ul>
 
-<div class="docs-homepage-section-preview">
-    <div>
-    <h2>Grid Callbacks</h2>
-    <p>
-
-                    If the grid requires information from your application it is done through a grid callback.
-                    Eg <code>getMainMenuItems()</code> is called each time a menu is shown and allows your application
-                    to customise the menu.
-
-    </p>
-    <p> <a href="../javascript-grid-callbacks/">Go to Grid Callbacks</a> </p>
-    </div>
-</div>
-
-<div class="docs-homepage-section-preview">
-    <div>
-    <h2>Column Properties</h2>
-    <p> Columns are configured through column definitions. A column definition contains the column properties. Eg <code>colDef.pinned='left'</code> will set a column to be pinned to the left.  </p>
-    <p> <a href="../javascript-grid-column-properties/">Go to Column Properties</a> </p>
-    </div>
-</div>
-
-<div class="docs-homepage-section-preview">
-    <div>
-    <h2>Column API</h2>
-    <p>
-                    The column API is similar to the grid API, the difference is that the column API groups
-                    a set of API methods relevant to columns. Eg the method <code>columnApi.setColumnVisible('country',false)</code>
-                    will cause the 'country' column to be hidden.
-                </p>
-    <p> <a href="../javascript-grid-column-api/">Go to Column API</a> </p>
-    </div>
-</div>
 
 <h2> Grid Options </h2>
 
@@ -584,96 +549,6 @@ myGrid.columnApi.sizeColumnsToFit();
 myGrid.quickFilterText = 'sandy';
 myGrid.showToolPanel = true;
 </snippet>
-
-
-        <h2>
-            Aurelia
-        </h2>
-        <p>The <code>gridOptions</code> are fully available as stated above for Aurelia. However you can take advantage of Aurelia's
-            properties and events provided by ag-Grids Aurelia Component. This is done as follows:</p>
-        <ul class="content">
-            <li><b>Events:</b> All data out of the grid comes through events. These use
-                Aurelia event bindings eg <code>model-updated.call="onModelUpdated()"</code>.
-                As you interact with the grid, the different events are fixed and
-                output text to the console (open the dev tools to see the console).
-            </li>
-            <li><b>Properties:</b> All the data is provided to the grid as Aurelia
-                bindings. These are bound onto the ag-Grid properties bypassing the
-                elements attributes. The values for the bindings come from the parent
-                controller.
-            </li>
-            <li><b>Attributes:</b> When the property is just a simple string value, then
-                no binding is necessary, just the value is placed as an attribute
-                eg <code>row-height.bind="22"</code>.
-            </li>
-            <li><b>Changing Properties:</b> When a property changes value, Aurelia
-                automatically passes the new value onto the grid. This is used in
-                the following locations:<br/>
-                a) The 'quickFilter' on the top right updates the quick filter of
-                the grid.
-                b) The 'Show Tool Panel' checkbox has its value bound to the 'showToolPanel'
-                property of the grid.
-                c) The 'Refresh Data' generates new data for the grid and updates the
-                <code>rowData</code> property.
-            </li>
-        </ul>
-
-        <p>
-            The example has ag-Grid configured through the template in the following ways:
-        </p>
-
-<snippet>
-// notice the grid has an id called agGrid, which can be used to call the API
-&lt;ag-grid-aurelia class="ag-theme-balham"
-    // items bound to properties on the controller
-    grid-options.bind="gridOptions"
-    column-defs.bind="columnDefs"
-    show-tool-panel.bind="showToolPanel"
-    row-data.bind="rowData"
-
-    // boolean values 'turned on'
-    enable-col-resize
-    enable-sorting
-    enable-filter
-    group-headers
-    suppress-row-click-selection
-    tool-panel-suppress-groups
-    tool-panel-suppress-values
-    debug
-
-    // simple values
-    row-height.bind="22"
-    row-selection="multiple"
-
-    // event callbacks
-    model-updated.call="onModelUpdated()"
-    cell-clicked.call="onCellClicked($event)"
-    cell-double-clicked.call="onCellDoubleClicked($event)"
-    cell-context-menu.call="onCellContextMenu($event)"
-    cell-value-changed.call="onCellValueChanged($event)"
-    cell-focused.call="onCellFocused($event)"
-    row-selected.call="onRowSelected($event)"
-    selection-changed.call="onSelectionChanged()"
-    before-filter-changed.call="onBeforeFilterChanged()"
-    after-filter-changed.call="onAfterFilterChanged()"
-    filter-modified.call="onFilterModified()"
-    before-sort-changed.call="onBeforeSortChanged()"
-    after-sort-changed.call="onAfterSortChanged()"
-    virtual-row-removed.call="onVirtualRowRemoved($event)"
-    row-clicked.call="onRowClicked($event)"
-    ready.call="onReady($event)"
-
-    column-everything-changed.call="onColumnEvent($event)"
-    column-row-group-changed.call="onColumnEvent($event)"
-    column-value-changed.call="onColumnEvent($event)"
-    column-moved.call="onColumnEvent($event)"
-    column-visible.call="onColumnEvent($event)"
-    column-group-opened.call="onColumnEvent($event)"
-    column-resized.call="onColumnEvent($event)"
-    column-pinned-count-changed.call="onColumnEvent($event)"&gt;
-&lt;/ag-grid-aurelia&gt;
-</snippet>
-
 
     <h2>Next Steps</h2>
 

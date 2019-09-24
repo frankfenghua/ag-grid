@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -34,7 +34,6 @@ var FiltersToolPanel = /** @class */ (function (_super) {
     }
     FiltersToolPanel.prototype.init = function () {
         var _this = this;
-        this.instantiate(this.context);
         this.initialised = true;
         this.eventService.addEventListener('newColumnsLoaded', function () { return _this.onColumnsChanged(); });
         if (this.columnController.isReady()) {
@@ -42,60 +41,33 @@ var FiltersToolPanel = /** @class */ (function (_super) {
         }
     };
     FiltersToolPanel.prototype.onColumnsChanged = function () {
+        var _this = this;
         var eGui = this.getGui();
         ag_grid_community_1._.clearElement(eGui);
-        this.columnTree = this.columnController.getPrimaryColumnTree();
-        var groupsExist = this.columnController.isPrimaryColumnGroupsPresent();
-        this.recursivelyAddComps(this.columnTree, 0, groupsExist);
-        this.setTemplateFromElement(eGui);
+        var primaryCols = this.columnController.getAllPrimaryColumns();
+        if (!primaryCols) {
+            return;
+        }
+        var primaryColsWithFilter = primaryCols.filter(function (col) { return col.isFilterAllowed(); });
+        primaryColsWithFilter.forEach(function (col) { return _this.addColumnComps(col); });
     };
+    // we don't support refreshing, but must implement because it's on the tool panel interface
     FiltersToolPanel.prototype.refresh = function () {
     };
     // lazy initialise the panel
     FiltersToolPanel.prototype.setVisible = function (visible) {
-        _super.prototype.setVisible.call(this, visible);
+        _super.prototype.setDisplayed.call(this, visible);
         if (visible && !this.initialised) {
             this.init();
         }
     };
-    FiltersToolPanel.prototype.recursivelyAddComps = function (tree, dept, groupsExist) {
-        var _this = this;
-        tree.forEach(function (child) {
-            if (child instanceof ag_grid_community_1.OriginalColumnGroup) {
-                _this.recursivelyAddComps(child.getChildren(), dept, groupsExist);
-            }
-            else {
-                _this.recursivelyAddColumnComps(child);
-            }
-        });
-    };
-    FiltersToolPanel.prototype.recursivelyAddColumnComps = function (column) {
-        if (!column.isFilterAllowed()) {
-            return;
-        }
-        var renderedFilter = this.componentResolver.createInternalAgGridComponent(toolPanelFilterComp_1.ToolPanelFilterComp, {
-            column: column
-        });
-        this.context.wireBean(renderedFilter);
-        this.getGui().appendChild(renderedFilter.getGui());
+    FiltersToolPanel.prototype.addColumnComps = function (column) {
+        var toolPanelFilterComp = new toolPanelFilterComp_1.ToolPanelFilterComp();
+        this.getContext().wireBean(toolPanelFilterComp);
+        toolPanelFilterComp.setColumn(column);
+        this.appendChild(toolPanelFilterComp);
     };
     FiltersToolPanel.TEMPLATE = "<div class=\"ag-filter-panel\" ref=\"ePanelContainer\" />";
-    __decorate([
-        ag_grid_community_1.Autowired('columnApi'),
-        __metadata("design:type", ag_grid_community_1.ColumnApi)
-    ], FiltersToolPanel.prototype, "columnApi", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired("context"),
-        __metadata("design:type", ag_grid_community_1.Context)
-    ], FiltersToolPanel.prototype, "context", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired("gridOptionsWrapper"),
-        __metadata("design:type", ag_grid_community_1.GridOptionsWrapper)
-    ], FiltersToolPanel.prototype, "gridOptionsWrapper", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired("gridApi"),
-        __metadata("design:type", ag_grid_community_1.GridApi)
-    ], FiltersToolPanel.prototype, "gridApi", void 0);
     __decorate([
         ag_grid_community_1.Autowired("eventService"),
         __metadata("design:type", ag_grid_community_1.EventService)
@@ -104,22 +76,6 @@ var FiltersToolPanel = /** @class */ (function (_super) {
         ag_grid_community_1.Autowired('columnController'),
         __metadata("design:type", ag_grid_community_1.ColumnController)
     ], FiltersToolPanel.prototype, "columnController", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired('rowModel'),
-        __metadata("design:type", Object)
-    ], FiltersToolPanel.prototype, "rowModel", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired('componentResolver'),
-        __metadata("design:type", ag_grid_community_1.ComponentResolver)
-    ], FiltersToolPanel.prototype, "componentResolver", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired('valueService'),
-        __metadata("design:type", ag_grid_community_1.ValueService)
-    ], FiltersToolPanel.prototype, "valueService", void 0);
-    __decorate([
-        ag_grid_community_1.Autowired('$scope'),
-        __metadata("design:type", Object)
-    ], FiltersToolPanel.prototype, "$scope", void 0);
     return FiltersToolPanel;
 }(ag_grid_community_1.Component));
 exports.FiltersToolPanel = FiltersToolPanel;

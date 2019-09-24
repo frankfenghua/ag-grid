@@ -1,29 +1,47 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var twoPi = Math.PI * 2;
 /**
- * Normalize the given angle to [0, 2π) interval.
- * @param angle Angle in radians.
+ * Normalize the given angle to be in the [0, 2π) interval.
+ * @param radians Angle in radians.
  */
-function normalizeAngle(angle) {
-    angle %= Math.PI * 2;
-    angle += Math.PI * 2;
-    angle %= Math.PI * 2;
-    return angle;
+function normalizeAngle360(radians) {
+    radians %= twoPi;
+    radians += twoPi;
+    radians %= twoPi;
+    return radians;
 }
-exports.normalizeAngle = normalizeAngle;
+exports.normalizeAngle360 = normalizeAngle360;
+function normalizeAngle360Inclusive(radians) {
+    radians %= twoPi;
+    radians += twoPi;
+    if (radians !== twoPi) {
+        radians %= twoPi;
+    }
+    return radians;
+}
+exports.normalizeAngle360Inclusive = normalizeAngle360Inclusive;
 /**
- * Normalize the given angle to [-π, π) interval.
- * @param angle Angle in radians.
+ * Normalize the given angle to be in the [-π, π) interval.
+ * @param radians Angle in radians.
  */
-function normalizeAngle180(angle) {
-    angle %= Math.PI * 2;
-    if (angle < -Math.PI) {
-        angle += Math.PI * 2;
+function normalizeAngle180(radians) {
+    radians %= twoPi;
+    if (radians < -Math.PI) {
+        radians += twoPi;
     }
-    else if (angle >= Math.PI) {
-        angle -= Math.PI * 2;
+    else if (radians >= Math.PI) {
+        radians -= twoPi;
     }
-    return angle;
+    return radians;
 }
 exports.normalizeAngle180 = normalizeAngle180;
+function toRadians(degrees) {
+    return degrees / 180 * Math.PI;
+}
+exports.toRadians = toRadians;
+function toDegrees(radians) {
+    return radians / Math.PI * 180;
+}
+exports.toDegrees = toDegrees;

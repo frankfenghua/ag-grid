@@ -22,7 +22,6 @@ export class PivotDropZonePanel extends BaseDropZonePanel {
     @Autowired('eventService') private eventService: EventService;
 
     @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
-    @Autowired('context') private context: Context;
     @Autowired('loggerFactory') private loggerFactory: LoggerFactory;
     @Autowired('dragAndDropService') private dragAndDropService: DragAndDropService;
     @Autowired('columnApi') private columnApi: ColumnApi;
@@ -37,7 +36,7 @@ export class PivotDropZonePanel extends BaseDropZonePanel {
         super.setBeans({
             gridOptionsWrapper: this.gridOptionsWrapper,
             eventService: this.eventService,
-            context: this.context,
+            context: this.getContext(),
             loggerFactory: this.loggerFactory,
             dragAndDropService: this.dragAndDropService
         });
@@ -73,20 +72,20 @@ export class PivotDropZonePanel extends BaseDropZonePanel {
             // on the user property as well as pivotMode.
             switch (this.gridOptionsWrapper.getPivotPanelShow()) {
                 case 'always':
-                    this.setVisible(pivotMode);
+                    this.setDisplayed(pivotMode);
                     break;
                 case 'onlyWhenPivoting':
                     const pivotActive = this.columnController.isPivotActive();
-                    this.setVisible(pivotMode && pivotActive);
+                    this.setDisplayed(pivotMode && pivotActive);
                     break;
                 default:
                     // never show it
-                    this.setVisible(false);
+                    this.setDisplayed(false);
                     break;
             }
         } else {
             // in toolPanel, the pivot panel is always shown when pivot mode is on
-            this.setVisible(pivotMode);
+            this.setDisplayed(pivotMode);
         }
     }
 

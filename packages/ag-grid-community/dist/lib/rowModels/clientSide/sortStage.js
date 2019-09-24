@@ -1,6 +1,6 @@
 /**
  * ag-grid-community - Advanced Data Grid / Data Table supporting Javascript / React / AngularJS / Web Components
- * @version v20.0.0
+ * @version v21.2.1
  * @link http://www.ag-grid.com/
  * @license MIT
  */
@@ -19,6 +19,7 @@ var context_1 = require("../../context/context");
 var gridOptionsWrapper_1 = require("../../gridOptionsWrapper");
 var sortService_1 = require("../../rowNodes/sortService");
 var sortController_1 = require("../../sortController");
+var columnController_1 = require("../../columnController/columnController");
 var utils_1 = require("../../utils");
 var SortStage = /** @class */ (function () {
     function SortStage() {
@@ -34,9 +35,10 @@ var SortStage = /** @class */ (function () {
             // rolling out to everyone.
             && this.gridOptionsWrapper.isDeltaSort();
         // we only need dirty nodes if doing delta sort
-        var dirtyLeafNodes = deltaSort ?
-            this.calculateDirtyNodes(params.rowNodeTransactions) : null;
-        this.sortService.sort(params.rowNode, sortOptions, sortActive, deltaSort, dirtyLeafNodes, params.changedPath);
+        var dirtyLeafNodes = deltaSort ? this.calculateDirtyNodes(params.rowNodeTransactions) : null;
+        var valueColumns = this.columnController.getValueColumns();
+        var noAggregations = utils_1._.missingOrEmpty(valueColumns);
+        this.sortService.sort(sortOptions, sortActive, deltaSort, dirtyLeafNodes, params.changedPath, noAggregations);
     };
     SortStage.prototype.calculateDirtyNodes = function (rowNodeTransactions) {
         var dirtyNodes = {};
@@ -65,6 +67,10 @@ var SortStage = /** @class */ (function () {
         context_1.Autowired('sortController'),
         __metadata("design:type", sortController_1.SortController)
     ], SortStage.prototype, "sortController", void 0);
+    __decorate([
+        context_1.Autowired('columnController'),
+        __metadata("design:type", columnController_1.ColumnController)
+    ], SortStage.prototype, "columnController", void 0);
     SortStage = __decorate([
         context_1.Bean('sortStage')
     ], SortStage);

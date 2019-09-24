@@ -17,7 +17,7 @@ export class RowDragComp extends Component {
     private readonly cellValue: string;
 
     constructor(rowNode: RowNode, column: Column, cellValue: string, beans: Beans) {
-        super(`<span class="ag-row-drag"></span>`);
+        super(`<div class="ag-row-drag"></div>`);
         this.rowNode = rowNode;
         this.column = column;
         this.cellValue = cellValue;
@@ -26,6 +26,8 @@ export class RowDragComp extends Component {
 
     @PostConstruct
     private postConstruct(): void {
+        const eGui = this.getGui();
+        eGui.appendChild(_.createIconNoSpan('rowDrag', this.beans.gridOptionsWrapper, null));
         this.addDragSource();
 
         this.checkCompatibility();
@@ -70,20 +72,46 @@ export class RowDragComp extends Component {
     }
 }
 
-// when non managed, the visibility depends on suppressRowDrag property only
-class NonManagedVisibilityStrategy extends BeanStub {
+class VisibilityStrategy extends BeanStub {
 
     private readonly parent: RowDragComp;
-    private readonly beans: Beans;
     private readonly column: Column;
-    private readonly rowNode: RowNode;
+    protected readonly rowNode: RowNode;
 
-    constructor(parent: RowDragComp, beans: Beans, rowNode: RowNode, column: Column) {
+    constructor(parent: RowDragComp, rowNode: RowNode, column: Column) {
         super();
         this.parent = parent;
-        this.beans = beans;
         this.column = column;
         this.rowNode = rowNode;
+    }
+
+    protected setDisplayedOrVisible(neverDisplayed: boolean): void {
+        if (neverDisplayed) {
+            this.parent.setDisplayed(false);
+        } else {
+            const shown = this.column.isRowDrag(this.rowNode);
+            const isShownSometimes = _.isFunction(this.column.getColDef().rowDrag);
+
+            // if shown sometimes, them some rows can have drag handle while other don't,
+            // so we use setVisible to keep the handles horizontally aligned (as setVisible
+            // keeps the empty space, whereas setDisplayed looses the space)
+            if (isShownSometimes) {
+                this.parent.setVisible(shown);
+            } else {
+                this.parent.setDisplayed(shown);
+            }
+        }
+    }
+}
+
+// when non managed, the visibility depends on suppressRowDrag property only
+class NonManagedVisibilityStrategy extends VisibilityStrategy {
+
+    private readonly beans: Beans;
+
+    constructor(parent: RowDragComp, beans: Beans, rowNode: RowNode, column: Column) {
+        super(parent, rowNode, column);
+        this.beans = beans;
     }
 
     @PostConstruct
@@ -102,26 +130,16 @@ class NonManagedVisibilityStrategy extends BeanStub {
     }
 
     private workOutVisibility(): void {
-
         // only show the drag if both sort and filter are not present
-        const suppressRowDrag = this.beans.gridOptionsWrapper.isSuppressRowDrag();
-
-        if (suppressRowDrag) {
-            this.parent.setVisible(false, 'visibility');
-        } else {
-            const visible = this.column.isRowDrag(this.rowNode);
-            this.parent.setVisible(visible, 'visibility');
-        }
+        const neverDisplayed = this.beans.gridOptionsWrapper.isSuppressRowDrag();
+        this.setDisplayedOrVisible(neverDisplayed);
     }
 
 }
 
 // when managed, the visibility depends on sort, filter and row group, as well as suppressRowDrag property
-class ManagedVisibilityStrategy extends BeanStub {
+class ManagedVisibilityStrategy extends VisibilityStrategy {
 
-    private readonly parent: RowDragComp;
-    private readonly column: Column;
-    private readonly rowNode: RowNode;
     private readonly beans: Beans;
 
     private sortActive: boolean;
@@ -129,11 +147,8 @@ class ManagedVisibilityStrategy extends BeanStub {
     private rowGroupActive: boolean;
 
     constructor(parent: RowDragComp, beans: Beans, rowNode: RowNode, column: Column) {
-        super();
-        this.parent = parent;
+        super(parent, rowNode, column);
         this.beans = beans;
-        this.column = column;
-        this.rowNode = rowNode;
     }
 
     @PostConstruct
@@ -195,13 +210,9 @@ class ManagedVisibilityStrategy extends BeanStub {
         const sortOrFilterOrGroupActive = this.sortActive || this.filterActive || this.rowGroupActive;
         const suppressRowDrag = this.beans.gridOptionsWrapper.isSuppressRowDrag();
 
-        const alwaysHide = sortOrFilterOrGroupActive || suppressRowDrag;
+        const neverDisplayed = sortOrFilterOrGroupActive || suppressRowDrag;
 
-        if (alwaysHide) {
-            this.parent.setVisible(false, 'visibility');
-        } else {
-            const visible = this.column.isRowDrag(this.rowNode);
-            this.parent.setVisible(visible, 'visibility');
-        }
+        this.setDisplayedOrVisible(neverDisplayed);
+
     }
 }

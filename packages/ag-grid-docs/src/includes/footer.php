@@ -23,7 +23,7 @@
             <ul>
                 <li><a href="/about.php">About</a></li>
                 <li><a href="/about.php#team">Team</a></li>
-                <li><a href="https://medium.com/ag-grid">Blog (Medium)</a></li>
+                <li><a href="https://blog.ag-grid.com/">Blog</a></li>
                 <li><a href="/testimonials.php">Testimonials</a></li>
                 <li><a href=/privacy.php>Privacy Policy</a><li>
                   <li><a href="/cookies.php">Cookies Policy</a><li>
@@ -45,7 +45,7 @@ Follow @ag_grid</a></li>
 
     <div id="copy">
         <div>ag-Grid Limited registered in the United Kingdom. Company No. 07318192.</div> 
-        <div>&copy; ag-Grid Ltd. 2015-2018</div>
+        <div>&copy; ag-Grid Ltd. 2015-2019</div>
     </div>
 </footer>
 

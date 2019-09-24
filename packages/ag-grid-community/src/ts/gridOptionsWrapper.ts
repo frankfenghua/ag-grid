@@ -1,5 +1,6 @@
 import { RowNode } from "./entities/rowNode";
 import {
+    ChartRef, GetChartToolbarItems,
     GetContextMenuItems,
     GetMainMenuItems,
     GetRowNodeIdFunc,
@@ -10,36 +11,39 @@ import {
     NodeChildDetails,
     PaginationNumberFormatterParams,
     PostProcessPopupParams,
+    ProcessChartOptionsParams,
     ProcessDataFromClipboardParams,
     TabToNextCellParams
 } from "./entities/gridOptions";
+import { _ } from "./utils";
 import { EventService } from "./eventService";
 import { Constants } from "./constants";
 import { ComponentUtil } from "./components/componentUtil";
 import { GridApi } from "./gridApi";
-import { ColDef, ColGroupDef, IAggFunc } from "./entities/colDef";
-import { Autowired, Bean, PostConstruct, PreDestroy, Qualifier } from "./context/context";
+import { ColDef, ColGroupDef, IAggFunc, SuppressKeyboardEventParams } from "./entities/colDef";
+import { Autowired, Bean, Context, PostConstruct, PreDestroy, Qualifier } from "./context/context";
 import { ColumnApi } from "./columnController/columnApi";
 import { ColumnController } from "./columnController/columnController";
 import { IViewportDatasource } from "./interfaces/iViewportDatasource";
-import { IFrameworkFactory } from "./interfaces/iFrameworkFactory";
 import { IDatasource } from "./rowModels/iDatasource";
-import { GridCellDef } from "./entities/gridCell";
+import { CellPosition } from "./entities/cellPosition";
 import { IServerSideDatasource } from "./interfaces/iServerSideDatasource";
 import { BaseExportParams, ProcessCellForExportParams, ProcessHeaderForExportParams } from "./exporter/exportParams";
 import { AgEvent } from "./events";
-import { Environment } from "./environment";
+import { Environment, SASS_PROPERTIES } from "./environment";
 import { PropertyKeys } from "./propertyKeys";
 import { ColDefUtil } from "./components/colDefUtil";
 import { Events } from "./eventKeys";
 import { AutoHeightCalculator } from "./rendering/autoHeightCalculator";
 import { SideBarDef, SideBarDefParser, ToolPanelDef } from "./entities/sideBar";
-import { _ } from "./utils";
+import { ModuleNames } from "./modules/moduleNames";
+import { ChartOptions } from "./interfaces/iChartOptions";
 
 const DEFAULT_ROW_HEIGHT = 25;
 const DEFAULT_DETAIL_ROW_HEIGHT = 300;
 const DEFAULT_VIEWPORT_ROW_MODEL_PAGE_SIZE = 5;
 const DEFAULT_VIEWPORT_ROW_MODEL_BUFFER_SIZE = 5;
+const DEFAULT_KEEP_DETAIL_ROW_COUNT = 10;
 
 function isTrue(value: any): boolean {
     return value === true || value === 'true';
@@ -48,19 +52,17 @@ function isTrue(value: any): boolean {
 function zeroOrGreater(value: any, defaultValue: number): number {
     if (value >= 0) {
         return value;
-    } else {
-        // zero gets returned if number is missing or the wrong type
-        return defaultValue;
     }
+    // zero gets returned if number is missing or the wrong type
+    return defaultValue;
 }
 
 function oneOrGreater(value: any, defaultValue: number): number {
     if (value > 0) {
         return value;
-    } else {
-        // zero gets returned if number is missing or the wrong type
-        return defaultValue;
     }
+    // zero gets returned if number is missing or the wrong type
+    return defaultValue;
 }
 
 export interface PropertyChangedEvent extends AgEvent {
@@ -93,17 +95,20 @@ export class GridOptionsWrapper {
     @Autowired('columnController') private columnController: ColumnController;
     @Autowired('eventService') private eventService: EventService;
     @Autowired('enterprise') private enterprise: boolean;
-    @Autowired('frameworkFactory') private frameworkFactory: IFrameworkFactory;
     @Autowired('gridApi') private gridApi: GridApi;
     @Autowired('columnApi') private columnApi: ColumnApi;
     @Autowired('environment') private environment: Environment;
     @Autowired('autoHeightCalculator') private autoHeightCalculator: AutoHeightCalculator;
+    @Autowired('context') private context: Context;
 
     private propertyEventService: EventService = new EventService();
 
     private domDataKey = '__AG_' + Math.random().toString();
 
     private layoutElements: HTMLElement[] = [];
+
+    // we store this locally, so we are not calling _.getScrollWidth() multiple times as it's an expensive operation
+    private scrollWidth: number;
 
     private agWire(@Qualifier('gridApi') gridApi: GridApi, @Qualifier('columnApi') columnApi: ColumnApi): void {
         this.gridOptions.api = gridApi;
@@ -213,9 +218,9 @@ export class GridOptionsWrapper {
         const domData = (element as any)[this.domDataKey];
         if (domData) {
             return domData[key];
-        } else {
-            return undefined;
         }
+
+        return;
     }
 
     public setDomData(element: Element, key: string, value: any): any {
@@ -293,6 +298,14 @@ export class GridOptionsWrapper {
         return isTrue(this.gridOptions.suppressFocusAfterRefresh);
     }
 
+    public isSuppressBrowserResizeObserver() {
+        return isTrue(this.gridOptions.suppressBrowserResizeObserver);
+    }
+
+    public isSuppressMaintainUnsortedOrder() {
+        return isTrue(this.gridOptions.suppressMaintainUnsortedOrder);
+    }
+
     public isShowToolPanel() {
         return isTrue(this.gridOptions.sideBar && Array.isArray(this.getSideBar().toolPanels));
     }
@@ -300,44 +313,6 @@ export class GridOptionsWrapper {
     public getSideBar(): SideBarDef {
         return (this.gridOptions.sideBar as SideBarDef);
     }
-
-    // public isToolPanelSuppressValues() {
-    //     return isTrue(this.gridOptions.toolPanelSuppressValues);
-    // }
-    //
-    // public isToolPanelSuppressPivots() {
-    //     // we don't allow pivots when doing tree data
-    //     return isTrue(this.gridOptions.toolPanelSuppressPivots) || this.isTreeData();
-    // }
-    //
-    // public isToolPanelSuppressRowGroups() {
-    //     // we don't allow row grouping when doing tree data
-    //     return isTrue(this.gridOptions.toolPanelSuppressRowGroups) || this.isTreeData();
-    // }
-    //
-    // public isToolPanelSuppressSideButtons() {
-    //     return isTrue(this.gridOptions.toolPanelSuppressSideButtons);
-    // }
-    //
-    // public isToolPanelSuppressPivotMode() {
-    //     return isTrue(this.gridOptions.toolPanelSuppressPivotMode) || this.isTreeData();
-    // }
-    //
-    // public isContractColumnSelection() {
-    //     return isTrue(this.gridOptions.contractColumnSelection);
-    // }
-    //
-    // public isToolPanelSuppressColumnFilter() {
-    //     return isTrue(this.gridOptions.toolPanelSuppressColumnFilter);
-    // }
-    //
-    // public isToolPanelSuppressColumnSelectAll() {
-    //     return isTrue(this.gridOptions.toolPanelSuppressColumnSelectAll);
-    // }
-    //
-    // public isToolPanelSuppressColumnExpandAll() {
-    //     return isTrue(this.gridOptions.toolPanelSuppressColumnExpandAll);
-    // }
 
     public isSuppressTouch() {
         return isTrue(this.gridOptions.suppressTouch);
@@ -364,9 +339,9 @@ export class GridOptionsWrapper {
         if (result && this.isTreeData()) {
             console.warn('ag-Grid: groupSelectsChildren does not work with tree data');
             return false;
-        } else {
-            return result;
         }
+
+        return result;
     }
 
     public isSuppressRowHoverHighlight() {
@@ -464,6 +439,14 @@ export class GridOptionsWrapper {
         return isTrue(this.gridOptions.suppressHorizontalScroll);
     }
 
+    public isSuppressMaxRenderedRowRestriction() {
+        return isTrue(this.gridOptions.suppressMaxRenderedRowRestriction);
+    }
+
+    public isExcludeChildrenWhenTreeDataFiltering() {
+        return isTrue(this.gridOptions.excludeChildrenWhenTreeDataFiltering);
+    }
+
     public isAlwaysShowVerticalScroll() {
         return isTrue(this.gridOptions.alwaysShowVerticalScroll);
     }
@@ -548,6 +531,10 @@ export class GridOptionsWrapper {
         return this.gridOptions.rowClassRules;
     }
 
+    public getCreateChartContainerFunc(): (params: ChartRef) => void | undefined {
+        return this.gridOptions.createChartContainer;
+    }
+
     public getPopupParent() {
         return this.gridOptions.popupParent;
     }
@@ -585,7 +572,11 @@ export class GridOptionsWrapper {
     }
 
     public isEmbedFullWidthRows() {
-        return isTrue(this.gridOptions.embedFullWidthRows);
+        return isTrue(this.gridOptions.embedFullWidthRows) || isTrue(this.gridOptions.deprecatedEmbedFullWidthRows);
+    }
+
+    public getSuppressKeyboardEventFunc(): (params: SuppressKeyboardEventParams) => boolean {
+        return this.gridOptions.suppressKeyboardEvent;
     }
 
     public getBusinessKeyForNodeFunc() {
@@ -604,12 +595,25 @@ export class GridOptionsWrapper {
         return isTrue(this.gridOptions.deltaRowDataMode);
     }
 
+    public isDeltaColumnMode() {
+        return isTrue(this.gridOptions.deltaColumnMode);
+    }
+
     public isEnsureDomOrder() {
         return isTrue(this.gridOptions.ensureDomOrder);
     }
 
     public isEnableCharts() {
-        return isTrue(this.gridOptions.enableCharts);
+        if (isTrue((this.gridOptions.enableCharts))) {
+            if (!this.context.isModuleRegistered(ModuleNames.ChartsModule)) {
+                _.doOnce(() => {
+                    console.warn('ag-grid: Charts is enabled but the Charts Module has not been included.');
+                }, 'ChartsModuleCheck');
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 
     public getColResizeDefault() {
@@ -648,6 +652,17 @@ export class GridOptionsWrapper {
         return this.gridOptions.paginationPageSize;
     }
 
+    public isPaginateChildRows(): boolean {
+        // if using groupSuppressRow, means we are not showing parent rows,
+        // so we always paginate on the child rows here as there are no parent rows
+        if (this.isGroupSuppressRow() || this.isGroupRemoveSingleChildren()
+            || this.isGroupRemoveLowestSingleChildren()) {
+            return true;
+        }
+
+        return isTrue(this.gridOptions.paginateChildRows);
+    }
+
     public getCacheBlockSize(): number | undefined {
         return this.gridOptions.cacheBlockSize;
     }
@@ -668,8 +683,10 @@ export class GridOptionsWrapper {
         return this.gridOptions.rowData;
     }
 
-    public isGroupUseEntireRow() {
-        return isTrue(this.gridOptions.groupUseEntireRow);
+    // this property is different - we never allow groupUseEntireRow if in pivot mode,
+    // as otherwise we don't see the pivot values.
+    public isGroupUseEntireRow(pivotMode: boolean) {
+        return pivotMode ? false : isTrue(this.gridOptions.groupUseEntireRow);
     }
 
     public isEnableRtl() {
@@ -732,6 +749,10 @@ export class GridOptionsWrapper {
         return isTrue(this.gridOptions.accentedSort);
     }
 
+    public isEnableBrowserTooltips() {
+        return isTrue(this.gridOptions.enableBrowserTooltips);
+    }
+
     public isEnableCellExpressions() {
         return isTrue(this.gridOptions.enableCellExpressions);
     }
@@ -742,6 +763,10 @@ export class GridOptionsWrapper {
 
     public isSuppressMiddleClickScrolls() {
         return isTrue(this.gridOptions.suppressMiddleClickScrolls);
+    }
+
+    public isPreventDefaultOnContextMenu() {
+        return isTrue(this.gridOptions.preventDefaultOnContextMenu);
     }
 
     public isSuppressPreventDefaultOnMouseWheel() {
@@ -813,7 +838,15 @@ export class GridOptionsWrapper {
     }
 
     public isEnableRangeSelection(): boolean {
-        return isTrue(this.gridOptions.enableRangeSelection);
+        return this.enterprise && isTrue(this.gridOptions.enableRangeSelection);
+    }
+
+    public isEnableRangeHandle(): boolean {
+        return isTrue(this.gridOptions.enableRangeHandle);
+    }
+
+    public isEnableFillHandle(): boolean {
+        return isTrue(this.gridOptions.enableFillHandle);
     }
 
     public isSuppressMultiRangeSelection(): boolean {
@@ -856,6 +889,18 @@ export class GridOptionsWrapper {
         return usingMasterDetail && this.enterprise;
     }
 
+    public isKeepDetailRows(): boolean {
+        return isTrue(this.gridOptions.keepDetailRows);
+    }
+
+    public getKeepDetailRowsCount(): number {
+        if (this.gridOptions.keepDetailRowsCount > 0) {
+            return this.gridOptions.keepDetailRowsCount;
+        } else {
+            return DEFAULT_KEEP_DETAIL_ROW_COUNT;
+        }
+    }
+
     public getIsRowMasterFunc(): IsRowMaster | undefined {
         return this.gridOptions.isRowMaster;
     }
@@ -880,6 +925,10 @@ export class GridOptionsWrapper {
         return isTrue(this.gridOptions.suppressAutoSize);
     }
 
+    public isEnableCellTextSelection() {
+        return isTrue(this.gridOptions.enableCellTextSelection);
+    }
+
     public isSuppressParentsInRowNodes() {
         return isTrue(this.gridOptions.suppressParentsInRowNodes);
     }
@@ -890,6 +939,10 @@ export class GridOptionsWrapper {
 
     public isFloatingFilter(): boolean | undefined {
         return this.gridOptions.floatingFilter;
+    }
+
+    public isEnableCellTextSelect(): boolean {
+        return isTrue(this.gridOptions.enableCellTextSelection);
     }
 
     public isEnableOldSetFilterModel(): boolean {
@@ -910,6 +963,10 @@ export class GridOptionsWrapper {
 
     public isSuppressCsvExport() {
         return isTrue(this.gridOptions.suppressCsvExport);
+    }
+
+    public isAllowShowChangeAfterFilter() {
+        return isTrue(this.gridOptions.allowShowChangeAfterFilter);
     }
 
     public isSuppressExcelExport() {
@@ -948,20 +1005,32 @@ export class GridOptionsWrapper {
         return this.gridOptions.getMainMenuItems;
     }
 
+    public getChartToolbarItemsFunc(): GetChartToolbarItems | undefined {
+        return this.gridOptions.getChartToolbarItems;
+    }
+
     public getRowNodeIdFunc(): GetRowNodeIdFunc | undefined {
         return this.gridOptions.getRowNodeId;
     }
 
-    public getNavigateToNextCellFunc(): ((params: NavigateToNextCellParams) => GridCellDef) | undefined {
+    public getNavigateToNextCellFunc(): ((params: NavigateToNextCellParams) => CellPosition) | undefined {
         return this.gridOptions.navigateToNextCell;
     }
 
-    public getTabToNextCellFunc(): ((params: TabToNextCellParams) => GridCellDef) | undefined {
+    public getTabToNextCellFunc(): ((params: TabToNextCellParams) => CellPosition) | undefined {
         return this.gridOptions.tabToNextCell;
     }
 
     public isTreeData(): boolean {
-        return isTrue(this.gridOptions.treeData);
+        const usingTreeData = isTrue(this.gridOptions.treeData);
+
+        _.doOnce(() => {
+            if (usingTreeData && !this.enterprise) {
+                console.warn('ag-grid: TreeData is an Enterprise feature of ag-Grid.');
+            }
+        }, 'TreeDataEnterpriseCheck');
+
+        return usingTreeData;
     }
 
     public isValueCache(): boolean {
@@ -1027,6 +1096,10 @@ export class GridOptionsWrapper {
         return this.gridOptions.postSort;
     }
 
+    public getProcessChartOptionsFunc(): (params: ProcessChartOptionsParams) => ChartOptions {
+        return this.gridOptions.processChartOptions;
+    }
+
     public getClipboardDeliminator() {
         return _.exists(this.gridOptions.clipboardDeliminator) ? this.gridOptions.clipboardDeliminator : '\t';
     }
@@ -1089,57 +1162,57 @@ export class GridOptionsWrapper {
     public getHeaderHeight(): number {
         if (typeof this.gridOptions.headerHeight === 'number') {
             return this.gridOptions.headerHeight;
-        } else {
-            return this.specialForNewMaterial(25, 'headerHeight');
         }
+
+        return this.specialForNewMaterial(25, 'headerHeight');
     }
 
     public getFloatingFiltersHeight(): number {
         if (typeof this.gridOptions.floatingFiltersHeight === 'number') {
             return this.gridOptions.floatingFiltersHeight;
-        } else {
-            return this.specialForNewMaterial(25, 'headerHeight');
         }
+
+        return this.specialForNewMaterial(25, 'headerHeight');
     }
 
     public getGroupHeaderHeight(): number {
         if (typeof this.gridOptions.groupHeaderHeight === 'number') {
             return this.gridOptions.groupHeaderHeight;
-        } else {
-            return this.getHeaderHeight();
         }
+
+        return this.getHeaderHeight();
     }
 
     public getPivotHeaderHeight(): number {
         if (typeof this.gridOptions.pivotHeaderHeight === 'number') {
             return this.gridOptions.pivotHeaderHeight;
-        } else {
-            return this.getHeaderHeight();
         }
+
+        return this.getHeaderHeight();
     }
 
     public getPivotGroupHeaderHeight(): number {
         if (typeof this.gridOptions.pivotGroupHeaderHeight === 'number') {
             return this.gridOptions.pivotGroupHeaderHeight;
-        } else {
-            return this.getGroupHeaderHeight();
         }
+
+        return this.getGroupHeaderHeight();
     }
 
     public isExternalFilterPresent() {
         if (typeof this.gridOptions.isExternalFilterPresent === 'function') {
             return this.gridOptions.isExternalFilterPresent();
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     public doesExternalFilterPass(node: RowNode) {
         if (typeof this.gridOptions.doesExternalFilterPass === 'function') {
             return this.gridOptions.doesExternalFilterPass(node);
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     public getDocument(): Document {
@@ -1151,55 +1224,69 @@ export class GridOptionsWrapper {
         }
         if (result && _.exists(result)) {
             return result;
-        } else {
-            return document;
         }
+
+        return document;
     }
 
     public getMinColWidth() {
         if (this.gridOptions.minColWidth && (this.gridOptions.minColWidth > GridOptionsWrapper.MIN_COL_WIDTH)) {
             return this.gridOptions.minColWidth;
-        } else {
-            return GridOptionsWrapper.MIN_COL_WIDTH;
         }
+
+        return GridOptionsWrapper.MIN_COL_WIDTH;
     }
 
     public getMaxColWidth() {
         if (this.gridOptions.maxColWidth && (this.gridOptions.maxColWidth > GridOptionsWrapper.MIN_COL_WIDTH)) {
             return this.gridOptions.maxColWidth;
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     public getColWidth() {
         if (typeof this.gridOptions.colWidth !== 'number' || this.gridOptions.colWidth < GridOptionsWrapper.MIN_COL_WIDTH) {
             return 200;
-        } else {
-            return this.gridOptions.colWidth;
         }
+
+        return this.gridOptions.colWidth;
     }
 
-    public getRowBuffer() {
-        if (typeof this.gridOptions.rowBuffer === 'number') {
-            if (this.gridOptions.rowBuffer < 0) {
-                console.warn('ag-Grid: rowBuffer should not be negative');
+    public getRowBuffer(): number {
+        let rowBuffer = this.gridOptions.rowBuffer;
+
+        if (typeof rowBuffer === 'number') {
+            if (rowBuffer < 0) {
+                _.doOnce(() => console.warn(`ag-Grid: rowBuffer should not be negative`),
+                    'warn rowBuffer negative');
+                this.gridOptions.rowBuffer = rowBuffer = 0;
             }
-            return this.gridOptions.rowBuffer;
         } else {
-            return Constants.ROW_BUFFER_SIZE;
+            rowBuffer = Constants.ROW_BUFFER_SIZE;
         }
+
+        return rowBuffer;
+    }
+
+    public getRowBufferInPixels() {
+        const rowsToBuffer = this.getRowBuffer();
+        const defaultRowHeight = this.getRowHeightAsNumber();
+
+        return rowsToBuffer * defaultRowHeight;
     }
 
     // the user might be using some non-standard scrollbar, eg a scrollbar that has zero
     // width and overlays (like the Safari scrollbar, but presented in Chrome). so we
     // allow the user to provide the scroll width before we work it out.
     public getScrollbarWidth() {
-        let scrollbarWidth = this.gridOptions.scrollbarWidth;
-        if (typeof scrollbarWidth !== 'number' || scrollbarWidth < 0) {
-            scrollbarWidth = _.getScrollbarWidth();
+        if (this.scrollWidth == null) {
+            const useGridOptions =
+                typeof this.gridOptions.scrollbarWidth === 'number' &&
+                this.gridOptions.scrollbarWidth >= 0;
+            this.scrollWidth = useGridOptions ? this.gridOptions.scrollbarWidth : _.getScrollbarWidth();
         }
-        return scrollbarWidth;
+        return this.scrollWidth;
     }
 
     private checkForDeprecated() {
@@ -1415,6 +1502,17 @@ export class GridOptionsWrapper {
             }
         }
 
+        if (options.deprecatedEmbedFullWidthRows) {
+            console.warn(`ag-Grid: since v21.2, deprecatedEmbedFullWidthRows has been replaced with embedFullWidthRows.`);
+        }
+
+        if (options.suppressTabbing) {
+            console.warn(`ag-Grid: since v20.1, suppressTabbing is replaced with the more powerful grid callback suppressKeyboardEvent(params) which can suppress any keyboard event including tabbing.`);
+        }
+
+        if (options.doesDataFlower) {
+            console.warn('ag-Grid: since v21.1, doesDataFlower is deprecated. Master/Detail is the new way for showing child data for a row and was introduced over a year ago. Please migrate your code to use master/detail instead.');
+        }
     }
 
     private checkForViolations() {
@@ -1449,9 +1547,9 @@ export class GridOptionsWrapper {
             const localeText = that.gridOptions.localeText;
             if (localeText && localeText[key]) {
                 return localeText[key];
-            } else {
-                return defaultValue;
             }
+
+            return defaultValue;
         };
     }
 
@@ -1469,47 +1567,53 @@ export class GridOptionsWrapper {
             return this.getDefaultRowHeight();
         } else if (this.gridOptions.rowHeight && this.isNumeric(this.gridOptions.rowHeight)) {
             return this.gridOptions.rowHeight;
-        } else {
-            console.warn('ag-Grid row height must be a number if not using standard row model');
-            return this.getDefaultRowHeight();
         }
+
+        console.warn('ag-Grid row height must be a number if not using standard row model');
+        return this.getDefaultRowHeight();
     }
 
-    public getRowHeightForNode(rowNode: RowNode): number | undefined {
+    public getRowHeightForNode(rowNode: RowNode, allowEstimate = false): {height: number, estimated: boolean} {
         // check the function first, in case use set both function and
         // number, when using virtual pagination then function can be
         // used for pinned rows and the number for the body rows.
 
         if (typeof this.gridOptions.getRowHeight === 'function') {
+            if (allowEstimate) {
+                return {height: this.getDefaultRowHeight(), estimated: true};
+            }
             const params = {
                 node: rowNode,
                 data: rowNode.data,
                 api: this.gridOptions.api,
                 context: this.gridOptions.context
             };
-            return this.gridOptions.getRowHeight(params);
+            return { height: this.gridOptions.getRowHeight(params), estimated: false };
         } else if (rowNode.detail && this.isMasterDetail()) {
             if (this.isNumeric(this.gridOptions.detailRowHeight)) {
-                return this.gridOptions.detailRowHeight;
+                return { height: this.gridOptions.detailRowHeight, estimated: false };
             } else {
-                return DEFAULT_DETAIL_ROW_HEIGHT;
-            }
-        } else {
-            const defaultHeight:number = this.gridOptions.rowHeight && this.isNumeric(this.gridOptions.rowHeight) ?
-                this.gridOptions.rowHeight : this.getDefaultRowHeight();
-            if (this.columnController.isAutoRowHeightActive()) {
-                const autoHeight = this.autoHeightCalculator.getPreferredHeightForRow(rowNode);
-                // never return less than the default row height - covers when auto height
-                // cells are blank.
-                if (autoHeight > defaultHeight) {
-                    return autoHeight;
-                } else {
-                    return defaultHeight;
-                }
-            } else {
-                return defaultHeight;
+                return { height: DEFAULT_DETAIL_ROW_HEIGHT, estimated: false };
             }
         }
+
+        const defaultRowHeight = this.getDefaultRowHeight();
+        const rowHeight = this.gridOptions.rowHeight && this.isNumeric(this.gridOptions.rowHeight) ?
+            this.gridOptions.rowHeight : defaultRowHeight;
+
+        const minRowHeight = Math.min(defaultRowHeight, rowHeight);
+
+        if (this.columnController.isAutoRowHeightActive()) {
+            if (allowEstimate) {
+                return { height: rowHeight, estimated: true };
+            }
+            const autoHeight = this.autoHeightCalculator.getPreferredHeightForRow(rowNode);
+            // never return less than the default row height - covers when auto height
+            // cells are blank.
+            return { height: Math.max(autoHeight, minRowHeight), estimated: false };
+        }
+
+        return { height: rowHeight, estimated: false };
     }
 
     public isDynamicRowHeight(): boolean {
@@ -1526,13 +1630,13 @@ export class GridOptionsWrapper {
 
     // Material data table has strict guidelines about whitespace, and these values are different than the ones
     // ag-grid uses by default. We override the default ones for the sake of making it better out of the box
-    private specialForNewMaterial(defaultValue: number, sassVariableName: string): number {
-        const theme = this.environment.getTheme();
-        if (theme.indexOf('ag-theme') === 0) {
+    private specialForNewMaterial(defaultValue: number, sassVariableName: SASS_PROPERTIES): number {
+        const { theme } = this.environment.getTheme();
+        if (theme && theme.indexOf('ag-theme') === 0) {
             return this.environment.getSassVariable(theme, sassVariableName);
-        } else {
-            return defaultValue;
         }
+
+        return defaultValue;
     }
 
     private getDefaultRowHeight() : number {

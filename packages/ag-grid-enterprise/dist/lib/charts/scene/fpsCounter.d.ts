@@ -1,12 +1,12 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 export declare class FpsCounter {
-    constructor(parent?: HTMLElement);
+    constructor(parent?: HTMLElement, document?: Document);
     private fps;
-    private start;
     private minFps;
     private maxFps;
-    private fpsSum;
-    private fpsSamples;
+    private pastFps;
+    private maxPastFps;
+    private lastSecond;
     private readonly fpsElement?;
     countFrame(): void;
 }

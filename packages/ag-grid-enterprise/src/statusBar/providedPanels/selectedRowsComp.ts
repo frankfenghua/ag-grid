@@ -6,25 +6,22 @@ export class SelectedRowsComp extends NameValueComp implements IStatusPanelComp 
     @Autowired('eventService') private eventService: EventService;
     @Autowired('gridApi') private gridApi: GridApi;
 
-    constructor() {
-        super('selectedRowCount', 'Selected');
-    }
-
     @PostConstruct
     protected postConstruct(): void {
-        super.postConstruct();
 
         if (!this.isValidRowModel()) {
             console.warn(`ag-Grid: agSelectedRowCountComponent should only be used with the client and server side row model.`);
             return;
         }
 
+        this.setLabel('selectedRows', 'Selected');
+
         this.addCssClass('ag-status-panel');
         this.addCssClass('ag-status-panel-selected-row-count');
 
         const selectedRowCount = this.gridApi.getSelectedRows().length;
         this.setValue(selectedRowCount);
-        this.setVisible(selectedRowCount > 0);
+        this.setDisplayed(selectedRowCount > 0);
 
         const eventListener = this.onRowSelectionChanged.bind(this);
         this.eventService.addEventListener(Events.EVENT_MODEL_UPDATED, eventListener);
@@ -40,7 +37,7 @@ export class SelectedRowsComp extends NameValueComp implements IStatusPanelComp 
     private onRowSelectionChanged() {
         const selectedRowCount = this.gridApi.getSelectedRows().length;
         this.setValue(selectedRowCount);
-        this.setVisible(selectedRowCount > 0);
+        this.setDisplayed(selectedRowCount > 0);
     }
 
     public init() {

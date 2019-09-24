@@ -5,10 +5,9 @@ import { SortController } from "../sortController";
 import { ValueService } from "../valueService/valueService";
 import { GridOptionsWrapper } from "../gridOptionsWrapper";
 import { ColumnController } from "../columnController/columnController";
+import { RowNodeMap } from "../rowModels/clientSide/clientSideRowModel";
+import { ChangedPath } from "../rowModels/clientSide/changedPath";
 import { _ } from "../utils";
-import {RowNodeMap} from "../rowModels/clientSide/clientSideRowModel";
-import {SortStage} from "../rowModels/clientSide/sortStage";
-import {ChangedPath} from "../rowModels/clientSide/changedPath";
 
 export interface SortOption {
     inverter: number;
@@ -35,45 +34,40 @@ export class SortService {
         this.postSortFunc = this.gridOptionsWrapper.getPostSortFunc();
     }
 
-    public sort(rowNode: RowNode,
-                sortOptions: SortOption[],
+    public sort(sortOptions: SortOption[],
                 sortActive: boolean,
                 deltaSort: boolean,
                 dirtyLeafNodes: {[nodeId: string]: boolean},
-                changedPath: ChangedPath): void {
+                changedPath: ChangedPath,
+                noAggregations: boolean): void {
 
-        // we clear out the 'pull down open parents' first, as the values mix up the sorting
-        this.pullDownDataForHideOpenParents(rowNode.childrenAfterFilter, true);
+        const callback = (rowNode: RowNode) => {
 
-        // RE https://ag-grid.atlassian.net/browse/AG-444
-        // Javascript sort is non deterministic when all the array items are equals
-        // ie Comparator always returns 0, so if you want to ensure the array keeps its
-        // order, then you need to add an additional sorting condition manually, in this
-        // case we are going to inspect the original array position. This is what SortedRowNode
-        // object is for
+            // we clear out the 'pull down open parents' first, as the values mix up the sorting
+            this.pullDownGroupDataForHideOpenParents(rowNode.childrenAfterFilter, true);
 
-        if (sortActive) {
-            const sortedRowNodes: SortedRowNode[] = deltaSort ?
-                this.doDeltaSort(rowNode, sortOptions, dirtyLeafNodes, changedPath)
-                : this.doFullSort(rowNode, sortOptions);
-            rowNode.childrenAfterSort = sortedRowNodes.map(sorted => sorted.rowNode);
-        } else {
-            rowNode.childrenAfterSort = rowNode.childrenAfterFilter.slice(0);
-        }
-
-        this.updateChildIndexes(rowNode);
-        this.pullDownDataForHideOpenParents(rowNode.childrenAfterSort, false);
-
-        // sort any groups recursively
-        rowNode.childrenAfterFilter.forEach(child => {
-            if (child.hasChildren()) {
-                this.sort(child, sortOptions, sortActive, deltaSort, dirtyLeafNodes, changedPath);
+            // Javascript sort is non deterministic when all the array items are equals, ie Comparator always returns 0,
+            // so to ensure the array keeps its order, add an additional sorting condition manually, in this case we
+            // are going to inspect the original array position. This is what sortedRowNodes is for.
+            if (sortActive) {
+                const sortedRowNodes: SortedRowNode[] = deltaSort ?
+                    this.doDeltaSort(rowNode, sortOptions, dirtyLeafNodes, changedPath, noAggregations)
+                    : this.doFullSort(rowNode, sortOptions);
+                rowNode.childrenAfterSort = sortedRowNodes.map(sorted => sorted.rowNode);
+            } else {
+                rowNode.childrenAfterSort = rowNode.childrenAfterFilter.slice(0);
             }
-        });
 
-        if (this.postSortFunc) {
-            this.postSortFunc(rowNode.childrenAfterSort);
-        }
+            this.updateChildIndexes(rowNode);
+
+            if (this.postSortFunc) {
+                this.postSortFunc(rowNode.childrenAfterSort);
+            }
+        };
+
+        changedPath.forEachChangedNodeDepthFirst(callback);
+
+        this.updateGroupDataForHiddenOpenParents(changedPath);
     }
 
     private doFullSort(rowNode: RowNode, sortOptions: SortOption[]): SortedRowNode[] {
@@ -90,7 +84,8 @@ export class SortService {
     private doDeltaSort(rowNode: RowNode,
                         sortOptions: SortOption[],
                         dirtyLeafNodes: {[nodeId: string]: boolean},
-                        changedPath: ChangedPath): SortedRowNode[] {
+                        changedPath: ChangedPath,
+                        noAggregations: boolean): SortedRowNode[] {
 
         // clean nodes will be a list of all row nodes that remain in the set
         // and ordered. we start with the old sorted set and take out any nodes
@@ -108,9 +103,9 @@ export class SortService {
                 // note: changed path is not active if a) no value columns or b) no transactions. it is never
                 // (b) in deltaSort as we only do deltaSort for transactions. for (a) if no value columns, then
                 // there is no value in the group that could of changed (ie no aggregate values)
-                const passesChangedPathCheck = changedPath.isActive() ? !changedPath.isInPath(rowNode) : true;
+                const passesChangedPathCheck = noAggregations || changedPath.canSkip(rowNode);
                 return passesDirtyNodesCheck && passesChangedPathCheck;
-            } )
+            })
             .map(this.mapNodeToSortedNode.bind(this));
 
         // for fast access below, we map them
@@ -119,7 +114,7 @@ export class SortService {
 
         // these are all nodes that need to be placed
         const changedNodes: SortedRowNode[] = rowNode.childrenAfterFilter
-            // ignore nodes in the clean list
+        // ignore nodes in the clean list
             .filter(rowNode => !cleanNodesMapped[rowNode.id])
             .map(this.mapNodeToSortedNode.bind(this));
 
@@ -151,9 +146,9 @@ export class SortService {
             // of second array. If yes, store first
             // array element and increment first array
             // index. Otherwise do same with second array
-            let compareResult = this.compareRowNodes(sortOptions, arr1[i], arr2[j]);
-            if (compareResult<0) {
-                res.push(arr1[i++])
+            const compareResult = this.compareRowNodes(sortOptions, arr1[i], arr2[j]);
+            if (compareResult < 0) {
+                res.push(arr1[i++]);
             } else {
                 res.push(arr2[j++]);
             }
@@ -161,12 +156,12 @@ export class SortService {
 
         // add remaining from arr1
         while (i < arr1.length) {
-            res.push(arr1[i++])
+            res.push(arr1[i++]);
         }
 
         // add remaining from arr2
         while (j < arr2.length) {
-            res.push(arr2[j++])
+            res.push(arr2[j++]);
         }
 
         return res;
@@ -210,16 +205,34 @@ export class SortService {
             return;
         }
 
-        rowNode.childrenAfterSort.forEach((child: RowNode, index: number) => {
-            const firstChild = index === 0;
-            const lastChild = index === rowNode.childrenAfterSort.length - 1;
+        const listToSort = rowNode.childrenAfterSort;
+        for (let i = 0; i < listToSort.length; i++) {
+            const child = listToSort[i];
+            const firstChild = i === 0;
+            const lastChild = i === rowNode.childrenAfterSort.length - 1;
             child.setFirstChild(firstChild);
             child.setLastChild(lastChild);
-            child.setChildIndex(index);
-        });
+            child.setChildIndex(i);
+        }
     }
 
-    private pullDownDataForHideOpenParents(rowNodes: RowNode[], clearOperation: boolean) {
+    private updateGroupDataForHiddenOpenParents(changedPath: ChangedPath) {
+        if (!this.gridOptionsWrapper.isGroupHideOpenParents()) { return; }
+
+        // recurse breadth first over group nodes after sort to 'pull down' group data to child groups
+        const callback = (rowNode: RowNode) => {
+            this.pullDownGroupDataForHideOpenParents(rowNode.childrenAfterSort, false);
+            rowNode.childrenAfterSort.forEach(child => {
+                if (child.hasChildren()) {
+                    callback(child);
+                }
+            });
+        };
+
+        changedPath.executeFromRootNode(rowNode => callback(rowNode));
+    }
+
+    private pullDownGroupDataForHideOpenParents(rowNodes: RowNode[], clearOperation: boolean) {
         if (_.missing(rowNodes)) {
             return;
         }
@@ -260,5 +273,4 @@ export class SortService {
             });
         });
     }
-
 }

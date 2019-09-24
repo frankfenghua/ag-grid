@@ -1,23 +1,30 @@
 import { Column } from "../entities/column";
 import { BeanStub } from "../context/beanStub";
-import { Autowired } from "../context/context";
+import { Autowired, PostConstruct } from "../context/context";
 import { ColumnHoverService } from "../rendering/columnHoverService";
 
 export class HoverFeature extends BeanStub {
 
     @Autowired('columnHoverService') private columnHoverService: ColumnHoverService;
 
-    private columns: Column[];
+    private readonly columns: Column[];
+
+    private element: HTMLElement;
 
     constructor(columns: Column[], element: HTMLElement) {
         super();
         this.columns = columns;
-        this.addMouseHoverListeners(element);
+        this.element = element;
     }
 
-    private addMouseHoverListeners(element: HTMLElement): void {
-        this.addDestroyableEventListener(element, 'mouseout', this.onMouseOut.bind(this));
-        this.addDestroyableEventListener(element, 'mouseover', this.onMouseOver.bind(this));
+    @PostConstruct
+    private postConstruct(): void {
+        this.addMouseHoverListeners();
+    }
+
+    private addMouseHoverListeners(): void {
+        this.addDestroyableEventListener(this.element, 'mouseout', this.onMouseOut.bind(this));
+        this.addDestroyableEventListener(this.element, 'mouseover', this.onMouseOver.bind(this));
     }
 
     private onMouseOut(): void {

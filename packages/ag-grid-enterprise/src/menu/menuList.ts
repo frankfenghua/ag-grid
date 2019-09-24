@@ -1,9 +1,8 @@
-import { Autowired, Component, Context, MenuItemDef, PopupService, _ } from "ag-grid-community";
+import { Autowired, Component, MenuItemDef, PopupService, _ } from "ag-grid-community";
 import { MenuItemComponent, MenuItemSelectedEvent } from "./menuItemComponent";
 
 export class MenuList extends Component {
 
-    @Autowired('context') private context: Context;
     @Autowired('popupService') private popupService: PopupService;
 
     // private instance = Math.random();
@@ -52,13 +51,13 @@ export class MenuList extends Component {
 
     public addItem(menuItemDef: MenuItemDef): void {
         const cMenuItem = new MenuItemComponent(menuItemDef);
-        this.context.wireBean(cMenuItem);
+        this.getContext().wireBean(cMenuItem);
         this.getGui().appendChild(cMenuItem.getGui());
 
         this.addDestroyFunc(() => cMenuItem.destroy());
 
         cMenuItem.addEventListener(MenuItemComponent.EVENT_ITEM_SELECTED, (event: MenuItemSelectedEvent) => {
-            if (menuItemDef.subMenu) {
+            if (menuItemDef.subMenu && !menuItemDef.action) {
                 this.showChildMenu(menuItemDef, cMenuItem, event.mouseEvent);
             } else {
                 this.dispatchEvent(event);
@@ -105,7 +104,7 @@ export class MenuList extends Component {
             if (shouldShow && !showingThisMenu) {
                 this.showChildMenu(menuItemDef, menuItemComp, null);
             }
-        }, 500);
+        }, 300);
     }
 
     public addSeparator(): void {
@@ -116,7 +115,7 @@ export class MenuList extends Component {
         this.removeChildPopup();
 
         const childMenu = new MenuList();
-        this.context.wireBean(childMenu);
+        this.getContext().wireBean(childMenu);
         childMenu.addMenuItems(menuItemDef.subMenu);
 
         const ePopup = _.loadTemplate('<div class="ag-menu"></div>');

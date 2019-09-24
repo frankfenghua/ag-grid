@@ -11,14 +11,33 @@ $generated = isset($_GET['generated']);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <style> html, body { margin: 0; padding: 0; height: 100%; } </style>
+    <style>
+        html, body {
+        height: 100%;
+        width: 100%;
+        margin: 0;
+        box-sizing: border-box;
+        -webkit-overflow-scrolling: touch;
+    }
+    html {
+        position: absolute;
+        top: 0;
+        left: 0;
+        padding: 0;
+        overflow: auto;
+    }
+    body {
+        padding: 1rem;
+        overflow: auto;
+    }
+    </style>
 <?php renderExampleExtras($_GET); ?>
 <?php renderStyles($example['styles']); ?>
 
 <?php renderNonGeneratedScripts($example['scripts']); ?>
 
     <!-- Polyfills -->
-    <script src="https://unpkg.com/core-js/client/shim.min.js"></script>
+    <script src="https://unpkg.com/core-js@2.6.5/client/shim.min.js"></script>
     <script src="https://unpkg.com/zone.js@0.8.17/dist/zone.js"></script>
     <script src="https://unpkg.com/systemjs@0.19.39/dist/system.src.js"></script>
 

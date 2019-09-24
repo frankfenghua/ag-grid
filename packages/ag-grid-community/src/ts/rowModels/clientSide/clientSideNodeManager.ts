@@ -73,6 +73,14 @@ export class ClientSideNodeManager {
 
         this.doingLegacyTreeData = _.exists(this.getNodeChildDetails);
         this.doingMasterDetail = this.gridOptionsWrapper.isMasterDetail();
+
+        if (this.getNodeChildDetails) {
+            console.warn(`ag-Grid: the callback nodeChildDetailsFunc() is now deprecated. The new way of doing
+                                    tree data in ag-Grid was introduced in v14 (released November 2017). In the next
+                                    major release of ag-Grid we will be dropping support for the old version of
+                                    tree data. If you are reading this message, please go to the docs to see how
+                                    to implement Tree Data without using nodeChildDetailsFunc().`);
+        }
     }
 
     public getCopyOfNodesMap(): {[id:string]: RowNode} {
@@ -101,7 +109,10 @@ export class ClientSideNodeManager {
         }
 
         // kick off recursion
-        const result = this.recursiveFunction(rowData, null, ClientSideNodeManager.TOP_LEVEL);
+        // we add rootNode as the parent, however if using ag-grid-enterprise, the grouping stage
+        // sets the parent node on each row (even if we are not grouping). so setting parent node
+        // here is for benefit of ag-grid-community users
+        const result = this.recursiveFunction(rowData, this.rootNode, ClientSideNodeManager.TOP_LEVEL);
 
         if (this.doingLegacyTreeData) {
             this.rootNode.childrenAfterGroup = result;
@@ -122,59 +133,9 @@ export class ClientSideNodeManager {
             add: []
         };
 
-        if (_.exists(add)) {
-            const useIndex = typeof addIndex === 'number' && addIndex >= 0;
-            if (useIndex) {
-                // items get inserted in reverse order for index insertion
-                add.reverse().forEach(item => {
-                    const newRowNode: RowNode = this.addRowNode(item, addIndex);
-                    rowNodeTransaction.add.push(newRowNode);
-                });
-            } else {
-                add.forEach(item => {
-                    const newRowNode: RowNode = this.addRowNode(item);
-                    rowNodeTransaction.add.push(newRowNode);
-                });
-            }
-        }
-
-        if (_.exists(remove)) {
-            let anyNodesSelected = false;
-
-            remove.forEach(item => {
-                const rowNode = this.lookupRowNode(item);
-
-                if (!rowNode) { return; }
-
-                if (rowNode.isSelected()) {
-                    anyNodesSelected = true;
-                }
-
-                this.updatedRowNode(rowNode, item, false);
-                rowNodeTransaction.remove.push(rowNode);
-            });
-
-            if (anyNodesSelected) {
-                this.selectionController.updateGroupsFromChildrenSelections();
-                const event: SelectionChangedEvent = {
-                    type: Events.EVENT_SELECTION_CHANGED,
-                    api: this.gridApi,
-                    columnApi: this.columnApi
-                };
-                this.eventService.dispatchEvent(event);
-            }
-        }
-
-        if (_.exists(update)) {
-            update.forEach(item => {
-                const rowNode = this.lookupRowNode(item);
-
-                if (!rowNode) { return; }
-
-                this.updatedRowNode(rowNode, item, true);
-                rowNodeTransaction.update.push(rowNode);
-            });
-        }
+        this.executeAdd(rowDataTran, rowNodeTransaction);
+        this.executeRemove(rowDataTran, rowNodeTransaction);
+        this.executeUpdate(rowDataTran, rowNodeTransaction);
 
         if (rowNodeOrder) {
             _.sortRowNodesByOrder(this.rootNode.allLeafChildren, rowNodeOrder);
@@ -183,9 +144,89 @@ export class ClientSideNodeManager {
         return rowNodeTransaction;
     }
 
+    private executeAdd(rowDataTran: RowDataTransaction, rowNodeTransaction: RowNodeTransaction): void {
+        const {add, addIndex} = rowDataTran;
+        if (!add) { return; }
+
+        const useIndex = typeof addIndex === 'number' && addIndex >= 0;
+        if (useIndex) {
+            // items get inserted in reverse order for index insertion
+            add.reverse().forEach(item => {
+                const newRowNode: RowNode = this.addRowNode(item, addIndex);
+                rowNodeTransaction.add.push(newRowNode);
+            });
+        } else {
+            add.forEach(item => {
+                const newRowNode: RowNode = this.addRowNode(item);
+                rowNodeTransaction.add.push(newRowNode);
+            });
+        }
+    }
+
+    private executeRemove(rowDataTran: RowDataTransaction, rowNodeTransaction: RowNodeTransaction): void {
+        const {remove} = rowDataTran;
+
+        if (!remove) { return; }
+
+        const rowIdsRemoved: {[key: string]: boolean} = {};
+        let anyNodesSelected = false;
+
+        remove.forEach(item => {
+            const rowNode = this.lookupRowNode(item);
+
+            if (!rowNode) { return; }
+
+            if (rowNode.isSelected()) {
+                anyNodesSelected = true;
+            }
+
+            // do delete - setting 'tailingNodeInSequence = true' to ensure EVENT_SELECTION_CHANGED is not raised for
+            // each row node updated, instead it is raised once by the calling code if any selected nodes exist.
+            rowNode.setSelected(false, false, true);
+
+            // so row renderer knows to fade row out (and not reposition it)
+            rowNode.clearRowTop();
+
+            // NOTE: were we could remove from allLeaveChildren, however _.removeFromArray() is expensive, especially
+            // if called multiple times (eg deleting lots of rows) and if allLeafChildren is a large list
+            rowIdsRemoved[rowNode.id] = true;
+            // _.removeFromArray(this.rootNode.allLeafChildren, rowNode);
+            delete this.allNodesMap[rowNode.id];
+
+            rowNodeTransaction.remove.push(rowNode);
+        });
+
+        this.rootNode.allLeafChildren = this.rootNode.allLeafChildren.filter(rowNode => !rowIdsRemoved[rowNode.id]);
+
+        if (anyNodesSelected) {
+            this.selectionController.updateGroupsFromChildrenSelections();
+            const event: SelectionChangedEvent = {
+                type: Events.EVENT_SELECTION_CHANGED,
+                api: this.gridApi,
+                columnApi: this.columnApi
+            };
+            this.eventService.dispatchEvent(event);
+        }
+    }
+
+    private executeUpdate(rowDataTran: RowDataTransaction, rowNodeTransaction: RowNodeTransaction): void {
+        const {update} = rowDataTran;
+        if (!update) { return; }
+
+        update.forEach(item => {
+            const rowNode = this.lookupRowNode(item);
+
+            if (!rowNode) { return; }
+
+            rowNode.updateData(item);
+
+            rowNodeTransaction.update.push(rowNode);
+        });
+    }
+
     private addRowNode(data: any, index?: number): RowNode {
 
-        const newNode = this.createNode(data, null, ClientSideNodeManager.TOP_LEVEL);
+        const newNode = this.createNode(data, this.rootNode, ClientSideNodeManager.TOP_LEVEL);
 
         if (_.exists(index)) {
             _.insertIntoArray(this.rootNode.allLeafChildren, newNode, index);
@@ -220,23 +261,6 @@ export class ClientSideNodeManager {
         return rowNode;
     }
 
-    private updatedRowNode(rowNode: RowNode, data: any, update: boolean): void {
-        if (update) {
-            // do update
-            rowNode.updateData(data);
-        } else {
-            // do delete - setting 'tailingNodeInSequence = true' to ensure EVENT_SELECTION_CHANGED is not raised for
-            // each row node updated, instead it is raised once by the calling code if any selected nodes exist.
-            rowNode.setSelected(false, false, true);
-
-            // so row renderer knows to fade row out (and not reposition it)
-            rowNode.clearRowTop();
-
-            _.removeFromArray(this.rootNode.allLeafChildren, rowNode);
-            this.allNodesMap[rowNode.id] = undefined;
-        }
-    }
-
     private recursiveFunction(rowData: any[], parent: RowNode, level: number): RowNode[] {
 
         // make sure the rowData is an array and not a string of json - this was a commonly reported problem on the forum
@@ -268,7 +292,8 @@ export class ClientSideNodeManager {
             node.expanded = nodeChildDetails.expanded === true;
             node.field = nodeChildDetails.field;
             node.key = nodeChildDetails.key;
-            node.canFlower = node.master; // deprecated, is now 'master'
+            /** @deprecated is now 'master' */
+            node.canFlower = node.master;
             // pull out all the leaf children and add to our node
             this.setLeafChildren(node);
         } else {
@@ -346,33 +371,6 @@ export class ClientSideNodeManager {
                 }
             });
         }
-    }
-
-    public insertItemsAtIndex(index: number, rowData: any[]): RowNode[] {
-        if (this.isLegacyTreeData()) { return null; }
-
-        const nodeList = this.rootNode.allLeafChildren;
-
-        if (index > nodeList.length) {
-            console.warn(`ag-Grid: invalid index ${index}, max index is ${nodeList.length}`);
-            return;
-        }
-
-        const newNodes: RowNode[] = [];
-        // go through the items backwards, otherwise they get added in reverse order
-        for (let i = rowData.length - 1; i >= 0; i--) {
-            const data = rowData[i];
-            const newNode = this.createNode(data, null, ClientSideNodeManager.TOP_LEVEL);
-            _.insertIntoArray(nodeList, newNode, index);
-            newNodes.push(newNode);
-        }
-
-        return newNodes.length > 0 ? newNodes : null;
-    }
-
-    public addItems(items: any): RowNode[] {
-        const nodeList = this.rootNode.allLeafChildren;
-        return this.insertItemsAtIndex(nodeList.length, items);
     }
 
     public isLegacyTreeData(): boolean {

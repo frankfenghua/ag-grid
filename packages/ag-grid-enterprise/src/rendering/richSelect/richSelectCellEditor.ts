@@ -1,21 +1,22 @@
-
 import {
-    ICellEditor,
-    Component,
     Autowired,
-    Context,
-    Utils,
+    Component,
     Constants,
+    ICellEditor,
     ICellRendererComp,
-    CellRendererService,
+    ICellRendererParams,
     IRichCellEditorParams,
+    PopupComponent,
     Promise,
+    UserComponentFactory,
+    GridOptionsWrapper,
+    RefSelector,
     _
 } from "ag-grid-community";
 import { RichSelectRow } from "./richSelectRow";
 import { VirtualList } from "../virtualList";
 
-export class RichSelectCellEditor extends Component implements ICellEditor {
+export class RichSelectCellEditor extends PopupComponent implements ICellEditor {
 
     // tab index is needed so we can focus, which is needed for keyboard events
     private static TEMPLATE =
@@ -24,8 +25,11 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
             <div ref="eList" class="ag-rich-select-list"></div>
         </div>`;
 
-    @Autowired('context') context: Context;
-    @Autowired('cellRendererService') cellRendererService: CellRendererService;
+    @Autowired('userComponentFactory') private userComponentFactory: UserComponentFactory;
+    @Autowired('gridOptionsWrapper') private gridOptionsWrapper: GridOptionsWrapper;
+
+    @RefSelector('eValue') private eValue: HTMLElement;
+    @RefSelector('eList') private eList: HTMLElement;
 
     private params: IRichCellEditorParams;
     private virtualList: VirtualList;
@@ -41,8 +45,8 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
     // the editing). in this instance, selectedValue will be a new value, however
     // the editing was effectively cancelled.
     private originalSelectedValue: any;
-
     private selectionConfirmed = false;
+    private searchString = '';
 
     constructor() {
         super(RichSelectCellEditor.TEMPLATE);
@@ -53,35 +57,43 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
         this.selectedValue = params.value;
         this.originalSelectedValue = params.value;
         this.focusAfterAttached = params.cellStartedEdit;
+        this.eValue.appendChild(_.createIconNoSpan('smallDown', this.gridOptionsWrapper));
 
         this.virtualList = new VirtualList();
-        this.context.wireBean(this.virtualList);
+        this.getContext().wireBean(this.virtualList);
 
         this.virtualList.setComponentCreator(this.createRowComponent.bind(this));
 
-        this.getRefElement('eList').appendChild(this.virtualList.getGui());
+        this.eList.appendChild(this.virtualList.getGui());
 
-        if (Utils.exists(this.params.cellHeight)) {
+        if (_.exists(this.params.cellHeight)) {
             this.virtualList.setRowHeight(this.params.cellHeight);
         }
 
         this.renderSelectedValue();
 
-        if (Utils.missing(params.values)) {
+        if (_.missing(params.values)) {
             console.warn('ag-Grid: richSelectCellEditor requires values for it to work');
             return;
         }
         const values = params.values;
 
         this.virtualList.setModel({
-            getRowCount: function() { return values.length; },
-            getRow(index: number) { return values[index]; }
+            getRowCount: () => values.length,
+            getRow: (index: number) => values[index]
         });
 
         this.addGuiEventListener('keydown', this.onKeyDown.bind(this));
+        const virtualListGui = this.virtualList.getGui();
 
-        this.addDestroyableEventListener(this.virtualList.getGui(), 'click', this.onClick.bind(this));
-        this.addDestroyableEventListener(this.virtualList.getGui(), 'mousemove', this.onMouseMove.bind(this));
+        this.addDestroyableEventListener(virtualListGui, 'click', this.onClick.bind(this));
+        this.addDestroyableEventListener(virtualListGui, 'mousemove', this.onMouseMove.bind(this));
+
+        this.clearSearchString = _.debounce(this.clearSearchString, 300);
+
+        if (_.exists(params.charPress)) {
+            this.searchText(params.charPress as string);
+        }
     }
 
     private onKeyDown(event: KeyboardEvent): void {
@@ -95,6 +107,8 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
             case Constants.KEY_UP:
                 this.onNavigationKeyPressed(event, key);
                 break;
+            default:
+                this.searchText(event);
         }
     }
 
@@ -116,22 +130,58 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
         }
     }
 
+    private searchText(key: KeyboardEvent | string) {
+        if (typeof key !== 'string') {
+            if (!_.isCharacterKey(key)) {
+                return;
+            }
+            key = key.key as string;
+        }
+
+        this.searchString += key;
+        this.runSearch();
+        this.clearSearchString();
+    }
+
+    private runSearch() {
+        const suggestions = _.fuzzySuggestions(this.searchString, this.params.values, true, true);
+
+        if (!suggestions.length) {
+            return;
+        }
+
+        this.setSelectedValue(suggestions[0]);
+    }
+
+    private clearSearchString(): void {
+        this.searchString = '';
+    }
+
     private renderSelectedValue(): void {
         const valueFormatted = this.params.formatValue(this.selectedValue);
-        const eValue = this.getRefElement('eValue') as HTMLElement;
+        const eValue = this.eValue;
 
-        const promise:Promise<ICellRendererComp> = this.cellRendererService.useRichSelectCellRenderer(this.params.column.getColDef(), eValue, {value: this.selectedValue, valueFormatted: valueFormatted});
+        const params = {
+            value: this.selectedValue,
+            valueFormatted: valueFormatted,
+            api: this.gridOptionsWrapper.getApi()
+        } as ICellRendererParams;
 
-        const foundRenderer = _.exists(promise);
+        const promise: Promise<ICellRendererComp> = this.userComponentFactory.newCellRenderer(this.params, params);
+        if (promise != null) {
+            _.bindCellRendererToHtmlElement(promise, eValue);
+        } else {
+            eValue.innerText = params.valueFormatted != null ? params.valueFormatted : params.value;
+        }
 
-        if (foundRenderer) {
+        if (promise) {
             promise.then(renderer => {
                 if (renderer && renderer.destroy) {
                     this.addDestroyFunc(() => renderer.destroy());
                 }
             });
         } else {
-            if (Utils.exists(this.selectedValue)) {
+            if (_.exists(this.selectedValue)) {
                 eValue.innerHTML = valueFormatted;
             } else {
                 _.clearElement(eValue);
@@ -155,9 +205,10 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
 
     private createRowComponent(value: any): Component {
         const valueFormatted = this.params.formatValue(value);
-        const row = new RichSelectRow(this.params.column.getColDef());
-        this.context.wireBean(row);
+        const row = new RichSelectRow(this.params);
+        this.getContext().wireBean(row);
         row.setState(value, valueFormatted, value === this.selectedValue);
+
         return row;
     }
 
@@ -187,7 +238,7 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
         const selectedIndex = this.params.values.indexOf(this.selectedValue);
 
         // we have to call this here to get the list to have the right height, ie
-        // otherwise it would not have scrolls yet and ensureIndeVisible would do nothing
+        // otherwise it would not have scrolls yet and ensureIndexVisible would do nothing
         this.virtualList.refresh();
 
         if (selectedIndex >= 0) {
@@ -203,14 +254,9 @@ export class RichSelectCellEditor extends Component implements ICellEditor {
     }
 
     public getValue(): any {
-        if (this.selectionConfirmed) {
-            return this.selectedValue;
-        } else {
-            return this.originalSelectedValue;
-        }
-    }
-
-    public isPopup(): boolean {
-        return true;
+        // NOTE: we don't use valueParser for Set Filter. The user should provide values that are to be
+        // set into the data. valueParser only really makese sense when the user is typing in text (not picking
+        // form a set).
+        return this.selectionConfirmed ? this.selectedValue : this.originalSelectedValue;
     }
 }

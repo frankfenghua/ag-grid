@@ -1,4 +1,4 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v21.2.1
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { LoggerFactory } from "./logger";
@@ -11,7 +11,6 @@ export declare class GridCore extends Component {
     private gridOptions;
     private gridOptionsWrapper;
     private rowModel;
-    private frameworkFactory;
     private resizeObserverService;
     private columnController;
     private rowRenderer;
@@ -22,28 +21,24 @@ export declare class GridCore extends Component {
     private quickFilterOnScope;
     private popupService;
     private focusedCellController;
-    private context;
     loggerFactory: LoggerFactory;
     private columnApi;
     private gridApi;
-    private rowGroupCompFactory;
-    private pivotCompFactory;
+    private clipboardService;
     private gridPanel;
     private sideBarComp;
     private eRootWrapperBody;
-    private finished;
     private doingVirtualPaging;
     private logger;
-    constructor();
     init(): void;
     private onGridSizeChanged;
-    getPreferredWidth(): number;
     private addRtlSupport;
     getRootGui(): HTMLElement;
     isSideBarVisible(): boolean;
     setSideBarVisible(show: boolean): void;
     closeToolPanel(): void;
     getSideBar(): SideBarDef;
+    refreshSideBar(): void;
     setSideBar(def: SideBarDef | string | boolean): void;
     getOpenedToolPanel(): string;
     openToolPanel(key: string): void;

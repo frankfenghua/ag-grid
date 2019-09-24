@@ -1,20 +1,26 @@
-// ag-grid-enterprise v20.0.0
-import { ICellEditor, Component, Context, CellRendererService, IRichCellEditorParams } from "ag-grid-community";
-export declare class RichSelectCellEditor extends Component implements ICellEditor {
+// ag-grid-enterprise v21.2.1
+import { ICellEditor, IRichCellEditorParams, PopupComponent } from "ag-grid-community";
+export declare class RichSelectCellEditor extends PopupComponent implements ICellEditor {
     private static TEMPLATE;
-    context: Context;
-    cellRendererService: CellRendererService;
+    private userComponentFactory;
+    private gridOptionsWrapper;
+    private eValue;
+    private eList;
     private params;
     private virtualList;
     private focusAfterAttached;
     private selectedValue;
     private originalSelectedValue;
     private selectionConfirmed;
+    private searchString;
     constructor();
     init(params: IRichCellEditorParams): void;
     private onKeyDown;
     private onEnterKeyDown;
     private onNavigationKeyPressed;
+    private searchText;
+    private runSearch;
+    private clearSearchString;
     private renderSelectedValue;
     private setSelectedValue;
     private createRowComponent;
@@ -22,5 +28,4 @@ export declare class RichSelectCellEditor extends Component implements ICellEdit
     private onClick;
     afterGuiAttached(): void;
     getValue(): any;
-    isPopup(): boolean;
 }

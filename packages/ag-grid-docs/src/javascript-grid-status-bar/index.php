@@ -1,6 +1,6 @@
 <?php
 $pageTitle = "Status Bar: Enterprise Grade Feature of our Datagrid";
-$pageDescription = "ag-Grid is a feature-rich data grid supporting major JavaScript Frameworks. One such feature is Status Bar. The Status Bar appears on the bottom of the grid and shows aggregations (sum, min, max etc.) when you select a range of cells using range selection. This is similar to what happens in Excel. Version 20 is available for download now, take it for a free two month trial.";
+$pageDescription = "Enterprise feature of ag-Grid supporting Angular, React, Javascript and more. One such feature is Status Bar. The Status Bar appears on the bottom of the grid and shows aggregations (sum, min, max etc.) when you select a range of cells using range selection. This is similar to what happens in Excel. Version 20 is available for download now, take it for a free two month trial.";
 $pageKeyboards = "ag-Grid JavaScript Grid Status Bar";
 $pageGroup = "feature";
 include '../documentation-main/documentation_header.php';
@@ -10,6 +10,8 @@ include '../documentation-main/documentation_header.php';
 
 <p class="lead">The status bar appears below the grid and holds components that
     typically display information about the data in the grid.</p>
+
+<? enterprise_feature("Status Bar"); ?>
 
 <p>Within the Status Bar you can specify which Status Bar Panels you want to display. </p>
 
@@ -81,7 +83,10 @@ gridOptions: {
     The example below shows a simply configured status bar. Note the following:
 <ul>
     <li>
-        The total row count is displayed by the <code>agTotalRowCountComponent</code> component, aligned to the left.
+        The total and filtered row count is displayed using the <code>agTotalAndFilteredRowCountComponent</code> component (aligned to the left).
+    </li>
+    <li>
+        The total row count is displayed by the <code>agTotalRowCountComponent</code> component (centered).
     </li>
     <li>
         The row count after filtering is displayed by the <code>agFilteredRowCountComponent</code> component.
@@ -178,7 +183,7 @@ gridOptions: {
 
 <p>
     The example below demonstrates providing parameters to the status bar components.
-    Note the following:
+    Note the following:a
     <ul>
         <li>
             The component <code>agAggregationComponent</code> is provided with
@@ -193,6 +198,29 @@ gridOptions: {
 
 <?= example('Status Bar Params', 'status-bar-params', 'generated', array("enterprise" => 1, "processVue" => true)) ?>
 
+<h2>Initialisation of Status Bar Components</h2>
+
+<p>The status bar components will be instantiated before the grid is fully initialised - specifically they will be initialised
+before any row data has been rendered.</p>
+
+<p>If you have a component that you wish to work on data once it's ready (calculate the sum of a column for example) then you'll
+need to hook into either the <code>gridReady</code> or the <code>firstDataRendered</code> events.</p>
+
+<snippet>
+function ClickableStatusBarComponent() {
+}
+
+ClickableStatusBarComponent.prototype.init = function (params) {
+    this.params = params;
+
+    console.log(params.api.getModel().rowsToDisplay);       // No rows will be available yet
+
+    params.api.addEventListener('gridReady', () => {        // Or the firstDataRendered event
+        console.log(params.api.getModel().rowsToDisplay);   // Rows will now be available
+    });
+}
+</snippet>
+
 <h2>Status Bar Height</h2>
 
 <p>
@@ -201,7 +229,7 @@ gridOptions: {
 </p>
 
 <p>
-    The have the status bar with a fixed height, add CSS to the status bar div as follows:
+    To force the the status bar to have a fixed height, add CSS to the status bar div as follows:
 </p>
 
 <code>

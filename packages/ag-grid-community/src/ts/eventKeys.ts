@@ -60,6 +60,12 @@ export class Events {
     /** Range selection has changed */
     public static EVENT_RANGE_SELECTION_CHANGED = 'rangeSelectionChanged';
 
+    /** Chart Range selection has changed */
+    public static EVENT_CHART_RANGE_SELECTION_CHANGED = 'chartRangeSelectionChanged';
+
+    /** Chart Options have changed */
+    public static EVENT_CHART_OPTIONS_CHANGED = 'chartOptionsChanged';
+
     /** For when the tool panel is shown / hidden */
     public static EVENT_TOOL_PANEL_VISIBLE_CHANGED = 'toolPanelVisibleChanged';
 
@@ -78,6 +84,9 @@ export class Events {
     public static EVENT_CELL_FOCUSED = 'cellFocused';
     public static EVENT_ROW_SELECTED = 'rowSelected';
     public static EVENT_SELECTION_CHANGED = 'selectionChanged';
+
+    public static EVENT_CELL_KEY_DOWN = 'cellKeyDown';
+    public static EVENT_CELL_KEY_PRESS = 'cellKeyPress';
 
     public static EVENT_CELL_MOUSE_OVER = 'cellMouseOver';
     public static EVENT_CELL_MOUSE_OUT = 'cellMouseOut';
@@ -128,7 +137,7 @@ export class Events {
      * or the user has moved to a different page. */
     public static EVENT_PAGINATION_CHANGED = 'paginationChanged';
 
-    /** Only used by React, Angular 2+, Web Components, Aurelia and VueJS ag-Grid components
+    /** Only used by React, Angular 2+, Web Components and VueJS ag-Grid components
      * (not used if doing plain JavaScript or Angular 1.x). If the grid receives changes due
      * to bound properties, this event fires after the grid has finished processing the change. */
     public static EVENT_COMPONENT_STATE_CHANGED = 'componentStateChanged';

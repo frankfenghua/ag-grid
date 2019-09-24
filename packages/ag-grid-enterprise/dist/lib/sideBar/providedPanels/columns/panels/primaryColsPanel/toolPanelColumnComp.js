@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -37,6 +37,9 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
     }
     ToolPanelColumnComp.prototype.init = function () {
         this.setTemplate(ToolPanelColumnComp.TEMPLATE);
+        this.eDragHandle = main_1._.createIconNoSpan('columnDrag', this.gridOptionsWrapper);
+        main_1._.addCssClass(this.eDragHandle, 'ag-column-drag');
+        this.cbSelect.getGui().insertAdjacentElement('afterend', this.eDragHandle);
         this.displayName = this.columnController.getDisplayNameForColumn(this.column, 'toolPanel');
         var displayNameSanitised = main_1._.escape(this.displayName);
         this.eLabel.innerHTML = displayNameSanitised;
@@ -53,12 +56,16 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
         this.addDestroyableEventListener(this.column, main_1.Column.EVENT_ROW_GROUP_CHANGED, this.onColumnStateChanged.bind(this));
         this.addDestroyableEventListener(this.column, main_1.Column.EVENT_VISIBLE_CHANGED, this.onColumnStateChanged.bind(this));
         this.addDestroyableEventListener(this.gridOptionsWrapper, 'functionsReadOnly', this.onColumnStateChanged.bind(this));
-        this.instantiate(this.context);
+        this.addDestroyableEventListener(this.cbSelect, main_1.AgCheckbox.EVENT_CHANGED, this.onCheckboxChanged.bind(this));
+        this.addDestroyableEventListener(this.eLabel, 'click', this.onLabelClicked.bind(this));
         this.onColumnStateChanged();
         main_1.CssClassApplier.addToolPanelClassesFromColDef(this.column.getColDef(), this.getGui(), this.gridOptionsWrapper, this.column, null);
     };
     ToolPanelColumnComp.prototype.onLabelClicked = function () {
-        var nextState = !this.cbSelect.isSelected();
+        if (this.gridOptionsWrapper.isFunctionsReadOnly()) {
+            return;
+        }
+        var nextState = !this.cbSelect.getValue();
         this.onChangeCommon(nextState);
     };
     ToolPanelColumnComp.prototype.onCheckboxChanged = function (event) {
@@ -66,7 +73,7 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
     };
     ToolPanelColumnComp.prototype.onChangeCommon = function (nextState) {
         // ignore lock visible columns
-        if (this.column.isLockVisible()) {
+        if (this.column.getColDef().lockVisible) {
             return;
         }
         // only want to action if the user clicked the checkbox, not is we are setting the checkbox because
@@ -207,7 +214,7 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
     ToolPanelColumnComp.prototype.setupDragging = function () {
         var _this = this;
         if (!this.allowDragging) {
-            main_1._.setVisible(this.eDragHandle, false);
+            main_1._.setDisplayed(this.eDragHandle, false);
             return;
         }
         var dragSource = {
@@ -233,14 +240,14 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
         if (isPivotMode) {
             // if reducing, checkbox means column is one of pivot, value or group
             var anyFunctionActive = this.column.isAnyFunctionActive();
-            this.cbSelect.setSelected(anyFunctionActive);
+            this.cbSelect.setValue(anyFunctionActive);
             if (this.selectionCallback) {
                 this.selectionCallback(this.isSelected());
             }
         }
         else {
             // if not reducing, the checkbox tells us if column is visible or not
-            this.cbSelect.setSelected(this.column.isVisible());
+            this.cbSelect.setValue(this.column.isVisible());
             if (this.selectionCallback) {
                 this.selectionCallback(this.isSelected());
             }
@@ -256,7 +263,7 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
         }
         else {
             // when in normal mode, the checkbox is read only if visibility is locked
-            checkboxReadOnly = this.column.isLockVisible();
+            checkboxReadOnly = !!this.column.getColDef().lockVisible;
         }
         this.cbSelect.setReadOnly(checkboxReadOnly);
         var checkboxPassive = isPivotMode && this.gridOptionsWrapper.isFunctionsPassive();
@@ -267,14 +274,14 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
         return this.displayName;
     };
     ToolPanelColumnComp.prototype.onSelectAllChanged = function (value) {
-        if (value !== this.cbSelect.isSelected()) {
+        if (value !== this.cbSelect.getValue()) {
             if (!this.cbSelect.isReadOnly()) {
                 this.cbSelect.toggle();
             }
         }
     };
     ToolPanelColumnComp.prototype.isSelected = function () {
-        return this.cbSelect.isSelected();
+        return this.cbSelect.getValue();
     };
     ToolPanelColumnComp.prototype.isSelectable = function () {
         return !this.cbSelect.isReadOnly();
@@ -285,7 +292,7 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
     ToolPanelColumnComp.prototype.setExpanded = function (value) {
         console.warn('ag-grid: can not expand a column item that does not represent a column group header');
     };
-    ToolPanelColumnComp.TEMPLATE = "<div class=\"ag-column-tool-panel-column\">\n            <ag-checkbox ref=\"cbSelect\" class=\"ag-column-select-checkbox\" (change)=\"onCheckboxChanged\"></ag-checkbox>\n            <span class=\"ag-column-drag\" ref=\"eDragHandle\"></span>\n            <span class=\"ag-column-tool-panel-column-label\" ref=\"eLabel\" (click)=\"onLabelClicked\"></span>\n        </div>";
+    ToolPanelColumnComp.TEMPLATE = "<div class=\"ag-column-tool-panel-column\">\n            <ag-checkbox ref=\"cbSelect\" class=\"ag-column-select-checkbox\"></ag-checkbox>\n            <span class=\"ag-column-tool-panel-column-label\" ref=\"eLabel\"></span>\n        </div>";
     __decorate([
         main_1.Autowired('gridOptionsWrapper'),
         __metadata("design:type", main_1.GridOptionsWrapper)
@@ -303,10 +310,6 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
         __metadata("design:type", main_1.DragAndDropService)
     ], ToolPanelColumnComp.prototype, "dragAndDropService", void 0);
     __decorate([
-        main_1.Autowired('context'),
-        __metadata("design:type", main_1.Context)
-    ], ToolPanelColumnComp.prototype, "context", void 0);
-    __decorate([
         main_1.Autowired('columnApi'),
         __metadata("design:type", main_1.ColumnApi)
     ], ToolPanelColumnComp.prototype, "columnApi", void 0);
@@ -322,10 +325,6 @@ var ToolPanelColumnComp = /** @class */ (function (_super) {
         main_1.RefSelector('cbSelect'),
         __metadata("design:type", main_1.AgCheckbox)
     ], ToolPanelColumnComp.prototype, "cbSelect", void 0);
-    __decorate([
-        main_1.RefSelector('eDragHandle'),
-        __metadata("design:type", HTMLElement)
-    ], ToolPanelColumnComp.prototype, "eDragHandle", void 0);
     __decorate([
         main_1.PostConstruct,
         __metadata("design:type", Function),

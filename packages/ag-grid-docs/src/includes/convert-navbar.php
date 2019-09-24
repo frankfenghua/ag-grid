@@ -6,7 +6,7 @@
         data-toggle="collapse" data-target="#main-nav" aria-controls="main-nav" aria-expanded="false" aria-label="Toggle navigation">
         <span>&nbsp;</span>
     </button>
-    <div class="collapse navbar-collapse" id="main-nav">
+    <div class="collapse navbar-collapse sticky-top" id="main-nav">
         <?php if ($version == 'latest') { ?>
             <ul>
                                 <li class="<?php if ($navKey == "demo") { ?>active<?php }?>">
@@ -22,12 +22,6 @@
                     <a href="/documentation-main/documentation.php">Documentation</a>
                 </li>
 
-
-                <?php if (!defined('HOMEPAGE')) { ?>
-                <li id="trial" class="<?php if ($navKey == "trial") { ?> active<?php }?>">
-                    <a href="/start-trial.php">Start Your 2-Month Free Trial</a>
-                </li>
-                <?php }?>
             </ul>
         <?php } else { ?> 
             <ul>

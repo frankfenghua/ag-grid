@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 "use strict";
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -31,6 +31,7 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
     function RichSelectCellEditor() {
         var _this = _super.call(this, RichSelectCellEditor.TEMPLATE) || this;
         _this.selectionConfirmed = false;
+        _this.searchString = '';
         return _this;
     }
     RichSelectCellEditor.prototype.init = function (params) {
@@ -38,15 +39,16 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
         this.selectedValue = params.value;
         this.originalSelectedValue = params.value;
         this.focusAfterAttached = params.cellStartedEdit;
+        this.eValue.appendChild(ag_grid_community_1._.createIconNoSpan('smallDown', this.gridOptionsWrapper));
         this.virtualList = new virtualList_1.VirtualList();
-        this.context.wireBean(this.virtualList);
+        this.getContext().wireBean(this.virtualList);
         this.virtualList.setComponentCreator(this.createRowComponent.bind(this));
-        this.getRefElement('eList').appendChild(this.virtualList.getGui());
-        if (ag_grid_community_1.Utils.exists(this.params.cellHeight)) {
+        this.eList.appendChild(this.virtualList.getGui());
+        if (ag_grid_community_1._.exists(this.params.cellHeight)) {
             this.virtualList.setRowHeight(this.params.cellHeight);
         }
         this.renderSelectedValue();
-        if (ag_grid_community_1.Utils.missing(params.values)) {
+        if (ag_grid_community_1._.missing(params.values)) {
             console.warn('ag-Grid: richSelectCellEditor requires values for it to work');
             return;
         }
@@ -56,8 +58,13 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
             getRow: function (index) { return values[index]; }
         });
         this.addGuiEventListener('keydown', this.onKeyDown.bind(this));
-        this.addDestroyableEventListener(this.virtualList.getGui(), 'click', this.onClick.bind(this));
-        this.addDestroyableEventListener(this.virtualList.getGui(), 'mousemove', this.onMouseMove.bind(this));
+        var virtualListGui = this.virtualList.getGui();
+        this.addDestroyableEventListener(virtualListGui, 'click', this.onClick.bind(this));
+        this.addDestroyableEventListener(virtualListGui, 'mousemove', this.onMouseMove.bind(this));
+        this.clearSearchString = ag_grid_community_1._.debounce(this.clearSearchString, 300);
+        if (ag_grid_community_1._.exists(params.charPress)) {
+            this.searchText(params.charPress);
+        }
     };
     RichSelectCellEditor.prototype.onKeyDown = function (event) {
         var key = event.which || event.keyCode;
@@ -69,6 +76,8 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
             case ag_grid_community_1.Constants.KEY_UP:
                 this.onNavigationKeyPressed(event, key);
                 break;
+            default:
+                this.searchText(event);
         }
     };
     RichSelectCellEditor.prototype.onEnterKeyDown = function () {
@@ -85,13 +94,44 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
             this.setSelectedValue(valueToSelect);
         }
     };
+    RichSelectCellEditor.prototype.searchText = function (key) {
+        if (typeof key !== 'string') {
+            if (!ag_grid_community_1._.isCharacterKey(key)) {
+                return;
+            }
+            key = key.key;
+        }
+        this.searchString += key;
+        this.runSearch();
+        this.clearSearchString();
+    };
+    RichSelectCellEditor.prototype.runSearch = function () {
+        var suggestions = ag_grid_community_1._.fuzzySuggestions(this.searchString, this.params.values, true, true);
+        if (!suggestions.length) {
+            return;
+        }
+        this.setSelectedValue(suggestions[0]);
+    };
+    RichSelectCellEditor.prototype.clearSearchString = function () {
+        this.searchString = '';
+    };
     RichSelectCellEditor.prototype.renderSelectedValue = function () {
         var _this = this;
         var valueFormatted = this.params.formatValue(this.selectedValue);
-        var eValue = this.getRefElement('eValue');
-        var promise = this.cellRendererService.useRichSelectCellRenderer(this.params.column.getColDef(), eValue, { value: this.selectedValue, valueFormatted: valueFormatted });
-        var foundRenderer = ag_grid_community_1._.exists(promise);
-        if (foundRenderer) {
+        var eValue = this.eValue;
+        var params = {
+            value: this.selectedValue,
+            valueFormatted: valueFormatted,
+            api: this.gridOptionsWrapper.getApi()
+        };
+        var promise = this.userComponentFactory.newCellRenderer(this.params, params);
+        if (promise != null) {
+            ag_grid_community_1._.bindCellRendererToHtmlElement(promise, eValue);
+        }
+        else {
+            eValue.innerText = params.valueFormatted != null ? params.valueFormatted : params.value;
+        }
+        if (promise) {
             promise.then(function (renderer) {
                 if (renderer && renderer.destroy) {
                     _this.addDestroyFunc(function () { return renderer.destroy(); });
@@ -99,7 +139,7 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
             });
         }
         else {
-            if (ag_grid_community_1.Utils.exists(this.selectedValue)) {
+            if (ag_grid_community_1._.exists(this.selectedValue)) {
                 eValue.innerHTML = valueFormatted;
             }
             else {
@@ -120,8 +160,8 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
     };
     RichSelectCellEditor.prototype.createRowComponent = function (value) {
         var valueFormatted = this.params.formatValue(value);
-        var row = new richSelectRow_1.RichSelectRow(this.params.column.getColDef());
-        this.context.wireBean(row);
+        var row = new richSelectRow_1.RichSelectRow(this.params);
+        this.getContext().wireBean(row);
         row.setState(value, valueFormatted, value === this.selectedValue);
         return row;
     };
@@ -145,7 +185,7 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
     RichSelectCellEditor.prototype.afterGuiAttached = function () {
         var selectedIndex = this.params.values.indexOf(this.selectedValue);
         // we have to call this here to get the list to have the right height, ie
-        // otherwise it would not have scrolls yet and ensureIndeVisible would do nothing
+        // otherwise it would not have scrolls yet and ensureIndexVisible would do nothing
         this.virtualList.refresh();
         if (selectedIndex >= 0) {
             this.virtualList.ensureIndexVisible(selectedIndex);
@@ -157,26 +197,29 @@ var RichSelectCellEditor = /** @class */ (function (_super) {
         }
     };
     RichSelectCellEditor.prototype.getValue = function () {
-        if (this.selectionConfirmed) {
-            return this.selectedValue;
-        }
-        else {
-            return this.originalSelectedValue;
-        }
-    };
-    RichSelectCellEditor.prototype.isPopup = function () {
-        return true;
+        // NOTE: we don't use valueParser for Set Filter. The user should provide values that are to be
+        // set into the data. valueParser only really makese sense when the user is typing in text (not picking
+        // form a set).
+        return this.selectionConfirmed ? this.selectedValue : this.originalSelectedValue;
     };
     // tab index is needed so we can focus, which is needed for keyboard events
     RichSelectCellEditor.TEMPLATE = "<div class=\"ag-rich-select\" tabindex=\"0\">\n            <div ref=\"eValue\" class=\"ag-rich-select-value\"></div>\n            <div ref=\"eList\" class=\"ag-rich-select-list\"></div>\n        </div>";
     __decorate([
-        ag_grid_community_1.Autowired('context'),
-        __metadata("design:type", ag_grid_community_1.Context)
-    ], RichSelectCellEditor.prototype, "context", void 0);
+        ag_grid_community_1.Autowired('userComponentFactory'),
+        __metadata("design:type", ag_grid_community_1.UserComponentFactory)
+    ], RichSelectCellEditor.prototype, "userComponentFactory", void 0);
     __decorate([
-        ag_grid_community_1.Autowired('cellRendererService'),
-        __metadata("design:type", ag_grid_community_1.CellRendererService)
-    ], RichSelectCellEditor.prototype, "cellRendererService", void 0);
+        ag_grid_community_1.Autowired('gridOptionsWrapper'),
+        __metadata("design:type", ag_grid_community_1.GridOptionsWrapper)
+    ], RichSelectCellEditor.prototype, "gridOptionsWrapper", void 0);
+    __decorate([
+        ag_grid_community_1.RefSelector('eValue'),
+        __metadata("design:type", HTMLElement)
+    ], RichSelectCellEditor.prototype, "eValue", void 0);
+    __decorate([
+        ag_grid_community_1.RefSelector('eList'),
+        __metadata("design:type", HTMLElement)
+    ], RichSelectCellEditor.prototype, "eList", void 0);
     return RichSelectCellEditor;
-}(ag_grid_community_1.Component));
+}(ag_grid_community_1.PopupComponent));
 exports.RichSelectCellEditor = RichSelectCellEditor;

@@ -1,9 +1,8 @@
-// Type definitions for ag-grid-community v20.0.0
+// Type definitions for ag-grid-community v20.2.0
 // Project: http://www.ag-grid.com/
 // Definitions by: Niall Crosby <https://github.com/ag-grid/>
 import { Component } from "../widgets/component";
-import { IDoesFilterPassParams, IFilterComp, IFilterParams } from "../interfaces/iFilter";
-import { Context } from "../context/context";
+import { IFilterOptionDef, IDoesFilterPassParams, IFilterComp, IFilterParams } from "../interfaces/iFilter";
 import { GridOptionsWrapper } from "../gridOptionsWrapper";
 import { FloatingFilterChange } from "./floatingFilter";
 import { INumberFilterParams, ITextFilterParams } from "./textFilter";
@@ -29,6 +28,7 @@ export interface CombinedFilter<T> {
  * get/setModel context wiring....
  */
 export declare abstract class BaseFilter<T, P extends IFilterParams, M> extends Component implements IFilterComp {
+    static EMPTY: string;
     static EQUALS: string;
     static NOT_EQUAL: string;
     static LESS_THAN: string;
@@ -41,17 +41,19 @@ export declare abstract class BaseFilter<T, P extends IFilterParams, M> extends 
     static STARTS_WITH: string;
     static ENDS_WITH: string;
     private newRowsActionKeep;
+    customFilterOptions: {
+        [name: string]: IFilterOptionDef;
+    };
     filterParams: P;
     clearActive: boolean;
     applyActive: boolean;
     defaultFilter: string;
-    filter: string;
-    filterCondition: string;
+    selectedFilter: string;
+    selectedFilterCondition: string;
     private eButtonsPanel;
     private eFilterBodyWrapper;
     private eApplyButton;
     private eClearButton;
-    context: Context;
     private eConditionWrapper;
     conditionValue: string;
     gridOptionsWrapper: GridOptionsWrapper;
@@ -62,7 +64,7 @@ export declare abstract class BaseFilter<T, P extends IFilterParams, M> extends 
     abstract modelFromFloatingFilter(from: string): M;
     abstract doesFilterPass(params: IDoesFilterPassParams): boolean;
     abstract bodyTemplate(type: FilterConditionType): string;
-    abstract resetState(): void;
+    abstract resetState(resetConditionFilterOnly?: boolean): void;
     abstract serialize(type: FilterConditionType): M;
     abstract parse(toParse: M, type: FilterConditionType): void;
     abstract refreshFilterBodyUi(type: FilterConditionType): void;
@@ -86,6 +88,7 @@ export declare abstract class BaseFilter<T, P extends IFilterParams, M> extends 
     private createConditionBody;
     translate(toTranslate: string): string;
     getDebounceMs(filterParams: ITextFilterParams | INumberFilterParams): number;
+    doesFilterHaveHiddenInput(filterType: string): boolean;
 }
 /**
  * Every filter with a dropdown where the user can specify a comparing type against the filter values

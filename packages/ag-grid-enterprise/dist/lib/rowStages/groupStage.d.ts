@@ -1,4 +1,4 @@
-// ag-grid-enterprise v20.0.0
+// ag-grid-enterprise v21.2.1
 import { IRowNodeStage, StageExecuteParams } from "ag-grid-community";
 export declare class GroupStage implements IRowNodeStage {
     private selectionController;
@@ -11,20 +11,24 @@ export declare class GroupStage implements IRowNodeStage {
     private usingTreeData;
     private getDataPath;
     private groupIdSequence;
+    private oldGroupingDetails;
     private postConstruct;
     execute(params: StageExecuteParams): void;
     private createGroupingDetails;
     private handleTransaction;
-    private recursiveSortChildren;
+    private sortChildren;
     private sortGroupsWithComparator;
     private getExistingPathForNode;
     private moveNodesInWrongPath;
     private moveNode;
     private removeNodes;
-    private removeOneNode;
+    private removeNodesInStages;
+    private forEachParentGroup;
+    private removeNodesFromParents;
+    private postRemoveCreateFillerNodes;
+    private postRemoveRemoveEmptyGroups;
     private removeFromParent;
     private addToParent;
-    private oldGroupingDetails;
     private areGroupColsEqual;
     private shotgunResetEverything;
     private insertNodes;
